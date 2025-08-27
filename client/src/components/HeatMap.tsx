@@ -30,7 +30,7 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
   const maxFrequency = frequencies ? Math.max(...frequencies.map((f: any) => f.frequency)) : 0;
 
   return (
-    <Card className="bg-card/30 border border-border glow-effect">
+    <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

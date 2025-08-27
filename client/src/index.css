@@ -7,7 +7,7 @@
   /* Cyberpunk color scheme */
   --background: hsl(220, 25%, 10%);
   --foreground: hsl(210, 100%, 95%);
-  --card: hsl(220, 25%, 12%);
+  --card: hsl(220, 25%, 8%);
   --card-foreground: hsl(210, 100%, 95%);
   --popover: hsl(220, 25%, 10%);
   --popover-foreground: hsl(210, 100%, 95%);
@@ -46,7 +46,7 @@
 .dark {
   --background: hsl(220, 25%, 8%);
   --foreground: hsl(210, 100%, 98%);
-  --card: hsl(220, 25%, 10%);
+  --card: hsl(220, 25%, 6%);
   --card-foreground: hsl(210, 100%, 98%);
   --popover: hsl(220, 25%, 8%);
   --popover-foreground: hsl(210, 100%, 98%);
@@ -71,9 +71,13 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     background-image: 
+      url('./assets/cyberpunk-shark.png'),
       radial-gradient(circle at 25% 25%, rgba(0, 191, 255, 0.1) 1px, transparent 1px),
       radial-gradient(circle at 75% 75%, rgba(255, 0, 150, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
+    background-size: 60vh, 50px 50px, 50px 50px;
+    background-position: center, 25% 25%, 75% 75%;
+    background-repeat: no-repeat, repeat, repeat;
+    background-attachment: fixed;
     min-height: 100vh;
   }
 }

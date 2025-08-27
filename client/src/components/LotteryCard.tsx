@@ -19,7 +19,7 @@ interface LotteryCardProps {
 export default function LotteryCard({ lottery, upcomingDraw, onSelect }: LotteryCardProps) {
   return (
     <Card 
-      className="bg-card/30 border border-border rounded-xl glow-effect hover:scale-105 transition-transform cursor-pointer"
+      className="bg-card/15 border border-border rounded-xl glow-effect hover:scale-105 transition-transform cursor-pointer backdrop-blur-sm"
       onClick={onSelect}
       data-testid={`lottery-card-${lottery.name.toLowerCase()}`}
     >

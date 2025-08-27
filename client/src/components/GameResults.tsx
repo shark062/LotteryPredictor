@@ -33,7 +33,7 @@ export default function GameResults() {
   }
 
   return (
-    <Card className="bg-card/30 border border-border glow-effect">
+    <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <span>🏆</span>

@@ -121,7 +121,7 @@ export default function NumberGenerator({
     <div className="space-y-6">
       <Confetti show={showConfetti} />
       
-      <Card className="bg-card/30 border border-border glow-effect">
+      <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>🎲</span>
@@ -212,7 +212,7 @@ export default function NumberGenerator({
 
       {/* Generated Numbers */}
       {generatedNumbers.length > 0 && (
-        <Card className="bg-card/30 border border-border glow-effect">
+        <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Jogo Gerado</CardTitle>
           </CardHeader>
@@ -247,7 +247,7 @@ export default function NumberGenerator({
       {/* Number Analysis */}
       {(showAnalysis || analysis) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="bg-card/30 border border-border glow-effect">
+          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🔥</span>
@@ -266,7 +266,7 @@ export default function NumberGenerator({
             </CardContent>
           </Card>
 
-          <Card className="bg-card/30 border border-border glow-effect">
+          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🥶</span>
@@ -285,7 +285,7 @@ export default function NumberGenerator({
             </CardContent>
           </Card>
 
-          <Card className="bg-card/30 border border-border glow-effect">
+          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🔮</span>
