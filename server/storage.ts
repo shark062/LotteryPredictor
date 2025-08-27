@@ -28,6 +28,7 @@ export interface IStorage {
   // Lottery operations
   getAllLotteries(): Promise<Lottery[]>;
   getLotteryById(id: number): Promise<Lottery | undefined>;
+  createLottery(lottery: Omit<Lottery, 'id' | 'createdAt'>): Promise<Lottery>;
   
   // Lottery results
   getLatestResults(lotteryId: number, limit?: number): Promise<LotteryResult[]>;
@@ -88,6 +89,14 @@ export class DatabaseStorage implements IStorage {
   async getLotteryById(id: number): Promise<Lottery | undefined> {
     const [lottery] = await db.select().from(lotteries).where(eq(lotteries.id, id));
     return lottery;
+  }
+
+  async createLottery(lotteryData: Omit<Lottery, 'id' | 'createdAt'>): Promise<Lottery> {
+    const [newLottery] = await db
+      .insert(lotteries)
+      .values(lotteryData)
+      .returning();
+    return newLottery;
   }
 
   // Lottery results

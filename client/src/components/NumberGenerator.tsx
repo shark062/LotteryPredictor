@@ -22,7 +22,7 @@ export default function NumberGenerator({
   onLotteryChange,
   showAnalysis = false 
 }: NumberGeneratorProps) {
-  const [numberCount, setNumberCount] = useState(15);
+  const [numberCount, setNumberCount] = useState('');
   const [preferences, setPreferences] = useState({
     useHot: true,
     useCold: false,
@@ -47,7 +47,7 @@ export default function NumberGenerator({
     mutationFn: async () => {
       const response = await apiRequest('POST', '/api/ai/predict', {
         lotteryId: selectedLottery,
-        count: numberCount,
+        count: parseInt(numberCount) || 0,
         preferences,
       });
       return response.json();
@@ -98,14 +98,16 @@ export default function NumberGenerator({
   const selectedLotteryData = lotteries?.find((l: any) => l.id === selectedLottery);
 
   const handleGenerate = () => {
-    if (numberCount === 0) {
+    const count = parseInt(numberCount) || 0;
+    
+    if (count === 0 || numberCount === '') {
       setGeneratedNumbers([]);
       return;
     }
     
     if (!selectedLotteryData) return;
     
-    if (numberCount > selectedLotteryData.maxNumbers) {
+    if (count > selectedLotteryData.maxNumbers) {
       toast({
         title: "Quantidade inválida",
         description: `Máximo de ${selectedLotteryData.maxNumbers} números para ${selectedLotteryData.name}`,
@@ -121,7 +123,7 @@ export default function NumberGenerator({
     <div className="space-y-6">
       <Confetti show={showConfetti} />
       
-      <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+      <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>🎲</span>
@@ -156,7 +158,7 @@ export default function NumberGenerator({
                 min="0"
                 max={selectedLotteryData?.maxNumbers || 60}
                 value={numberCount}
-                onChange={(e) => setNumberCount(parseInt(e.target.value) || 0)}
+                onChange={(e) => setNumberCount(e.target.value)}
                 placeholder="0-60"
                 data-testid="input-number-count"
               />
@@ -212,7 +214,7 @@ export default function NumberGenerator({
 
       {/* Generated Numbers */}
       {generatedNumbers.length > 0 && (
-        <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+        <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
           <CardHeader>
             <CardTitle>Jogo Gerado</CardTitle>
           </CardHeader>
@@ -247,7 +249,7 @@ export default function NumberGenerator({
       {/* Number Analysis */}
       {(showAnalysis || analysis) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+          <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🔥</span>
@@ -266,7 +268,7 @@ export default function NumberGenerator({
             </CardContent>
           </Card>
 
-          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+          <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🥶</span>
@@ -285,7 +287,7 @@ export default function NumberGenerator({
             </CardContent>
           </Card>
 
-          <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+          <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <span>🔮</span>

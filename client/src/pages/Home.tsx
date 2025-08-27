@@ -43,7 +43,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border bg-card/10 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect overflow-hidden">
@@ -84,7 +84,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-card/20 backdrop-blur-sm">
+          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2" data-testid="tab-dashboard">
               <span>📊</span>
               <span className="hidden sm:inline">Dashboard</span>
@@ -107,7 +107,7 @@ export default function Home() {
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center space-x-2" data-testid="tab-history">
               <span>📈</span>
-              <span className="hidden sm:inline">Histórico</span>
+              <span className="hidden sm:inline">Meus Jogos</span>
             </TabsTrigger>
           </TabsList>
 
@@ -126,7 +126,7 @@ export default function Home() {
 
             {/* User Stats */}
             {userStats && (
-              <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
+              <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <span>📊</span>
@@ -195,28 +195,13 @@ export default function Home() {
 
           {/* History */}
           <TabsContent value="history">
-            <Card className="bg-card/15 border border-border glow-effect backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <span>📈</span>
-                  <span>Histórico de Performance</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📊</div>
-                  <p className="text-muted-foreground">
-                    Gráficos detalhados de performance em desenvolvimento
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <GameResults showDetailedAnalysis={true} />
           </TabsContent>
         </Tabs>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/10 backdrop-blur-sm py-8 mt-16">
+      <footer className="border-t border-border bg-card/30 backdrop-blur-md py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
           <div className="mb-4">
             <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">

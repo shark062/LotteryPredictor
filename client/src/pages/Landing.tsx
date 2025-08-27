@@ -10,7 +10,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card className="login-container rounded-2xl border border-border glow-effect bg-card/20 backdrop-blur-sm">
+        <Card className="login-container rounded-2xl border border-border glow-effect bg-card/40 backdrop-blur-md">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect overflow-hidden">

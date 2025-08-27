@@ -12,6 +12,7 @@ interface LotteryCardProps {
   upcomingDraw?: {
     prize: string;
     date: string;
+    contestNumber: number;
   };
   onSelect: () => void;
 }
@@ -19,7 +20,7 @@ interface LotteryCardProps {
 export default function LotteryCard({ lottery, upcomingDraw, onSelect }: LotteryCardProps) {
   return (
     <Card 
-      className="bg-card/15 border border-border rounded-xl glow-effect hover:scale-105 transition-transform cursor-pointer backdrop-blur-sm"
+      className="bg-card/30 border border-border rounded-xl glow-effect hover:scale-105 transition-transform cursor-pointer backdrop-blur-md"
       onClick={onSelect}
       data-testid={`lottery-card-${lottery.name.toLowerCase()}`}
     >
@@ -31,13 +32,18 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect }: Lottery
         <p className="text-muted-foreground mb-4">
           {lottery.minNumbers}-{lottery.maxNumbers} números de 1 a {lottery.maxNumber}
         </p>
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold text-accent">
-            {upcomingDraw?.prize || 'Carregando...'}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            Próximo: {upcomingDraw?.date || '--/--'}
-          </span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-accent">
+              {upcomingDraw?.prize || 'Carregando...'}
+            </span>
+            <span className="text-sm font-semibold text-primary">
+              Concurso: {upcomingDraw?.contestNumber || '---'}
+            </span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Próximo sorteio: {upcomingDraw?.date || '--/-- - --:--h'}
+          </div>
         </div>
       </CardContent>
     </Card>
