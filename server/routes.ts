@@ -20,12 +20,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   let cacheTimestamp = 0;
   const CACHE_DURATION = 60 * 60 * 1000; // 1 hora em milliseconds
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes - simplified without authentication
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      // Return default user for demo purposes
+      const defaultUser = {
+        id: 'demo-user',
+        email: 'usuario@demo.com',
+        name: 'Usuário Demo'
+      };
+      res.json(defaultUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -149,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI prediction routes
-  app.post("/api/ai/predict", isAuthenticated, async (req, res) => {
+  app.post("/api/ai/predict", async (req, res) => {
     try {
       const { lotteryId, count, preferences } = req.body;
       
@@ -180,10 +184,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User game routes
-  app.post("/api/games", isAuthenticated, async (req: any, res) => {
+  // User game routes - simplified without authentication
+  app.post("/api/games", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = 'demo-user';
       const gameData = insertUserGameSchema.parse({
         ...req.body,
         userId,
@@ -200,9 +204,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/games", isAuthenticated, async (req: any, res) => {
+  app.get("/api/games", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = 'demo-user';
       const lotteryId = req.query.lotteryId ? parseInt(req.query.lotteryId as string) : undefined;
       
       const games = await storage.getUserGames(userId, lotteryId);
@@ -213,9 +217,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/games/results", isAuthenticated, async (req: any, res) => {
+  app.get("/api/games/results", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = 'demo-user';
       const results = await storage.getUserGameResults(userId);
       res.json(results);
     } catch (error) {
@@ -225,9 +229,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User statistics
-  app.get("/api/users/stats", isAuthenticated, async (req: any, res) => {
+  app.get("/api/users/stats", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = 'demo-user';
       const stats = await storage.getUserStats(userId);
       res.json(stats);
     } catch (error) {

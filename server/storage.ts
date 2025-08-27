@@ -24,32 +24,32 @@ export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Lottery operations
   getAllLotteries(): Promise<Lottery[]>;
   getLotteryById(id: number): Promise<Lottery | undefined>;
   createLottery(lottery: Omit<Lottery, 'id' | 'createdAt'>): Promise<Lottery>;
-  
+
   // Lottery results
   getLatestResults(lotteryId: number, limit?: number): Promise<LotteryResult[]>;
   createLotteryResult(result: Omit<LotteryResult, 'id' | 'createdAt'>): Promise<LotteryResult>;
-  
+
   // User games
   createUserGame(game: InsertUserGame): Promise<UserGame>;
   getUserGames(userId: string, lotteryId?: number): Promise<UserGame[]>;
-  
+
   // Game results
   createGameResult(result: InsertGameResult): Promise<GameResult>;
   getUserGameResults(userId: string): Promise<GameResult[]>;
-  
+
   // AI models
   getAIModel(lotteryId: number): Promise<AIModel | undefined>;
   updateAIModel(lotteryId: number, modelData: any, accuracy: number): Promise<AIModel>;
-  
+
   // Number frequency
   getNumberFrequencies(lotteryId: number): Promise<NumberFrequency[]>;
   updateNumberFrequency(lotteryId: number, number: number, frequency: number): Promise<void>;
-  
+
   // Analytics
   getUserStats(userId: string): Promise<{
     totalGames: number;
@@ -131,11 +131,11 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(userGames)
       .where(eq(userGames.userId, userId));
-      
+
     if (lotteryId) {
       query.where(and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId)));
     }
-    
+
     return await query.orderBy(desc(userGames.createdAt));
   }
 
@@ -178,7 +178,7 @@ export class DatabaseStorage implements IStorage {
   async updateAIModel(lotteryId: number, modelData: any, accuracy: number): Promise<AIModel> {
     const currentModel = await this.getAIModel(lotteryId);
     const newVersion = currentModel ? currentModel.version + 1 : 1;
-    
+
     const [model] = await db
       .insert(aiModels)
       .values({

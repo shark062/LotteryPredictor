@@ -24,7 +24,12 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
   const getHeatLevel = (frequency: number, maxFreq: number): number => {
     if (maxFreq === 0) return 0;
     const ratio = frequency / maxFreq;
-    return Math.min(5, Math.floor(ratio * 6));
+    if (ratio === 1) return 5; // Máximo
+    if (ratio >= 0.8) return 4; // Muito quente
+    if (ratio >= 0.6) return 3; // Quente
+    if (ratio >= 0.4) return 2; // Morno
+    if (ratio >= 0.2) return 1; // Frio
+    return 0; // Muito frio
   };
 
   const maxFrequency = frequencies ? Math.max(...frequencies.map((f: any) => f.frequency)) : 0;
@@ -67,7 +72,11 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             <div 
               className="grid gap-1" 
               style={{ 
-                gridTemplateColumns: `repeat(${Math.min(10, Math.ceil(Math.sqrt(selectedLotteryData?.maxNumber || 60)))}, minmax(0, 1fr))` 
+                gridTemplateColumns: selectedLotteryData?.maxNumber <= 25 
+                  ? 'repeat(5, minmax(0, 1fr))' 
+                  : selectedLotteryData?.maxNumber <= 60 
+                  ? 'repeat(10, minmax(0, 1fr))' 
+                  : 'repeat(10, minmax(0, 1fr))'
               }}
               data-testid="heatmap-grid"
             >
@@ -93,19 +102,30 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center space-x-6 text-sm">
-              <span className="text-muted-foreground">Frequência:</span>
-              <div className="flex items-center space-x-2">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+              <div className="flex items-center space-x-1">
                 <div className="w-4 h-4 heat-0 rounded"></div>
-                <span>Baixa</span>
+                <span>Muito Frio</span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <div className="w-4 h-4 heat-1 rounded"></div>
+                <span>Frio</span>
+              </div>
+              <div className="flex items-center space-x-1">
                 <div className="w-4 h-4 heat-2 rounded"></div>
-                <span>Média</span>
+                <span>Morno</span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <div className="w-4 h-4 heat-3 rounded"></div>
+                <span>Quente</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-4 h-4 heat-4 rounded"></div>
+                <span>Muito Quente</span>
+              </div>
+              <div className="flex items-center space-x-1">
                 <div className="w-4 h-4 heat-5 rounded"></div>
-                <span>Alta</span>
+                <span>Máximo</span>
               </div>
             </div>
 
