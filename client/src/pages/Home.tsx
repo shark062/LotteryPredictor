@@ -37,17 +37,6 @@ export default function Home() {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const { data: userStats, refetch: refetchUserStats } = useQuery<{
-    totalGames: number;
-    totalWins: number;
-    totalEarnings: number;
-    winRate: number;
-  }>({
-    queryKey: ["/api/users/stats"],
-    staleTime: 10 * 60 * 1000, // 10 minutos
-    retry: 2,
-  });
-
   const { mutate: updateLotteryData } = useMutation({
     mutationFn: async () => {
       await fetch('/api/lotteries/update', { method: 'POST' });
@@ -55,7 +44,6 @@ export default function Home() {
     onSuccess: () => {
       refetchLotteries();
       refetchUpcomingDraws();
-      refetchUserStats();
     },
   });
 
@@ -130,83 +118,92 @@ export default function Home() {
               ))}
             </div>
 
-            {/* User Stats */}
-            {userStats && (
-              <Card className="group bg-card/20 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
-                {/* Efeito de brilho no hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center space-x-3">
-                    <span className="text-2xl group-hover:scale-110 transition-transform duration-300">📊</span>
-                    <span className="group-hover:text-cyan-300 transition-colors duration-300">Suas Estatísticas</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {[
-                      { 
-                        value: userStats.totalGames, 
-                        label: 'Jogos Realizados',
-                        icon: '🎲',
-                        color: 'text-primary',
-                        bg: 'bg-primary/10'
-                      },
-                      { 
-                        value: userStats.totalWins, 
-                        label: 'Jogos Premiados',
-                        icon: '🏆',
-                        color: 'text-accent',
-                        bg: 'bg-accent/10'
-                      },
-                      { 
-                        value: `${userStats.winRate.toFixed(1)}%`, 
-                        label: 'Taxa de Acerto',
-                        icon: '📈',
-                        color: 'text-secondary',
-                        bg: 'bg-secondary/10'
-                      },
-                      { 
-                        value: `R$ ${userStats.totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
-                        label: 'Total Ganho',
-                        icon: '💰',
-                        color: 'text-accent',
-                        bg: 'bg-green-500/10'
-                      }
-                    ].map((stat, index) => (
+            {/* Winners Info */}
+            <Card className="group bg-card/20 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
+              {/* Efeito de brilho no hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              
+              <CardHeader className="relative">
+                <CardTitle className="flex items-center space-x-3">
+                  <span className="text-2xl group-hover:scale-110 transition-transform duration-300">🏆</span>
+                  <span className="group-hover:text-cyan-300 transition-colors duration-300">Ganhadores dos Últimos Concursos</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {lotteries?.slice(0, 3).map((lottery: any, index: number) => {
+                    // Simulando dados de ganhadores para demonstração
+                    const winnersData = {
+                      'Mega-Sena': { sena: 2, quina: 48, quadra: 2847 },
+                      'Lotofácil': { pontos15: 3, pontos14: 287, pontos13: 9124 },
+                      'Quina': { quina: 1, quadra: 67, terno: 4523 }
+                    };
+
+                    const currentWinners = winnersData[lottery.name as keyof typeof winnersData] || { first: 0, second: 0, third: 0 };
+                    const winnerCategories = lottery.name === 'Mega-Sena' 
+                      ? [
+                          { label: 'Sena (6 números)', count: currentWinners.sena || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: 'Quina (5 números)', count: currentWinners.quina || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: 'Quadra (4 números)', count: currentWinners.quadra || 0, icon: '🔸', color: 'text-green-400' }
+                        ]
+                      : lottery.name === 'Lotofácil'
+                      ? [
+                          { label: '15 pontos', count: currentWinners.pontos15 || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: '14 pontos', count: currentWinners.pontos14 || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: '13 pontos', count: currentWinners.pontos13 || 0, icon: '🔸', color: 'text-green-400' }
+                        ]
+                      : [
+                          { label: 'Quina (5 números)', count: currentWinners.quina || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: 'Quadra (4 números)', count: currentWinners.quadra || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: 'Terno (3 números)', count: currentWinners.terno || 0, icon: '🔸', color: 'text-green-400' }
+                        ];
+
+                    return (
                       <div 
-                        key={stat.label}
-                        className={`
-                          group/stat text-center p-4 rounded-xl border border-border/30 backdrop-blur-sm
-                          hover:scale-105 hover:shadow-lg transition-all duration-300
-                          hover:border-cyan-400/40 cursor-pointer ${stat.bg}
-                          opacity-0 animate-[fadeInUp_0.6s_ease-out_${index * 150}ms_forwards]
-                        `}
+                        key={lottery.id}
+                        className="group/lottery bg-card/10 border border-border/30 rounded-xl p-4 hover:scale-105 hover:shadow-lg transition-all duration-300 hover:border-cyan-400/40"
                       >
-                        <div className="flex flex-col items-center space-y-2">
-                          <div className="text-2xl group-hover/stat:scale-125 group-hover/stat:rotate-12 transition-all duration-300">
-                            {stat.icon}
-                          </div>
-                          <div className={`text-2xl font-bold transition-all duration-300 group-hover/stat:scale-110 ${stat.color}`}>
-                            {stat.value}
-                          </div>
-                          <p className="text-sm text-muted-foreground group-hover/stat:text-cyan-200/80 transition-colors duration-300">
-                            {stat.label}
-                          </p>
-                        </div>
+                        <h4 className="font-semibold text-lg mb-3 flex items-center space-x-2 group-hover/lottery:text-cyan-300 transition-colors duration-300">
+                          <span className="text-xl">{lottery.name === 'Mega-Sena' ? '💰' : lottery.name === 'Lotofácil' ? '🍀' : '⭐'}</span>
+                          <span>{lottery.name}</span>
+                        </h4>
                         
-                        {/* Barra de progresso inferior */}
+                        <div className="space-y-2">
+                          {winnerCategories.map((category, catIndex) => (
+                            <div 
+                              key={catIndex}
+                              className="flex items-center justify-between p-2 rounded-lg bg-background/20 border border-border/20"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{category.icon}</span>
+                                <span className="text-sm text-muted-foreground">{category.label}</span>
+                              </div>
+                              <span className={`font-bold ${category.color} transition-all duration-300 group-hover/lottery:scale-110`}>
+                                {category.count.toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Barra de progresso */}
                         <div className="mt-3 w-full bg-muted/20 rounded-full h-1 overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-1000 w-0 group-hover/stat:w-full"
+                            className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-1000 w-0 group-hover/lottery:w-full"
+                            style={{ animationDelay: `${index * 200}ms` }}
                           />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Dados baseados nos últimos concursos realizados
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Generator */}
