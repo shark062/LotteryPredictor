@@ -84,6 +84,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para resetar dados de frequência
+  app.post("/api/lotteries/:id/reset-frequency", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.id);
+      const lottery = await storage.getLotteryById(lotteryId);
+      
+      if (!lottery) {
+        return res.status(404).json({ message: "Lottery not found" });
+      }
+
+      // Limpar dados de frequência existentes
+      await storage.clearNumberFrequencies(lotteryId);
+      
+      // Reinicializar com dados aleatórios
+      await lotteryService.initializeFrequencyData(lotteryId, lottery.maxNumber);
+      
+      res.json({ 
+        success: true, 
+        message: "Dados de frequência resetados com sucesso" 
+      });
+    } catch (error) {
+      console.error("Error resetting frequency data:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro ao resetar dados de frequência" 
+      });
+    }
+  });
+
   app.get("/api/lotteries/:id/results", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);

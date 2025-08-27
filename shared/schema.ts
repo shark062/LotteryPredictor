@@ -10,6 +10,7 @@ import {
   text,
   decimal,
   serial,
+  unique, // Import unique
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -96,12 +97,15 @@ export const numberFrequency = pgTable("number_frequency", {
   id: serial("id").primaryKey(),
   lotteryId: integer("lottery_id").references(() => lotteries.id),
   number: integer("number").notNull(),
-  frequency: integer("frequency").default(0),
+  frequency: integer("frequency").notNull(),
   lastDrawn: timestamp("last_drawn"),
   isHot: boolean("is_hot").default(false),
   isCold: boolean("is_cold").default(false),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  lotteryNumberIdx: index("lottery_number_idx").on(table.lotteryId, table.number),
+  lotteryNumberUnique: unique('lottery_number_unique').on(table.lotteryId, table.number),
+}));
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({

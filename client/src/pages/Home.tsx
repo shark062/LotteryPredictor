@@ -18,14 +18,22 @@ export default function Home() {
 
   const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery({
     queryKey: ["/api/lotteries"],
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: upcomingDraws, refetch: refetchUpcomingDraws } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: userStats, refetch: refetchUserStats } = useQuery({
     queryKey: ["/api/users/stats"],
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    retry: 2,
   });
 
   const { mutate: updateLotteryData, isPending: isUpdating } = useMutation({

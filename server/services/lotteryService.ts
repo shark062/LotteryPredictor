@@ -180,7 +180,7 @@ export class LotteryService {
     return { hot, cold, mixed };
   }
 
-  private async initializeFrequencyData(lotteryId: number, maxNumber: number): Promise<void> {
+  async initializeFrequencyData(lotteryId: number, maxNumber: number): Promise<void> {
     // Initialize with random frequency data for demonstration
     for (let i = 1; i <= maxNumber; i++) {
       const frequency = Math.floor(Math.random() * 15) + 1; // 1-15 frequency

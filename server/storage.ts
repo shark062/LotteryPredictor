@@ -200,22 +200,50 @@ export class DatabaseStorage implements IStorage {
       .orderBy(numberFrequency.number);
   }
 
-  async updateNumberFrequency(lotteryId: number, number: number, frequency: number): Promise<void> {
+  async clearNumberFrequencies(lotteryId: number): Promise<void> {
     await db
-      .insert(numberFrequency)
-      .values({
-        lotteryId,
-        number,
-        frequency,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [numberFrequency.lotteryId, numberFrequency.number],
-        set: {
+      .delete(numberFrequency)
+      .where(eq(numberFrequency.lotteryId, lotteryId));
+  }
+
+  async updateNumberFrequency(lotteryId: number, number: number, frequency: number): Promise<void> {
+    // Primeiro, tentar encontrar um registro existente
+    const existing = await db
+      .select()
+      .from(numberFrequency)
+      .where(
+        and(
+          eq(numberFrequency.lotteryId, lotteryId),
+          eq(numberFrequency.number, number)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Atualizar registro existente
+      await db
+        .update(numberFrequency)
+        .set({
           frequency,
           updatedAt: new Date(),
-        },
-      });
+        })
+        .where(
+          and(
+            eq(numberFrequency.lotteryId, lotteryId),
+            eq(numberFrequency.number, number)
+          )
+        );
+    } else {
+      // Inserir novo registro
+      await db
+        .insert(numberFrequency)
+        .values({
+          lotteryId,
+          number,
+          frequency,
+          updatedAt: new Date(),
+        });
+    }
   }
 
   // Analytics
