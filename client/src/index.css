@@ -126,17 +126,11 @@
 
   .shark-swim-left {
     animation: shark-swim-left 15s linear infinite;
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px rgba(0, 191, 255, 0.8), 0 0 20px rgba(0, 191, 255, 0.6);
-    filter: drop-shadow(0 0 5px rgba(0, 191, 255, 0.9));
   }
 
   .shark-swim-right {
     animation: shark-swim-right 18s linear infinite;
     animation-delay: 7s;
-    font-size: 2.5rem;
-    text-shadow: 0 0 10px rgba(255, 0, 150, 0.8), 0 0 20px rgba(255, 0, 150, 0.6);
-    filter: drop-shadow(0 0 5px rgba(255, 0, 150, 0.9));
   }
 
   .shark-logo {
@@ -145,31 +139,6 @@
 
   .money-pulse {
     animation: money-hungry 1.5s ease-in-out infinite;
-  }
-
-  .text-3d {
-    text-shadow: 
-      0 1px 0 rgba(0, 191, 255, 0.8),
-      0 2px 0 rgba(0, 191, 255, 0.7),
-      0 3px 0 rgba(0, 191, 255, 0.6),
-      0 4px 0 rgba(0, 191, 255, 0.5),
-      0 5px 0 rgba(0, 191, 255, 0.4),
-      0 6px 1px rgba(0, 0, 0, 0.1),
-      0 0 5px rgba(0, 191, 255, 0.3),
-      0 1px 3px rgba(0, 0, 0, 0.3),
-      0 3px 5px rgba(0, 0, 0, 0.2),
-      0 5px 10px rgba(0, 0, 0, 0.25);
-    transform: perspective(500px) rotateX(5deg);
-  }
-
-  .subtitle-3d {
-    text-shadow: 
-      0 1px 0 rgba(255, 215, 0, 0.8),
-      0 2px 0 rgba(255, 215, 0, 0.6),
-      0 3px 0 rgba(255, 215, 0, 0.4),
-      0 4px 1px rgba(0, 0, 0, 0.2),
-      0 0 3px rgba(255, 215, 0, 0.5);
-    transform: perspective(300px) rotateX(3deg);
   }
 
   .circuit-bg {
