@@ -179,7 +179,15 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
   }, []);
 
   return (
-    <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 border-b-4 border-cyan-400 shadow-2xl shadow-cyan-500/20">
+    <header 
+      className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 border-b-4 border-cyan-400 shadow-2xl shadow-cyan-500/20"
+      style={{
+        backgroundImage: `url('/attached_assets/generated_images/Cyberpunk_lottery_header_background_b79e05ad.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay'
+      }}
+    >
       {/* Ultra advanced background effects */}
       <div className="absolute inset-0">
         {/* Animated circuit overlay */}
@@ -250,7 +258,7 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
                   filter: 'drop-shadow(0 10px 20px rgba(0, 255, 170, 0.3))'
                 }}
               >
-                SHARK LOTO
+                SHARK LOTERIAS
               </h1>
               
               {/* 4D depth layers */}
@@ -265,7 +273,7 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
                   filter: 'blur(1px)'
                 }}
               >
-                SHARK LOTO
+                SHARK LOTERIAS
               </h1>
               
               {/* Holographic frame */}
