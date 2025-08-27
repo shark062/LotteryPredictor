@@ -73,13 +73,13 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <AnimatedSharkLogo />
-            <span className="text-2xl">💵</span>
-          </div>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
+            <div className="flex items-center justify-center lg:justify-start w-full lg:w-auto">
+              <AnimatedSharkLogo />
+            </div>
 
-          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
             <div className="hidden sm:flex items-center space-x-2 text-accent text-sm animate-pulse">
               <span>🔄</span>
               <span className="shark-brand">AUTO-SYNC ATIVO</span>
