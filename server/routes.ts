@@ -154,6 +154,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Nova rota para obter todos os dados reais das loterias
+  app.get("/api/lotteries/real-data", async (req, res) => {
+    try {
+      const realData = await lotteryDataService.getAllLotteryData();
+      res.json(realData);
+    } catch (error) {
+      console.error("Error fetching real lottery data:", error);
+      res.status(500).json({ message: "Failed to fetch real lottery data" });
+    }
+  });
+
   app.get("/api/lotteries/:id/analysis", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);

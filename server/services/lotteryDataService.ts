@@ -327,6 +327,150 @@ export class LotteryDataService {
     }
   }
 
+  async getLotteryResults(slug: string): Promise<any> {
+    try {
+      console.log(`Buscando dados para ${slug}...`);
+      
+      // Buscar dados da página principal
+      const response = await axios.get(this.baseUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+
+      const $ = cheerio.load(response.data);
+      
+      // Buscar informações na seção de próximos concursos
+      const lotteryData = this.extractLotteryFromHome($, slug);
+      
+      return lotteryData;
+    } catch (error) {
+      console.error(`Erro ao buscar ${slug}:`, error instanceof Error ? error.message : error);
+      return null;
+    }
+  }
+
+  private extractLotteryFromHome($: any, targetSlug: string): any {
+    const nameToSlugMap: { [key: string]: string } = {
+      'Lotomania': 'lotomania',
+      'Lotofácil': 'lotofacil', 
+      'Mega-Sena': 'mega-sena',
+      'Quina': 'quina',
+      'Dia de Sorte': 'dia-de-sorte',
+      'Timemania': 'timemania',
+      'Dupla-Sena': 'duplasena',
+      'Super Sete': 'super-sete',
+      'Lotofácil-Independência': 'lotofacil-independencia'
+    };
+
+    // Buscar na seção "Próximos concursos"
+    let foundData = null;
+    
+    $('h3').each((i: number, element: any) => {
+      const lotteryName = $(element).text().trim();
+      const slug = nameToSlugMap[lotteryName];
+      
+      if (slug === targetSlug) {
+        const container = $(element).closest('div');
+        
+        // Extrair número do concurso
+        const contestText = container.find('h3').next().text().trim();
+        const contestNumber = parseInt(contestText);
+        
+        // Extrair data
+        const dateText = container.find('h3').next().next().text().trim();
+        
+        // Extrair valor do prêmio
+        const prizeContainer = container.find('h4');
+        const prizeText = prizeContainer.text().trim();
+        
+        foundData = {
+          contestNumber: contestNumber || 0,
+          nextDrawDate: dateText,
+          estimatedPrize: prizeText,
+          lotteryName: lotteryName,
+          slug: slug,
+          extractedAt: new Date()
+        };
+      }
+    });
+
+    return foundData;
+  }
+
+  async getAllLotteryData(): Promise<any> {
+    try {
+      console.log('Buscando dados reais da Lotérica Nova...');
+      const response = await axios.get(this.baseUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+
+      const $ = cheerio.load(response.data);
+      const lotteries: any = {};
+
+      // Usar estrutura mais específica baseada no HTML real
+      const lotteryNames = ['Lotomania', 'Lotofácil', 'Mega-Sena', 'Quina', 'Dia de Sorte', 'Timemania', 'Dupla-Sena', 'Super Sete', 'Lotofácil-Independência'];
+      
+      // Buscar pelos dados na seção de loteria específica
+      $('h3').each((i: number, element: any) => {
+        const lotteryName = $(element).text().trim();
+        
+        if (lotteryNames.includes(lotteryName)) {
+          const container = $(element).closest('div');
+          
+          // Buscar valor do prêmio (h4 com R$)
+          const prizeElement = container.find('h4').filter((idx: number, el: any) => {
+            return $(el).text().includes('R$');
+          }).first();
+          const prizeText = prizeElement.text().trim();
+          
+          // Buscar número do concurso e data (buscar por padrão de números e data)
+          let contestNumber = 0;
+          let dateText = '';
+          
+          container.find('*').each((idx: number, el: any) => {
+            const text = $(el).text().trim();
+            
+            // Extrair número do concurso (sequência de 3-4 dígitos)
+            const contestMatch = text.match(/\b(\d{3,4})\b/);
+            if (contestMatch && !contestNumber) {
+              contestNumber = parseInt(contestMatch[1]);
+            }
+            
+            // Extrair data (formato DD/MM/YYYY)
+            const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
+            if (dateMatch && !dateText) {
+              dateText = text;
+            }
+          });
+          
+          if (prizeText && (contestNumber || dateText)) {
+            lotteries[lotteryName] = {
+              contestNumber: contestNumber,
+              nextDrawDate: dateText || 'Data não disponível',
+              estimatedPrize: prizeText,
+              extractedAt: new Date()
+            };
+            console.log(`Dados extraídos para ${lotteryName}:`, lotteries[lotteryName]);
+          }
+        }
+      });
+
+      if (Object.keys(lotteries).length > 0) {
+        console.log(`Dados reais obtidos para ${Object.keys(lotteries).length} loterias`);
+        return lotteries;
+      } else {
+        console.log('Nenhum dado real foi extraído, usando fallback');
+        return {};
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados reais:', error instanceof Error ? error.message : error);
+      return {};
+    }
+  }
+
   private getSlugFromName(name: string): string | null {
     const nameMap: { [key: string]: string } = {
       'Mega-Sena': 'mega-sena',
