@@ -147,7 +147,28 @@
 
   @keyframes pulse {
     0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
 
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes text-glow {
+    from {
+      text-shadow: 0 0 20px rgba(0, 255, 170, 0.5), 0 0 40px rgba(0, 255, 170, 0.3);
+    }
+    to {
+      text-shadow: 0 0 30px rgba(0, 255, 170, 0.8), 0 0 60px rgba(0, 255, 170, 0.5), 0 0 90px rgba(170, 0, 255, 0.3);
+    }
+  }
+
+  @keyframes circuit-flow {
+    0% { transform: translateX(-40px); }
+    100% { transform: translateX(40px); }
+  }
 
 /* Animated Logo Styles */
 .logo-glow {

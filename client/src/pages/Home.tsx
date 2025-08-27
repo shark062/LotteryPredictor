@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import logoUrl from '../assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
+import FuturisticHeader from "@/components/FuturisticHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LotteryCard from "@/components/LotteryCard";
 import NumberGenerator from "@/components/NumberGenerator";
@@ -70,31 +71,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent shark-brand animate-glow">
-              SHARK LOTO 💵
-            </h1>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="hidden sm:flex items-center space-x-2 text-accent text-sm animate-pulse">
-              <span>🔄</span>
-              <span className="shark-brand">AUTO-SYNC ATIVO</span>
-            </div>
-            <Button 
-              onClick={handleLogout}
-              variant="outline" 
-              size="sm"
-              className="border-accent/50 hover:bg-accent/20 text-accent hover:text-accent-foreground transition-all duration-300"
-            >
-              Sair
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Futuristic Header */}
+      <FuturisticHeader onLogout={handleLogout} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
