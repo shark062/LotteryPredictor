@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import logoUrl from '../assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
-import AnimatedSharkLogo from "@/components/AnimatedSharkLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LotteryCard from "@/components/LotteryCard";
 import NumberGenerator from "@/components/NumberGenerator";
@@ -73,13 +72,14 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
-            <div className="flex items-center justify-center lg:justify-start w-full lg:w-auto">
-              <AnimatedSharkLogo />
-            </div>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent shark-brand animate-glow">
+              SHARK LOTO 💵
+            </h1>
+          </div>
 
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4">
             <div className="hidden sm:flex items-center space-x-2 text-accent text-sm animate-pulse">
               <span>🔄</span>
               <span className="shark-brand">AUTO-SYNC ATIVO</span>
@@ -94,7 +94,6 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      </div>
       </header>
 
       {/* Main Content */}
