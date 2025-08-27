@@ -71,12 +71,13 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     background-image:
+      linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)),
       url('./assets/cyberpunk-shark.png'),
-      radial-gradient(circle at 25% 25%, rgba(0, 191, 255, 0.1) 1px, transparent 1px),
-      radial-gradient(circle at 75% 75%, rgba(255, 0, 150, 0.1) 1px, transparent 1px);
-    background-size: 50vh, 50px 50px, 50px 50px;
-    background-position: center, 25% 25%, 75% 75%;
-    background-repeat: no-repeat, repeat, repeat;
+      radial-gradient(circle at 25% 25%, rgba(0, 191, 255, 0.08) 1px, transparent 1px),
+      radial-gradient(circle at 75% 75%, rgba(255, 0, 150, 0.08) 1px, transparent 1px);
+    background-size: cover, cover, 50px 50px, 50px 50px;
+    background-position: center, center, 25% 25%, 75% 75%;
+    background-repeat: no-repeat, no-repeat, repeat, repeat;
     background-attachment: fixed;
     min-height: 100vh;
   }
