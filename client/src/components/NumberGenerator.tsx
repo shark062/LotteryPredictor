@@ -23,12 +23,13 @@ export default function NumberGenerator({
   showAnalysis = false 
 }: NumberGeneratorProps) {
   const [numberCount, setNumberCount] = useState('');
+  const [gameCount, setGameCount] = useState('1');
   const [preferences, setPreferences] = useState({
     useHot: true,
     useCold: false,
     useMixed: true,
   });
-  const [generatedNumbers, setGeneratedNumbers] = useState<number[]>([]);
+  const [generatedNumbers, setGeneratedNumbers] = useState<number[][]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
 
   const { toast } = useToast();
@@ -45,18 +46,27 @@ export default function NumberGenerator({
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/ai/predict', {
-        lotteryId: selectedLottery,
-        count: parseInt(numberCount) || 0,
-        preferences,
-      });
-      return response.json();
+      const gamesCount = parseInt(gameCount) || 1;
+      const numbersPerGame = parseInt(numberCount) || 0;
+      
+      const allGames = [];
+      for (let i = 0; i < gamesCount; i++) {
+        const response = await apiRequest('POST', '/api/ai/predict', {
+          lotteryId: selectedLottery,
+          count: numbersPerGame,
+          preferences,
+        });
+        const gameData = await response.json();
+        allGames.push(gameData.numbers);
+      }
+      
+      return { games: allGames, total: gamesCount, numbersPerGame };
     },
     onSuccess: (data) => {
-      setGeneratedNumbers(data.numbers);
+      setGeneratedNumbers(data.games);
       toast({
-        title: "Jogo Gerado! 🎲",
-        description: `${data.numbers.length} números foram gerados com IA`,
+        title: "Jogos Gerados! 🎲",
+        description: `${data.total} jogo${data.total > 1 ? 's' : ''} com ${data.numbersPerGame} números cada`,
       });
     },
     onError: (error) => {
@@ -72,17 +82,20 @@ export default function NumberGenerator({
     mutationFn: async () => {
       if (generatedNumbers.length === 0) return;
       
-      await apiRequest('POST', '/api/games', {
-        lotteryId: selectedLottery,
-        numbers: JSON.stringify(generatedNumbers),
-        isPlayed: false,
-      });
+      // Salvar cada jogo individualmente
+      for (const game of generatedNumbers) {
+        await apiRequest('POST', '/api/games', {
+          lotteryId: selectedLottery,
+          numbers: JSON.stringify(game),
+          isPlayed: false,
+        });
+      }
     },
     onSuccess: () => {
       setShowConfetti(true);
       toast({
-        title: "Jogo Salvo! 🎉",
-        description: "Seu jogo foi salvo com sucesso",
+        title: `${generatedNumbers.length} Jogo${generatedNumbers.length > 1 ? 's' : ''} Salvo${generatedNumbers.length > 1 ? 's' : ''}! 🎉`,
+        description: "Seus jogos foram salvos com sucesso",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
     },
@@ -99,6 +112,7 @@ export default function NumberGenerator({
 
   const handleGenerate = () => {
     const count = parseInt(numberCount) || 0;
+    const games = parseInt(gameCount) || 1;
     
     if (count === 0 || numberCount === '') {
       setGeneratedNumbers([]);
@@ -111,6 +125,15 @@ export default function NumberGenerator({
       toast({
         title: "Quantidade inválida",
         description: `Máximo de ${selectedLotteryData.maxNumbers} números para ${selectedLotteryData.name}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (games > 10) {
+      toast({
+        title: "Muitos jogos",
+        description: "Máximo de 10 jogos por vez",
         variant: "destructive",
       });
       return;
@@ -131,7 +154,7 @@ export default function NumberGenerator({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="lottery-select">Modalidade</Label>
               <Select 
@@ -161,6 +184,19 @@ export default function NumberGenerator({
                 onChange={(e) => setNumberCount(e.target.value)}
                 placeholder="0-60"
                 data-testid="input-number-count"
+              />
+            </div>
+            <div>
+              <Label htmlFor="game-count">Quantidade de Jogos (1-10)</Label>
+              <Input
+                id="game-count"
+                type="number"
+                min="1"
+                max="10"
+                value={gameCount}
+                onChange={(e) => setGameCount(e.target.value)}
+                placeholder="1-10"
+                data-testid="input-game-count"
               />
             </div>
           </div>
@@ -216,12 +252,29 @@ export default function NumberGenerator({
       {generatedNumbers.length > 0 && (
         <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
           <CardHeader>
-            <CardTitle>Jogo Gerado</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Jogos Gerados</span>
+              <Badge variant="secondary" data-testid="generated-count">
+                {generatedNumbers.length} jogo{generatedNumbers.length > 1 ? 's' : ''}
+              </Badge>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3" data-testid="generated-numbers">
-              {generatedNumbers.map((number) => (
-                <NumberBall key={number} number={number} size="lg" />
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {generatedNumbers.map((game, gameIndex) => (
+                <div key={gameIndex} className="p-4 border border-border rounded-lg bg-background/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold">Jogo {gameIndex + 1}</h4>
+                    <Badge variant="outline" className="text-xs">
+                      {game.length} números
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-3" data-testid={`generated-numbers-${gameIndex}`}>
+                    {game.map((number: number, numberIndex: number) => (
+                      <NumberBall key={numberIndex} number={number} size="lg" />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
             <div className="flex space-x-4">
@@ -231,7 +284,7 @@ export default function NumberGenerator({
                 className="bg-accent text-accent-foreground hover:scale-105 transition-transform"
                 data-testid="button-save-game"
               >
-                {saveGameMutation.isPending ? "Salvando..." : "Salvar Jogo"}
+                {saveGameMutation.isPending ? "Salvando..." : `Salvar ${generatedNumbers.length} Jogo${generatedNumbers.length > 1 ? 's' : ''}`}
               </Button>
               <Button 
                 onClick={handleGenerate}
