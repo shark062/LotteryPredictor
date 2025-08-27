@@ -127,16 +127,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserGames(userId: string, lotteryId?: number): Promise<UserGame[]> {
-    const query = db
-      .select()
-      .from(userGames)
-      .where(eq(userGames.userId, userId));
+    let whereCondition = eq(userGames.userId, userId);
 
     if (lotteryId) {
-      query.where(and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId)));
+      whereCondition = and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId));
     }
 
-    return await query.orderBy(desc(userGames.createdAt));
+    return await db
+      .select()
+      .from(userGames)
+      .where(whereCondition)
+      .orderBy(desc(userGames.createdAt));
   }
 
   // Game results
@@ -177,7 +178,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateAIModel(lotteryId: number, modelData: any, accuracy: number): Promise<AIModel> {
     const currentModel = await this.getAIModel(lotteryId);
-    const newVersion = currentModel ? currentModel.version + 1 : 1;
+    const newVersion = currentModel ? (currentModel.version || 0) + 1 : 1;
 
     const [model] = await db
       .insert(aiModels)

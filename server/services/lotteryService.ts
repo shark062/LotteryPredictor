@@ -19,24 +19,33 @@ export class LotteryService {
       const defaultLotteries = [
         {
           name: 'Lotofácil',
+          slug: 'lotofacil',
           maxNumber: 25,
           minNumbers: 15,
           maxNumbers: 20,
           drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
+          description: 'A loteria mais fácil de ganhar',
+          gameType: 'standard',
         },
         {
           name: 'Mega-Sena',
+          slug: 'mega-sena',
           maxNumber: 60,
           minNumbers: 6,
           maxNumbers: 15,
           drawDays: JSON.stringify(['Quarta', 'Sábado']),
+          description: 'A maior premiação do Brasil',
+          gameType: 'standard',
         },
         {
           name: 'Quina',
+          slug: 'quina',
           maxNumber: 80,
           minNumbers: 5,
           maxNumbers: 15,
           drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
+          description: 'Cinco números para a sorte',
+          gameType: 'standard',
         },
       ];
 
