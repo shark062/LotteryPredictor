@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { lotteryService } from "./services/lotteryService";
 import { aiService } from "./services/aiService";
+import { webScrapingService } from "./services/webScrapingService";
 import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -13,6 +14,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize lottery service
   await lotteryService.initializeLotteries();
+
+  // Cache para dados das loterias (atualizado a cada 1 hora)
+  let upcomingDrawsCache: any = null;
+  let cacheTimestamp = 0;
+  const CACHE_DURATION = 60 * 60 * 1000; // 1 hora em milliseconds
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -39,11 +45,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/lotteries/upcoming", async (req, res) => {
     try {
+      const now = Date.now();
+      const forceUpdate = req.query.force === 'true';
+      
+      // Verificar se o cache ainda é válido
+      if (!forceUpdate && upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+        return res.json(upcomingDrawsCache);
+      }
+
+      // Atualizar cache
       const upcoming = await lotteryService.getUpcomingDraws();
+      upcomingDrawsCache = upcoming;
+      cacheTimestamp = now;
+      
       res.json(upcoming);
     } catch (error) {
       console.error("Error fetching upcoming draws:", error);
       res.status(500).json({ message: "Failed to fetch upcoming draws" });
+    }
+  });
+
+  // Nova rota para atualizar dados manualmente
+  app.post("/api/lotteries/update", async (req, res) => {
+    try {
+      const scrapeData = await webScrapingService.getLotteryInfo();
+      upcomingDrawsCache = null; // Limpar cache
+      res.json({ 
+        success: true, 
+        data: scrapeData,
+        message: "Dados das loterias atualizados com sucesso"
+      });
+    } catch (error) {
+      console.error("Error updating lottery data:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro ao atualizar dados das loterias" 
+      });
     }
   });
 

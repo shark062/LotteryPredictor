@@ -8,28 +8,43 @@ import NumberGenerator from "@/components/NumberGenerator";
 import HeatMap from "@/components/HeatMap";
 import GameResults from "@/components/GameResults";
 import AILearningStatus from "@/components/AILearningStatus";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
   const [selectedLottery, setSelectedLottery] = useState<number>(1);
 
-  const { data: lotteries, isLoading: lotteriesLoading } = useQuery({
+  const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery({
     queryKey: ["/api/lotteries"],
   });
 
-  const { data: upcomingDraws } = useQuery({
+  const { data: upcomingDraws, refetch: refetchUpcomingDraws } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
   });
 
-  const { data: userStats } = useQuery({
+  const { data: userStats, refetch: refetchUserStats } = useQuery({
     queryKey: ["/api/users/stats"],
+  });
+
+  const { mutate: updateLotteryData, isPending: isUpdating } = useMutation({
+    mutationFn: async () => {
+      await fetch('/api/lotteries/update', { method: 'POST' });
+    },
+    onSuccess: () => {
+      refetchLotteries();
+      refetchUpcomingDraws();
+      refetchUserStats();
+    },
   });
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
+  };
+
+  const handleUpdateLotteryData = () => {
+    updateLotteryData();
   };
 
   if (isLoading || lotteriesLoading) {
@@ -57,22 +72,30 @@ export default function Home() {
               Shark Loto 💵
             </h1>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <AILearningStatus />
-            <div className="flex items-center space-x-2">
-              <img 
-                src={user?.profileImageUrl || '/placeholder-avatar.png'} 
-                alt="Profile" 
-                className="w-8 h-8 rounded-full"
-              />
-              <span className="text-sm">{user?.firstName || 'Usuário'}</span>
-            </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              onClick={handleUpdateLotteryData}
+              disabled={isUpdating}
+              variant="outline"
               size="sm"
+              className="border-primary/30 hover:bg-primary/20 text-primary"
+            >
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              {isUpdating ? 'Atualizando...' : 'Atualizar Dados'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Bem-vindo, {user?.email}
+            </span>
+            <Button 
               onClick={handleLogout}
-              data-testid="button-logout"
+              variant="outline" 
+              size="sm"
+              className="border-border hover:bg-accent/20"
             >
               Sair
             </Button>

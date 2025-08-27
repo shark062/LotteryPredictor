@@ -51,29 +51,51 @@ export class LotteryService {
   }
 
   async getUpcomingDraws(): Promise<{ [key: string]: { prize: string; date: string; contestNumber: number } }> {
-    const now = new Date();
-    const currentHour = now.getHours();
-    
-    // Se passou das 20h, consideramos o próximo dia
-    const referenceDate = currentHour >= 20 ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : now;
-    
-    return {
-      'Lotofácil': {
-        prize: 'R$ 5.500.000',
-        date: this.getNextDrawDate('Segunda', referenceDate),
-        contestNumber: 3015,
-      },
-      'Mega-Sena': {
-        prize: 'R$ 65.000.000', 
-        date: this.getNextDrawDate('Sábado', referenceDate),
-        contestNumber: 2785,
-      },
-      'Quina': {
-        prize: 'R$ 3.200.000',
-        date: this.getNextDrawDate('Segunda', referenceDate),
-        contestNumber: 6585,
-      },
-    };
+    try {
+      // Tentar obter dados reais do web scraping
+      const { webScrapingService } = await import('./webScrapingService');
+      const scrapedData = await webScrapingService.getLotteryInfo();
+      
+      // Converter formato dos dados para o formato esperado
+      const result: { [key: string]: { prize: string; date: string; contestNumber: number } } = {};
+      
+      for (const [name, info] of Object.entries(scrapedData)) {
+        result[name] = {
+          prize: info.prize,
+          date: info.nextDrawDate,
+          contestNumber: info.contestNumber
+        };
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Erro ao obter dados atualizados, usando fallback:', error);
+      
+      // Fallback para dados estáticos em caso de erro
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // Se passou das 20h, consideramos o próximo dia
+      const referenceDate = currentHour >= 20 ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : now;
+      
+      return {
+        'Lotofácil': {
+          prize: 'R$ 5.500.000',
+          date: this.getNextDrawDate('Segunda', referenceDate),
+          contestNumber: 3015,
+        },
+        'Mega-Sena': {
+          prize: 'R$ 65.000.000', 
+          date: this.getNextDrawDate('Sábado', referenceDate),
+          contestNumber: 2785,
+        },
+        'Quina': {
+          prize: 'R$ 3.200.000',
+          date: this.getNextDrawDate('Segunda', referenceDate),
+          contestNumber: 6585,
+        },
+      };
+    }
   }
 
   private getNextDrawDate(dayName: string, referenceDate: Date = new Date()): string {
