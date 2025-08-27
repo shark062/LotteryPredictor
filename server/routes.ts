@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { lotteryService } from "./services/lotteryService";
 import { aiService } from "./services/aiService";
 import { webScrapingService } from "./services/webScrapingService";
+import { lotteryDataService } from "./services/lotteryDataService";
 import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -14,6 +15,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize lottery service
   await lotteryService.initializeLotteries();
+  
+  // Initialize Brazilian lotteries with real data
+  await lotteryDataService.initializeLotteries();
 
   // Cache para dados das loterias (atualizado a cada 1 hora)
   let upcomingDrawsCache: any = null;
@@ -73,6 +77,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/lotteries/update", async (req, res) => {
     try {
       const scrapeData = await webScrapingService.getLotteryInfo();
+      
+      // Atualizar dados reais das loterias do site Lotérica Nova
+      await lotteryDataService.updateAllLotteries();
+      
       upcomingDrawsCache = null; // Limpar cache
       res.json({ 
         success: true, 
@@ -126,6 +134,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching results:", error);
       res.status(500).json({ message: "Failed to fetch results" });
+    }
+  });
+
+  // Nova rota para obter resultados atualizados da Lotérica Nova
+  app.get("/api/lotteries/:slug/latest", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const result = await lotteryDataService.getLotteryResults(slug);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Lottery not found or no results available" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching latest lottery results:", error);
+      res.status(500).json({ message: "Failed to fetch latest lottery results" });
     }
   });
 

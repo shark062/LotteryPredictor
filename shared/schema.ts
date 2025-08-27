@@ -38,28 +38,42 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Lottery types
+// Lottery types - Todas as loterias da Caixa
 export const lotteries = pgTable("lotteries", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull(),
+  slug: varchar("slug", { length: 50 }).notNull().unique(), // Para URLs e identificação
   maxNumber: integer("max_number").notNull(),
   minNumbers: integer("min_numbers").notNull(),
   maxNumbers: integer("max_numbers").notNull(),
   drawDays: text("draw_days").notNull(), // JSON string array
+  description: text("description"),
+  gameType: varchar("game_type", { length: 30 }).notNull(), // standard, special, etc
+  betValue: decimal("bet_value", { precision: 10, scale: 2 }).default("2.50"),
+  specialNumbers: boolean("special_numbers").default(false), // Para Dia de Sorte (mês da sorte)
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Historical lottery results
+// Historical lottery results - Resultados completos com premiações
 export const lotteryResults = pgTable("lottery_results", {
   id: serial("id").primaryKey(),
   lotteryId: integer("lottery_id").references(() => lotteries.id),
   contestNumber: integer("contest_number").notNull(),
-  drawnNumbers: text("drawn_numbers").notNull(), // JSON array
+  drawnNumbers: text("drawn_numbers").notNull(), // JSON array de números sorteados
   drawDate: timestamp("draw_date").notNull(),
-  prizeValue: decimal("prize_value", { precision: 15, scale: 2 }),
-  winners: integer("winners").default(0),
+  nextDrawDate: timestamp("next_draw_date"),
+  estimatedPrize: decimal("estimated_prize", { precision: 15, scale: 2 }),
+  actualPrize: decimal("actual_prize", { precision: 15, scale: 2 }),
+  isAccumulated: boolean("is_accumulated").default(false),
+  specialNumber: varchar("special_number", { length: 20 }), // Para Dia de Sorte (mês), Timemania (time)
+  prizeTiers: jsonb("prize_tiers"), // Detalhes de todas as faixas de premiação
+  totalWinners: integer("total_winners").default(0),
   createdAt: timestamp("created_at").defaultNow(),
-});
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  lotteryContestIdx: index("lottery_contest_idx").on(table.lotteryId, table.contestNumber),
+  lotteryContestUnique: unique('lottery_contest_unique').on(table.lotteryId, table.contestNumber),
+}));
 
 // User generated games
 export const userGames = pgTable("user_games", {
