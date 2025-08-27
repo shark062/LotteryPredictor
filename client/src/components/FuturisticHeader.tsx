@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 
 interface FuturisticHeaderProps {
@@ -16,162 +15,142 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = 1200;
-    canvas.height = 200;
+    // Definir dimensões do canvas
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
     let frame = 0;
 
-    const drawUltraRealisticShark = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Ultra dark cyberpunk background with depth
-      const bgGradient = ctx.createRadialGradient(600, 100, 0, 600, 100, 600);
-      bgGradient.addColorStop(0, 'rgba(5, 15, 25, 0.95)');
-      bgGradient.addColorStop(0.3, 'rgba(10, 5, 20, 0.9)');
-      bgGradient.addColorStop(0.6, 'rgba(0, 10, 30, 0.85)');
-      bgGradient.addColorStop(1, 'rgba(0, 0, 15, 0.9)');
+    const drawShark = () => {
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Fundo cyberpunk
+      const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+      bgGradient.addColorStop(0, 'rgba(0, 10, 20, 0.9)');
+      bgGradient.addColorStop(0.5, 'rgba(5, 0, 15, 0.8)');
+      bgGradient.addColorStop(1, 'rgba(0, 5, 25, 0.9)');
       ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
 
-      // Advanced circuit board patterns with depth
-      ctx.strokeStyle = 'rgba(0, 255, 170, 0.4)';
+      // Circuitos animados
+      ctx.strokeStyle = 'rgba(0, 255, 170, 0.3)';
       ctx.lineWidth = 1;
-      for (let i = 0; i < 20; i++) {
-        const offset = Math.sin(frame * 0.01 + i * 0.5) * 15;
+      for (let i = 0; i < 10; i++) {
+        const offset = Math.sin(frame * 0.02 + i * 0.8) * 10;
         ctx.beginPath();
-        ctx.moveTo(i * 60, 0);
-        ctx.lineTo(i * 60 + offset, canvas.height);
-        ctx.stroke();
-        
-        // Horizontal circuit lines
-        ctx.beginPath();
-        ctx.moveTo(0, i * 10);
-        ctx.lineTo(canvas.width, i * 10 + Math.sin(frame * 0.008 + i) * 5);
+        ctx.moveTo(i * (width / 10), 0);
+        ctx.lineTo(i * (width / 10) + offset, height);
         ctx.stroke();
       }
 
-      // Neon grid overlay
-      ctx.strokeStyle = 'rgba(255, 0, 150, 0.2)';
-      ctx.lineWidth = 0.5;
-      for (let x = 0; x < canvas.width; x += 40) {
-        for (let y = 0; y < canvas.height; y += 40) {
-          ctx.strokeRect(x, y, 40, 40);
-        }
-      }
-
-      // Ultra realistic shark with 3D depth
+      // Tubarão principal
       ctx.save();
-      ctx.translate(150, 100);
-      ctx.scale(1.2, 1.2);
+      ctx.translate(width * 0.15, height * 0.5);
 
-      // Advanced shark body gradient with metallic effect
-      const sharkGradient = ctx.createLinearGradient(-100, -40, 100, 40);
+      // Corpo do tubarão com gradiente
+      const sharkGradient = ctx.createLinearGradient(-60, -20, 80, 20);
       sharkGradient.addColorStop(0, '#00ffcc');
-      sharkGradient.addColorStop(0.2, '#00ccff');
-      sharkGradient.addColorStop(0.4, '#0099ff');
-      sharkGradient.addColorStop(0.6, '#0066cc');
-      sharkGradient.addColorStop(0.8, '#003399');
-      sharkGradient.addColorStop(1, '#001166');
+      sharkGradient.addColorStop(0.3, '#0099ff');
+      sharkGradient.addColorStop(0.7, '#0066cc');
+      sharkGradient.addColorStop(1, '#003399');
 
-      // Main shark body with ultra realistic curves
       ctx.beginPath();
-      ctx.moveTo(-120, 0);
-      ctx.bezierCurveTo(-100, -35, -40, -45, 20, -40);
-      ctx.bezierCurveTo(60, -38, 100, -25, 140, -15);
-      ctx.bezierCurveTo(160, -8, 180, 0, 160, 8);
-      ctx.bezierCurveTo(140, 15, 100, 25, 60, 38);
-      ctx.bezierCurveTo(20, 40, -40, 45, -100, 35);
-      ctx.bezierCurveTo(-110, 20, -120, 0, -120, 0);
+      ctx.moveTo(-60, 0);
+      ctx.bezierCurveTo(-50, -25, -20, -30, 20, -25);
+      ctx.bezierCurveTo(50, -20, 80, -10, 90, 0);
+      ctx.bezierCurveTo(80, 10, 50, 20, 20, 25);
+      ctx.bezierCurveTo(-20, 30, -50, 25, -60, 0);
       ctx.closePath();
-      
+
       ctx.fillStyle = sharkGradient;
       ctx.fill();
 
-      // Ultra realistic glow effect
+      // Glow effect
       ctx.shadowColor = '#00ffcc';
-      ctx.shadowBlur = 30;
+      ctx.shadowBlur = 20;
       ctx.strokeStyle = '#00ffaa';
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Menacing eye with realistic depth
-      const eyeGradient = ctx.createRadialGradient(-75, -15, 0, -75, -15, 12);
+      // Olho vermelho brilhante
+      const eyeGradient = ctx.createRadialGradient(-35, -8, 0, -35, -8, 8);
       eyeGradient.addColorStop(0, '#ff0000');
-      eyeGradient.addColorStop(0.3, '#cc0000');
-      eyeGradient.addColorStop(0.7, '#990000');
-      eyeGradient.addColorStop(1, '#000000');
-      
+      eyeGradient.addColorStop(0.5, '#cc0000');
+      eyeGradient.addColorStop(1, '#660000');
+
       ctx.beginPath();
-      ctx.ellipse(-75, -15, 12, 15, 0, 0, Math.PI * 2);
+      ctx.arc(-35, -8, 8, 0, Math.PI * 2);
       ctx.fillStyle = eyeGradient;
       ctx.shadowColor = '#ff0000';
-      ctx.shadowBlur = 25;
+      ctx.shadowBlur = 15;
       ctx.fill();
 
-      // Eye reflection for realism
+      // Reflexo no olho
       ctx.beginPath();
-      ctx.ellipse(-70, -20, 4, 6, 0, 0, Math.PI * 2);
+      ctx.arc(-32, -11, 3, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 5;
       ctx.fill();
 
-      // Razor sharp teeth with depth
+      // Dentes afiados
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 8;
-      for (let i = 0; i < 12; i++) {
-        const toothX = -110 + i * 12;
-        const toothHeight = 15 + Math.sin(i * 0.5) * 5;
+      ctx.shadowBlur = 5;
+      for (let i = 0; i < 8; i++) {
+        const toothX = -55 + i * 8;
         ctx.beginPath();
-        ctx.moveTo(toothX, 12);
-        ctx.lineTo(toothX + 3, 12 + toothHeight);
-        ctx.lineTo(toothX + 6, 12);
+        ctx.moveTo(toothX, 8);
+        ctx.lineTo(toothX + 2, 18);
+        ctx.lineTo(toothX + 4, 8);
         ctx.closePath();
         ctx.fill();
       }
 
-      // Animated fins with realistic movement
-      const finMovement = Math.sin(frame * 0.12) * 8;
-      
-      // Dorsal fin
+      // Barbatanas animadas
+      const finMovement = Math.sin(frame * 0.1) * 5;
+
+      // Barbatana dorsal
       ctx.strokeStyle = '#00aaff';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.shadowColor = '#00aaff';
-      ctx.shadowBlur = 15;
-      
+      ctx.shadowBlur = 10;
+
       ctx.beginPath();
-      ctx.moveTo(20, -40);
-      ctx.bezierCurveTo(30 + finMovement, -70, 50 + finMovement, -65, 60, -40);
+      ctx.moveTo(10, -25);
+      ctx.bezierCurveTo(15 + finMovement, -45, 35 + finMovement, -40, 40, -25);
       ctx.stroke();
 
-      // Tail with dynamic animation
-      const tailMovement = Math.sin(frame * 0.15) * 12;
+      // Cauda
+      const tailMovement = Math.sin(frame * 0.12) * 8;
       ctx.beginPath();
-      ctx.moveTo(160, 0);
-      ctx.bezierCurveTo(180 + tailMovement, -25, 200 + tailMovement, -20, 220, 0);
-      ctx.bezierCurveTo(200 + tailMovement, 20, 180 + tailMovement, 25, 160, 0);
-      ctx.stroke();
-
-      // Pectoral fins
-      ctx.beginPath();
-      ctx.moveTo(-20, 25);
-      ctx.bezierCurveTo(-15, 45, 10, 50, 25, 30);
+      ctx.moveTo(90, 0);
+      ctx.bezierCurveTo(110 + tailMovement, -15, 120 + tailMovement, -10, 130, 0);
+      ctx.bezierCurveTo(120 + tailMovement, 10, 110 + tailMovement, 15, 90, 0);
       ctx.stroke();
 
       ctx.restore();
-
       frame++;
     };
 
     const animate = () => {
-      drawUltraRealisticShark();
+      drawShark();
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animate();
 
     return () => {
+      window.removeEventListener('resize', resizeCanvas);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -179,10 +158,9 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
   }, []);
 
   return (
-    <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 border-b-4 border-cyan-400 shadow-2xl shadow-cyan-500/20">
-      {/* Ultra advanced background effects */}
+    <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 border-b-4 border-cyan-400 shadow-2xl shadow-cyan-500/30">
+      {/* Background Effects */}
       <div className="absolute inset-0">
-        {/* Animated circuit overlay */}
         <div 
           className="absolute inset-0 opacity-40"
           style={{
@@ -196,18 +174,17 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
             animation: 'ultra-circuit-flow 25s linear infinite'
           }}
         />
-        
-        {/* Holographic sweep effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent animate-pulse opacity-60" />
-        
+
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent animate-pulse" />
+
         {/* Data streams */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-          {[...Array(8)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-30"
+              className="absolute w-1 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-20"
               style={{
-                left: `${i * 12.5}%`,
+                left: `${i * 16.66}%`,
                 height: '100%',
                 animation: `data-stream ${2 + i * 0.3}s linear infinite`
               }}
@@ -216,131 +193,112 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
         </div>
       </div>
 
-      <div className="relative container mx-auto px-8 py-6">
+      <div className="relative container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Ultra realistic shark logo section */}
-          <div className="flex items-center space-x-8">
-            <div className="relative group">
+          {/* Logo Section */}
+          <div className="flex items-center space-x-6">
+            <div className="relative">
               <canvas 
                 ref={canvasRef}
-                className="w-80 h-24 rounded-xl border-2 border-cyan-400/40 bg-black/60 backdrop-blur-lg shadow-2xl shadow-cyan-500/30"
+                className="w-64 h-20 rounded-lg border-2 border-cyan-400/50 bg-black/70 backdrop-blur-sm shadow-xl shadow-cyan-500/20"
+                style={{ width: '256px', height: '80px' }}
               />
-              {/* Holographic overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent animate-pulse rounded-xl" />
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-cyan-400 rounded-tl-xl" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-cyan-400 rounded-tr-xl" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-cyan-400 rounded-bl-xl" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-cyan-400 rounded-br-xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent animate-pulse rounded-lg" />
             </div>
-            
+
             {/* 4D SHARK LOTO Title */}
             <div className="relative">
               <h1 
-                className="text-7xl font-black tracking-wider transform transition-all duration-500 hover:scale-110 hover:rotate-y-12"
+                className="text-5xl md:text-6xl font-black tracking-wider transform transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(45deg, #00ffaa 0%, #0088ff 25%, #aa00ff 50%, #ff0088 75%, #00ffaa 100%)',
                   backgroundSize: '400% 400%',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   animation: 'ultra-gradient-shift 4s ease-in-out infinite, text-4d-glow 3s ease-in-out infinite alternate',
-                  fontFamily: 'Orbitron, monospace',
-                  textShadow: '0 0 40px rgba(0, 255, 170, 0.8), 0 20px 40px rgba(0, 255, 170, 0.4)',
-                  transform: 'perspective(1000px) rotateX(15deg) rotateY(-5deg)',
-                  filter: 'drop-shadow(0 10px 20px rgba(0, 255, 170, 0.3))'
+                  fontFamily: '"Orbitron", monospace',
+                  textShadow: '0 0 30px rgba(0, 255, 170, 0.6)',
+                  transform: 'perspective(800px) rotateX(10deg)',
+                  filter: 'drop-shadow(0 8px 16px rgba(0, 255, 170, 0.2))'
                 }}
               >
                 SHARK LOTO
               </h1>
-              
-              {/* 4D depth layers */}
+
+              {/* 4D depth layer */}
               <h1 
-                className="absolute inset-0 text-7xl font-black tracking-wider opacity-30"
+                className="absolute inset-0 text-5xl md:text-6xl font-black tracking-wider opacity-20"
                 style={{
                   background: 'linear-gradient(45deg, #ff00aa, #00aaff)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
-                  fontFamily: 'Orbitron, monospace',
-                  transform: 'perspective(1000px) rotateX(15deg) rotateY(-5deg) translateZ(-20px) translateX(3px) translateY(3px)',
-                  filter: 'blur(1px)'
+                  fontFamily: '"Orbitron", monospace',
+                  transform: 'perspective(800px) rotateX(10deg) translateZ(-15px) translateX(2px) translateY(2px)',
+                  filter: 'blur(0.5px)'
                 }}
               >
                 SHARK LOTO
               </h1>
-              
-              {/* Holographic frame */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-40 animate-pulse" />
-              
-              {/* Corner brackets for 4D effect */}
-              <div className="absolute -top-4 -left-4 w-8 h-8 border-l-4 border-t-4 border-cyan-400 opacity-80" />
-              <div className="absolute -top-4 -right-4 w-8 h-8 border-r-4 border-t-4 border-purple-400 opacity-80" />
-              <div className="absolute -bottom-4 -left-4 w-8 h-8 border-l-4 border-b-4 border-purple-400 opacity-80" />
-              <div className="absolute -bottom-4 -right-4 w-8 h-8 border-r-4 border-b-4 border-pink-400 opacity-80" />
+
+              {/* Corner brackets */}
+              <div className="absolute -top-3 -left-3 w-6 h-6 border-l-3 border-t-3 border-cyan-400 opacity-60" />
+              <div className="absolute -top-3 -right-3 w-6 h-6 border-r-3 border-t-3 border-purple-400 opacity-60" />
+              <div className="absolute -bottom-3 -left-3 w-6 h-6 border-l-3 border-b-3 border-purple-400 opacity-60" />
+              <div className="absolute -bottom-3 -right-3 w-6 h-6 border-r-3 border-b-3 border-pink-400 opacity-60" />
             </div>
           </div>
 
-          {/* Advanced control panel */}
-          <div className="flex items-center space-x-6">
-            {/* AI Status with enhanced design */}
-            <div className="flex items-center space-x-4 px-6 py-3 rounded-xl bg-black/50 border border-green-400/60 backdrop-blur-xl shadow-2xl shadow-green-400/20">
+          {/* Control Panel */}
+          <div className="flex items-center space-x-4">
+            {/* AI Status */}
+            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/60 border border-green-400/50 backdrop-blur-md shadow-lg shadow-green-400/10">
               <div className="relative">
-                <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
-                <div className="absolute inset-0 w-4 h-4 bg-green-400 rounded-full animate-ping opacity-30" />
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-md shadow-green-400/50" />
+                <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-20" />
               </div>
-              <span className="text-green-400 font-mono text-sm tracking-wide font-bold">SISTEMA ATIVO</span>
-              <div className="w-px h-6 bg-green-400/30" />
-              <span className="text-green-300 font-mono text-xs">ONLINE</span>
+              <span className="text-green-400 font-mono text-xs tracking-wide font-bold">SISTEMA ATIVO</span>
             </div>
 
-            {/* Enhanced AI Learning Status */}
-            <div className="flex items-center space-x-3 px-6 py-3 rounded-xl bg-black/50 border border-purple-400/60 backdrop-blur-xl shadow-2xl shadow-purple-400/20">
-              <span className="text-purple-400 font-mono text-sm font-bold">🧠 IA ULTRA</span>
+            {/* IA Ultra */}
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/60 border border-purple-400/50 backdrop-blur-md shadow-lg shadow-purple-400/10">
+              <span className="text-purple-400 font-mono text-xs font-bold">🧠 IA ULTRA</span>
               <div className="flex space-x-1">
-                <div className="w-1 h-4 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                <div className="w-1 h-4 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
-                <div className="w-1 h-4 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
+                <div className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                <div className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+                <div className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
               </div>
             </div>
 
-            {/* Market Overview Panel */}
-            <div className="flex items-center space-x-3 px-6 py-3 rounded-xl bg-black/50 border border-cyan-400/60 backdrop-blur-xl shadow-2xl shadow-cyan-400/20">
-              <span className="text-cyan-400 font-mono text-sm font-bold">💰 PREMIUM</span>
+            {/* Premium Status */}
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/60 border border-cyan-400/50 backdrop-blur-md shadow-lg shadow-cyan-400/10">
+              <span className="text-cyan-400 font-mono text-xs font-bold">💰 PREMIUM</span>
               <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
             </div>
 
-            {/* Ultra futuristic logout button */}
+            {/* Logout Button */}
             <button
               onClick={onLogout}
-              className="group relative px-8 py-3 bg-gradient-to-r from-red-600 via-red-700 to-red-800 hover:from-red-700 hover:via-red-800 hover:to-red-900 text-white font-bold rounded-xl border-2 border-red-500/60 transition-all duration-500 transform hover:scale-110 hover:rotate-1 shadow-2xl shadow-red-500/30 backdrop-blur-xl overflow-hidden"
+              className="relative px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold rounded-lg border border-red-500/60 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-500/20 backdrop-blur-md"
               style={{
-                fontFamily: 'Orbitron, monospace',
-                textShadow: '0 0 15px rgba(255, 0, 0, 0.8)'
+                fontFamily: '"Orbitron", monospace',
+                fontSize: '0.75rem'
               }}
             >
-              {/* Button glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-red-600/20 group-hover:opacity-80 transition-opacity duration-300" />
-              
-              {/* Button text */}
               <span className="relative z-10">DESCONECTAR</span>
-              
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-red-300 opacity-60" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-red-300 opacity-60" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-red-300 opacity-60" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-red-300 opacity-60" />
+              <div className="absolute inset-0 bg-gradient-to-r from-red-400/10 to-red-600/10 rounded-lg" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Ultra advanced bottom effects */}
-      <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
+      {/* Bottom Effects */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-pulse" />
-      
-      {/* Scan lines effect */}
+
+      {/* Scan lines */}
       <div className="absolute inset-0 pointer-events-none">
         <div 
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-5"
           style={{
             backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 170, 0.1) 2px, rgba(0, 255, 170, 0.1) 4px)',
             animation: 'scan-lines 2s linear infinite'
