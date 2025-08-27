@@ -96,9 +96,6 @@ export default function Home() {
               )}
               {isUpdating ? 'Atualizando...' : 'Atualizar Dados'}
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Bem-vindo, {user?.email}
-            </span>
             <Button 
               onClick={handleLogout}
               variant="outline" 
