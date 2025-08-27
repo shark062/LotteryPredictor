@@ -15,7 +15,6 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Definir dimensões do canvas
     const resizeCanvas = () => {
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
@@ -28,122 +27,55 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
 
     let frame = 0;
 
-    const drawShark = () => {
+    const drawCyberpunkBackground = () => {
       const width = canvas.width / window.devicePixelRatio;
       const height = canvas.height / window.devicePixelRatio;
 
       ctx.clearRect(0, 0, width, height);
 
-      // Fundo cyberpunk
+      // Fundo cyberpunk gradiente
       const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-      bgGradient.addColorStop(0, 'rgba(0, 10, 20, 0.9)');
-      bgGradient.addColorStop(0.5, 'rgba(5, 0, 15, 0.8)');
-      bgGradient.addColorStop(1, 'rgba(0, 5, 25, 0.9)');
+      bgGradient.addColorStop(0, 'rgba(0, 10, 30, 0.95)');
+      bgGradient.addColorStop(0.3, 'rgba(10, 0, 25, 0.9)');
+      bgGradient.addColorStop(0.7, 'rgba(15, 5, 35, 0.9)');
+      bgGradient.addColorStop(1, 'rgba(5, 15, 40, 0.95)');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Circuitos animados
-      ctx.strokeStyle = 'rgba(0, 255, 170, 0.3)';
+      // Circuitos animados no fundo
+      ctx.strokeStyle = 'rgba(0, 255, 170, 0.2)';
       ctx.lineWidth = 1;
-      for (let i = 0; i < 10; i++) {
-        const offset = Math.sin(frame * 0.02 + i * 0.8) * 10;
+      for (let i = 0; i < 12; i++) {
+        const offset = Math.sin(frame * 0.02 + i * 0.6) * 15;
         ctx.beginPath();
-        ctx.moveTo(i * (width / 10), 0);
-        ctx.lineTo(i * (width / 10) + offset, height);
+        ctx.moveTo(i * (width / 12), 0);
+        ctx.lineTo(i * (width / 12) + offset, height);
         ctx.stroke();
       }
 
-      // Tubarão principal
-      ctx.save();
-      ctx.translate(width * 0.15, height * 0.5);
-
-      // Corpo do tubarão com gradiente
-      const sharkGradient = ctx.createLinearGradient(-60, -20, 80, 20);
-      sharkGradient.addColorStop(0, '#00ffcc');
-      sharkGradient.addColorStop(0.3, '#0099ff');
-      sharkGradient.addColorStop(0.7, '#0066cc');
-      sharkGradient.addColorStop(1, '#003399');
-
-      ctx.beginPath();
-      ctx.moveTo(-60, 0);
-      ctx.bezierCurveTo(-50, -25, -20, -30, 20, -25);
-      ctx.bezierCurveTo(50, -20, 80, -10, 90, 0);
-      ctx.bezierCurveTo(80, 10, 50, 20, 20, 25);
-      ctx.bezierCurveTo(-20, 30, -50, 25, -60, 0);
-      ctx.closePath();
-
-      ctx.fillStyle = sharkGradient;
-      ctx.fill();
-
-      // Glow effect
-      ctx.shadowColor = '#00ffcc';
-      ctx.shadowBlur = 20;
-      ctx.strokeStyle = '#00ffaa';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Olho vermelho brilhante
-      const eyeGradient = ctx.createRadialGradient(-35, -8, 0, -35, -8, 8);
-      eyeGradient.addColorStop(0, '#ff0000');
-      eyeGradient.addColorStop(0.5, '#cc0000');
-      eyeGradient.addColorStop(1, '#660000');
-
-      ctx.beginPath();
-      ctx.arc(-35, -8, 8, 0, Math.PI * 2);
-      ctx.fillStyle = eyeGradient;
-      ctx.shadowColor = '#ff0000';
-      ctx.shadowBlur = 15;
-      ctx.fill();
-
-      // Reflexo no olho
-      ctx.beginPath();
-      ctx.arc(-32, -11, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowBlur = 5;
-      ctx.fill();
-
-      // Dentes afiados
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 5;
-      for (let i = 0; i < 8; i++) {
-        const toothX = -55 + i * 8;
+      // Linhas horizontais de circuito
+      ctx.strokeStyle = 'rgba(255, 0, 150, 0.15)';
+      for (let i = 0; i < 6; i++) {
+        const offset = Math.cos(frame * 0.015 + i * 0.8) * 8;
         ctx.beginPath();
-        ctx.moveTo(toothX, 8);
-        ctx.lineTo(toothX + 2, 18);
-        ctx.lineTo(toothX + 4, 8);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(0, i * (height / 6) + offset);
+        ctx.lineTo(width, i * (height / 6) + offset);
+        ctx.stroke();
       }
 
-      // Barbatanas animadas
-      const finMovement = Math.sin(frame * 0.1) * 5;
+      // Efeito de matriz digital
+      ctx.fillStyle = 'rgba(0, 255, 170, 0.1)';
+      for (let i = 0; i < 20; i++) {
+        const x = (i * width / 20) + Math.sin(frame * 0.01 + i) * 5;
+        const y = ((frame * 2 + i * 10) % height);
+        ctx.fillRect(x, y, 2, 8);
+      }
 
-      // Barbatana dorsal
-      ctx.strokeStyle = '#00aaff';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#00aaff';
-      ctx.shadowBlur = 10;
-
-      ctx.beginPath();
-      ctx.moveTo(10, -25);
-      ctx.bezierCurveTo(15 + finMovement, -45, 35 + finMovement, -40, 40, -25);
-      ctx.stroke();
-
-      // Cauda
-      const tailMovement = Math.sin(frame * 0.12) * 8;
-      ctx.beginPath();
-      ctx.moveTo(90, 0);
-      ctx.bezierCurveTo(110 + tailMovement, -15, 120 + tailMovement, -10, 130, 0);
-      ctx.bezierCurveTo(120 + tailMovement, 10, 110 + tailMovement, 15, 90, 0);
-      ctx.stroke();
-
-      ctx.restore();
       frame++;
     };
 
     const animate = () => {
-      drawShark();
+      drawCyberpunkBackground();
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -159,98 +91,120 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
 
   return (
     <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 border-b-4 border-cyan-400 shadow-2xl shadow-cyan-500/30">
-      {/* Background Effects */}
+      {/* Canvas de fundo cyberpunk */}
+      <canvas 
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full opacity-60"
+        style={{ width: '100%', height: '100%' }}
+      />
+
+      {/* Efeitos de fundo adicionais */}
       <div className="absolute inset-0">
         <div 
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-30"
           style={{
             backgroundImage: `
-              radial-gradient(circle at 20% 20%, rgba(0, 255, 170, 0.15) 2px, transparent 2px),
-              radial-gradient(circle at 80% 80%, rgba(255, 0, 150, 0.15) 2px, transparent 2px),
-              linear-gradient(90deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px),
-              linear-gradient(rgba(255, 0, 150, 0.1) 1px, transparent 1px)
+              radial-gradient(circle at 20% 20%, rgba(0, 255, 170, 0.2) 2px, transparent 2px),
+              radial-gradient(circle at 80% 80%, rgba(255, 0, 150, 0.2) 2px, transparent 2px),
+              linear-gradient(45deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px),
+              linear-gradient(-45deg, rgba(255, 0, 150, 0.1) 1px, transparent 1px)
             `,
-            backgroundSize: '60px 60px, 80px 80px, 30px 30px, 30px 30px',
-            animation: 'ultra-circuit-flow 25s linear infinite'
+            backgroundSize: '80px 80px, 100px 100px, 40px 40px, 40px 40px',
+            animation: 'ultra-circuit-flow 30s linear infinite'
           }}
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent animate-pulse" />
-
-        {/* Data streams */}
+        {/* Streams de dados */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-20"
+              className="absolute w-0.5 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-25"
               style={{
-                left: `${i * 16.66}%`,
+                left: `${i * 12.5}%`,
                 height: '100%',
-                animation: `data-stream ${2 + i * 0.3}s linear infinite`
+                animation: `data-stream ${3 + i * 0.4}s linear infinite`
               }}
             />
           ))}
         </div>
       </div>
 
-      <div className="relative container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo Section */}
-          <div className="flex items-center space-x-6">
-            <div className="relative">
-              <canvas 
-                ref={canvasRef}
-                className="w-64 h-20 rounded-lg border-2 border-cyan-400/50 bg-black/70 backdrop-blur-sm shadow-xl shadow-cyan-500/20"
-                style={{ width: '256px', height: '80px' }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent animate-pulse rounded-lg" />
-            </div>
+      <div className="relative container mx-auto px-6 py-6">
+        {/* Logo Centralizada */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="relative">
+            {/* Container principal da logo */}
+            <div className="relative p-8 rounded-2xl border-2 border-cyan-400/50 bg-black/70 backdrop-blur-md shadow-2xl shadow-cyan-500/30">
+              {/* Efeito de glow interno */}
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/10 via-purple-400/10 to-pink-400/10 rounded-2xl animate-pulse" />
 
-            {/* 4D SHARK LOTO Title */}
-            <div className="relative">
-              <h1 
-                className="text-5xl md:text-6xl font-black tracking-wider transform transition-all duration-300 hover:scale-105"
+              {/* Logo SHARK LOTERIAS */}
+              <div className="relative text-center">
+                <h1 
+                  className="text-6xl md:text-7xl font-black tracking-wider transform transition-all duration-300 hover:scale-105 mb-2"
+                  style={{
+                    background: 'linear-gradient(45deg, #00ffaa 0%, #0088ff 20%, #aa00ff 40%, #ff0088 60%, #ffaa00 80%, #00ffaa 100%)',
+                    backgroundSize: '600% 600%',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    animation: 'ultra-gradient-shift 5s ease-in-out infinite, text-4d-glow 4s ease-in-out infinite alternate',
+                    fontFamily: '"Orbitron", monospace',
+                    textShadow: '0 0 40px rgba(0, 255, 170, 0.8)',
+                    transform: 'perspective(1000px) rotateX(15deg)',
+                    filter: 'drop-shadow(0 10px 20px rgba(0, 255, 170, 0.3))'
+                  }}
+                >
+                  SHARK
+                </h1>
+
+                <h2 
+                  className="text-4xl md:text-5xl font-bold tracking-widest"
+                  style={{
+                    background: 'linear-gradient(45deg, #ff0088 0%, #aa00ff 25%, #0088ff 50%, #00ffaa 75%, #ff0088 100%)',
+                    backgroundSize: '400% 400%',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    animation: 'ultra-gradient-shift 4s ease-in-out infinite reverse',
+                    fontFamily: '"Orbitron", monospace',
+                    textShadow: '0 0 30px rgba(255, 0, 136, 0.6)',
+                    transform: 'perspective(1000px) rotateX(10deg)',
+                    filter: 'drop-shadow(0 8px 16px rgba(255, 0, 136, 0.2))'
+                  }}
+                >
+                  LOTERIAS
+                </h2>
+              </div>
+
+              {/* Efeito de profundidade 4D */}
+              <div 
+                className="absolute inset-0 text-center opacity-15 pointer-events-none"
                 style={{
-                  background: 'linear-gradient(45deg, #00ffaa 0%, #0088ff 25%, #aa00ff 50%, #ff0088 75%, #00ffaa 100%)',
-                  backgroundSize: '400% 400%',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  animation: 'ultra-gradient-shift 4s ease-in-out infinite, text-4d-glow 3s ease-in-out infinite alternate',
-                  fontFamily: '"Orbitron", monospace',
-                  textShadow: '0 0 30px rgba(0, 255, 170, 0.6)',
-                  transform: 'perspective(800px) rotateX(10deg)',
-                  filter: 'drop-shadow(0 8px 16px rgba(0, 255, 170, 0.2))'
+                  transform: 'perspective(1000px) rotateX(15deg) translateZ(-20px) translateX(3px) translateY(3px)',
+                  filter: 'blur(1px)'
                 }}
               >
-                SHARK LOTO
-              </h1>
+                <h1 className="text-6xl md:text-7xl font-black tracking-wider text-cyan-400 mb-2" style={{ fontFamily: '"Orbitron", monospace' }}>
+                  SHARK
+                </h1>
+                <h2 className="text-4xl md:text-5xl font-bold tracking-widest text-purple-400" style={{ fontFamily: '"Orbitron", monospace' }}>
+                  LOTERIAS
+                </h2>
+              </div>
 
-              {/* 4D depth layer */}
-              <h1 
-                className="absolute inset-0 text-5xl md:text-6xl font-black tracking-wider opacity-20"
-                style={{
-                  background: 'linear-gradient(45deg, #ff00aa, #00aaff)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontFamily: '"Orbitron", monospace',
-                  transform: 'perspective(800px) rotateX(10deg) translateZ(-15px) translateX(2px) translateY(2px)',
-                  filter: 'blur(0.5px)'
-                }}
-              >
-                SHARK LOTO
-              </h1>
-
-              {/* Corner brackets */}
-              <div className="absolute -top-3 -left-3 w-6 h-6 border-l-3 border-t-3 border-cyan-400 opacity-60" />
-              <div className="absolute -top-3 -right-3 w-6 h-6 border-r-3 border-t-3 border-purple-400 opacity-60" />
-              <div className="absolute -bottom-3 -left-3 w-6 h-6 border-l-3 border-b-3 border-purple-400 opacity-60" />
-              <div className="absolute -bottom-3 -right-3 w-6 h-6 border-r-3 border-b-3 border-pink-400 opacity-60" />
+              {/* Brackets decorativos */}
+              <div className="absolute -top-4 -left-4 w-8 h-8 border-l-4 border-t-4 border-cyan-400 opacity-80" />
+              <div className="absolute -top-4 -right-4 w-8 h-8 border-r-4 border-t-4 border-purple-400 opacity-80" />
+              <div className="absolute -bottom-4 -left-4 w-8 h-8 border-l-4 border-b-4 border-purple-400 opacity-80" />
+              <div className="absolute -bottom-4 -right-4 w-8 h-8 border-r-4 border-b-4 border-pink-400 opacity-80" />
             </div>
           </div>
+        </div>
 
-          {/* Control Panel */}
+        {/* Barra de controles */}
+        <div className="flex items-center justify-between">
+          {/* Status à esquerda */}
           <div className="flex items-center space-x-4">
-            {/* AI Status */}
             <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/60 border border-green-400/50 backdrop-blur-md shadow-lg shadow-green-400/10">
               <div className="relative">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-md shadow-green-400/50" />
@@ -259,7 +213,6 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
               <span className="text-green-400 font-mono text-xs tracking-wide font-bold">SISTEMA ATIVO</span>
             </div>
 
-            {/* IA Ultra */}
             <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/60 border border-purple-400/50 backdrop-blur-md shadow-lg shadow-purple-400/10">
               <span className="text-purple-400 font-mono text-xs font-bold">🧠 IA ULTRA</span>
               <div className="flex space-x-1">
@@ -268,14 +221,15 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
                 <div className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
               </div>
             </div>
+          </div>
 
-            {/* Premium Status */}
+          {/* Controles à direita */}
+          <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/60 border border-cyan-400/50 backdrop-blur-md shadow-lg shadow-cyan-400/10">
               <span className="text-cyan-400 font-mono text-xs font-bold">💰 PREMIUM</span>
               <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
             </div>
 
-            {/* Logout Button */}
             <button
               onClick={onLogout}
               className="relative px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold rounded-lg border border-red-500/60 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-500/20 backdrop-blur-md"
@@ -291,17 +245,17 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
         </div>
       </div>
 
-      {/* Bottom Effects */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60" />
+      {/* Efeitos da base */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-pulse" />
 
-      {/* Scan lines */}
+      {/* Linhas de scan */}
       <div className="absolute inset-0 pointer-events-none">
         <div 
           className="absolute inset-0 opacity-5"
           style={{
             backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 170, 0.1) 2px, rgba(0, 255, 170, 0.1) 4px)',
-            animation: 'scan-lines 2s linear infinite'
+            animation: 'scan-lines 3s linear infinite'
           }}
         />
       </div>

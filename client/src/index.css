@@ -178,21 +178,43 @@
 
   @keyframes ultra-gradient-shift {
     0% { background-position: 0% 50%; }
-    25% { background-position: 100% 50%; }
-    50% { background-position: 100% 100%; }
-    75% { background-position: 0% 100%; }
+    20% { background-position: 100% 0%; }
+    40% { background-position: 100% 100%; }
+    60% { background-position: 0% 100%; }
+    80% { background-position: 0% 0%; }
     100% { background-position: 0% 50%; }
   }
 
   @keyframes text-4d-glow {
-    from {
+    0% {
       text-shadow: 
         0 0 40px rgba(0, 255, 170, 0.8), 
         0 20px 40px rgba(0, 255, 170, 0.4),
         0 0 60px rgba(0, 136, 255, 0.6),
         0 30px 60px rgba(0, 136, 255, 0.3);
     }
-    to {
+    25% {
+      text-shadow: 
+        0 0 50px rgba(255, 0, 136, 0.9), 
+        0 25px 50px rgba(255, 0, 136, 0.5),
+        0 0 70px rgba(170, 0, 255, 0.7),
+        0 35px 70px rgba(170, 0, 255, 0.4);
+    }
+    50% {
+      text-shadow: 
+        0 0 60px rgba(170, 0, 255, 1.0), 
+        0 30px 60px rgba(170, 0, 255, 0.6),
+        0 0 80px rgba(0, 255, 170, 0.8),
+        0 40px 80px rgba(0, 255, 170, 0.4);
+    }
+    75% {
+      text-shadow: 
+        0 0 55px rgba(0, 136, 255, 0.95), 
+        0 28px 55px rgba(0, 136, 255, 0.55),
+        0 0 75px rgba(255, 170, 0, 0.75),
+        0 38px 75px rgba(255, 170, 0, 0.35);
+    }
+    100% {
       text-shadow: 
         0 0 60px rgba(0, 255, 170, 1.0), 
         0 30px 60px rgba(0, 255, 170, 0.6),
