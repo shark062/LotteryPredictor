@@ -321,6 +321,78 @@
   75% { transform: scale(1.05) rotate(2deg); }
 }
 
+/* Animações para dashboard interativo */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes glow-intense {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(0, 255, 170, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(0, 255, 170, 0.8));
+  }
+}
+
 .heat-0 { background: linear-gradient(135deg, #0f172a, #1e293b); } /* Muito frio - azul escuro */
 .heat-1 { background: linear-gradient(135deg, #1e40af, #3b82f6); } /* Frio - azul */
 .heat-2 { background: linear-gradient(135deg, #7c3aed, #a855f7); } /* Morno - roxo */

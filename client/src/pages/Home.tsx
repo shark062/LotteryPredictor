@@ -75,38 +75,38 @@ export default function Home() {
       <FuturisticHeader onLogout={handleLogout} />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
         <Tabs defaultValue="dashboard" className="space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2" data-testid="tab-dashboard">
-              <span>📊</span>
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="generator" className="flex items-center space-x-2" data-testid="tab-generator">
-              <span>🎲</span>
-              <span className="hidden sm:inline">Gerador</span>
-            </TabsTrigger>
-            <TabsTrigger value="analysis" className="flex items-center space-x-2" data-testid="tab-analysis">
-              <span>🔥</span>
-              <span className="hidden sm:inline">Análise</span>
-            </TabsTrigger>
-            <TabsTrigger value="heatmap" className="flex items-center space-x-2" data-testid="tab-heatmap">
-              <span>🗺️</span>
-              <span className="hidden sm:inline">Mapa</span>
-            </TabsTrigger>
-            <TabsTrigger value="results" className="flex items-center space-x-2" data-testid="tab-results">
-              <span>🏆</span>
-              <span className="hidden sm:inline">Resultados</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center space-x-2" data-testid="tab-history">
-              <span>📈</span>
-              <span className="hidden sm:inline">Meus Jogos</span>
-            </TabsTrigger>
+          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
+            {[
+              { value: 'dashboard', icon: '📊', label: 'Dashboard' },
+              { value: 'generator', icon: '🎲', label: 'Gerador' },
+              { value: 'analysis', icon: '🔥', label: 'Análise' },
+              { value: 'heatmap', icon: '🗺️', label: 'Mapa' },
+              { value: 'results', icon: '🏆', label: 'Resultados' },
+              { value: 'history', icon: '📈', label: 'Meus Jogos' }
+            ].map((tab, index) => (
+              <TabsTrigger 
+                key={tab.value}
+                value={tab.value} 
+                className="group flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-cyan-400/50"
+                data-testid={`tab-${tab.value}`}
+              >
+                <span className="text-lg group-hover:scale-125 group-hover:rotate-12 transition-all duration-300">
+                  {tab.icon}
+                </span>
+                <span className="hidden sm:inline group-hover:text-cyan-300 transition-colors duration-300">
+                  {tab.label}
+                </span>
+                {/* Indicador ativo animado */}
+                <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-cyan-400 group-data-[state=active]:w-full group-data-[state=active]:left-0 transition-all duration-300 rounded-full" />
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* Dashboard */}
-          <TabsContent value="dashboard" className="space-y-8">
+          <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {lotteries?.map((lottery: any, index: number) => (
                 <LotteryCard
@@ -114,39 +114,84 @@ export default function Home() {
                   lottery={lottery}
                   upcomingDraw={upcomingDraws?.[lottery.name]}
                   onSelect={() => setSelectedLottery(lottery.id)}
+                  index={index}
                 />
               ))}
             </div>
 
             {/* User Stats */}
             {userStats && (
-              <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <span>📊</span>
-                    <span>Suas Estatísticas</span>
+              <Card className="group bg-card/30 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
+                {/* Efeito de brilho no hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                
+                <CardHeader className="relative">
+                  <CardTitle className="flex items-center space-x-3">
+                    <span className="text-2xl group-hover:scale-110 transition-transform duration-300">📊</span>
+                    <span className="group-hover:text-cyan-300 transition-colors duration-300">Suas Estatísticas</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{userStats.totalGames}</div>
-                      <p className="text-sm text-muted-foreground">Jogos Realizados</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-accent">{userStats.totalWins}</div>
-                      <p className="text-sm text-muted-foreground">Jogos Premiados</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-secondary">{userStats.winRate.toFixed(1)}%</div>
-                      <p className="text-sm text-muted-foreground">Taxa de Acerto</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-accent">
-                        R$ {userStats.totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <CardContent className="relative">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[
+                      { 
+                        value: userStats.totalGames, 
+                        label: 'Jogos Realizados',
+                        icon: '🎲',
+                        color: 'text-primary',
+                        bg: 'bg-primary/10'
+                      },
+                      { 
+                        value: userStats.totalWins, 
+                        label: 'Jogos Premiados',
+                        icon: '🏆',
+                        color: 'text-accent',
+                        bg: 'bg-accent/10'
+                      },
+                      { 
+                        value: `${userStats.winRate.toFixed(1)}%`, 
+                        label: 'Taxa de Acerto',
+                        icon: '📈',
+                        color: 'text-secondary',
+                        bg: 'bg-secondary/10'
+                      },
+                      { 
+                        value: `R$ ${userStats.totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+                        label: 'Total Ganho',
+                        icon: '💰',
+                        color: 'text-accent',
+                        bg: 'bg-green-500/10'
+                      }
+                    ].map((stat, index) => (
+                      <div 
+                        key={stat.label}
+                        className={`
+                          group/stat text-center p-4 rounded-xl border border-border/30 backdrop-blur-sm
+                          hover:scale-105 hover:shadow-lg transition-all duration-300
+                          hover:border-cyan-400/40 cursor-pointer ${stat.bg}
+                          opacity-0 animate-[fadeInUp_0.6s_ease-out_${index * 150}ms_forwards]
+                        `}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-2xl group-hover/stat:scale-125 group-hover/stat:rotate-12 transition-all duration-300">
+                            {stat.icon}
+                          </div>
+                          <div className={`text-2xl font-bold transition-all duration-300 group-hover/stat:scale-110 ${stat.color}`}>
+                            {stat.value}
+                          </div>
+                          <p className="text-sm text-muted-foreground group-hover/stat:text-cyan-200/80 transition-colors duration-300">
+                            {stat.label}
+                          </p>
+                        </div>
+                        
+                        {/* Barra de progresso inferior */}
+                        <div className="mt-3 w-full bg-muted/20 rounded-full h-1 overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-1000 w-0 group-hover/stat:w-full"
+                          />
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">Total Ganho</p>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
