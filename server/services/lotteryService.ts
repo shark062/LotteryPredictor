@@ -126,17 +126,33 @@ export class LotteryService {
       throw new Error('Lottery not found');
     }
 
+    // If no frequency data exists, initialize it
+    if (frequencies.length === 0) {
+      await this.initializeFrequencyData(lotteryId, lottery.maxNumber);
+      return await this.getNumberAnalysis(lotteryId);
+    }
+
     // Sort by frequency
     frequencies.sort((a, b) => b.frequency - a.frequency);
     
     const total = frequencies.length;
-    const hotCount = Math.ceil(total * 0.3); // Top 30%
-    const coldCount = Math.ceil(total * 0.3); // Bottom 30%
+    
+    if (total < 3) {
+      // Not enough data for proper analysis, return all numbers in mixed
+      return {
+        hot: [],
+        cold: [],
+        mixed: frequencies.map(f => f.number)
+      };
+    }
+    
+    const hotCount = Math.max(1, Math.ceil(total * 0.3)); // Top 30%, at least 1
+    const coldCount = Math.max(1, Math.ceil(total * 0.3)); // Bottom 30%, at least 1
     
     const hot = frequencies.slice(0, hotCount).map(f => f.number);
     const cold = frequencies.slice(-coldCount).map(f => f.number);
     const mixed = frequencies
-      .slice(hotCount, -coldCount)
+      .slice(hotCount, total - coldCount)
       .map(f => f.number);
 
     return { hot, cold, mixed };

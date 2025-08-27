@@ -25,6 +25,10 @@ export class AIService {
       throw new Error('Lottery not found');
     }
 
+    if (count <= 0 || count > lottery.maxNumbers) {
+      throw new Error(`Invalid count: must be between 1 and ${lottery.maxNumbers}`);
+    }
+
     const analysis = await lotteryService.getNumberAnalysis(lotteryId);
     const availableNumbers: number[] = [];
 
@@ -39,22 +43,34 @@ export class AIService {
       availableNumbers.push(...analysis.mixed);
     }
 
-    // If no preferences selected, use all numbers
+    // If no preferences selected or not enough numbers, use all numbers
     if (availableNumbers.length === 0) {
       for (let i = 1; i <= lottery.maxNumber; i++) {
         availableNumbers.push(i);
       }
     }
 
-    // Remove duplicates and shuffle
+    // Remove duplicates and ensure we have enough numbers
     const uniqueNumbers = [...new Set(availableNumbers)];
+    
+    // If we still don't have enough numbers, fill with remaining numbers
+    if (uniqueNumbers.length < count) {
+      const missingNumbers = [];
+      for (let i = 1; i <= lottery.maxNumber; i++) {
+        if (!uniqueNumbers.includes(i)) {
+          missingNumbers.push(i);
+        }
+      }
+      uniqueNumbers.push(...missingNumbers);
+    }
+
     const shuffled = this.shuffleArray(uniqueNumbers);
 
     // Apply AI weighting based on historical patterns
     const weighted = await this.applyAIWeighting(lotteryId, shuffled);
 
     // Select the requested count
-    const selected = weighted.slice(0, Math.min(count, weighted.length));
+    const selected = weighted.slice(0, count);
     
     return selected.sort((a, b) => a - b);
   }
