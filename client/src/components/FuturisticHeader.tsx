@@ -1,11 +1,9 @@
 import React from 'react';
 import logoUrl from '../assets/cyberpunk-shark.png';
 
-interface FuturisticHeaderProps {
-  onLogout: () => void;
-}
+interface FuturisticHeaderProps {}
 
-export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
+export default function FuturisticHeader({}: FuturisticHeaderProps) {
   return (
     <header 
       className="relative overflow-hidden py-4 border-b border-cyan-400/30 shadow-lg"
@@ -125,19 +123,6 @@ export default function FuturisticHeader({ onLogout }: FuturisticHeaderProps) {
             <div className="hidden md:flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/50 border border-yellow-400/40 backdrop-blur-md">
               <span className="text-yellow-400 font-mono text-sm font-semibold">💰 PREMIUM</span>
             </div>
-
-            {/* Botão logout */}
-            <button
-              onClick={onLogout}
-              className="group relative px-6 py-2 bg-gradient-to-r from-red-600/80 to-red-700/80 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg border border-red-500/40 transition-all duration-300 transform hover:scale-105 backdrop-blur-md"
-              style={{
-                fontFamily: 'Orbitron, monospace',
-                textShadow: '0 0 10px rgba(255, 0, 0, 0.5)'
-              }}
-            >
-              <span className="relative z-10">SAIR</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-red-600/20 group-hover:opacity-80 transition-opacity duration-300 rounded-lg" />
-            </button>
           </div>
         </div>
       </div>

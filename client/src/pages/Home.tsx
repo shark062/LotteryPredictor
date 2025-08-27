@@ -83,7 +83,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Futuristic Header */}
-      <FuturisticHeader onLogout={handleLogout} />
+      <FuturisticHeader />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
