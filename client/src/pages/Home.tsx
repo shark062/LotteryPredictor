@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import logoUrl from '../assets/logo.jpg';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LotteryCard from "@/components/LotteryCard";
@@ -45,8 +46,12 @@ export default function Home() {
       <header className="border-b border-border bg-card/20 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect">
-              <span className="text-xl">🦈</span>
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect overflow-hidden">
+              <img 
+                src={logoUrl} 
+                alt="Shark Loto Logo" 
+                className="w-full h-full object-cover rounded-lg"
+              />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent shark-brand">
               Shark Loto 💵

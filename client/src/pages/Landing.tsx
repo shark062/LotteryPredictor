@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import logoUrl from '../assets/logo.jpg';
 
 export default function Landing() {
   const handleLogin = () => {
@@ -12,8 +13,12 @@ export default function Landing() {
         <Card className="login-container rounded-2xl border border-border glow-effect bg-card/50 backdrop-blur-md">
           <CardContent className="p-8">
             <div className="text-center mb-8">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect">
-                <span className="text-3xl">🦈</span>
+              <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect overflow-hidden">
+                <img 
+                  src={logoUrl} 
+                  alt="Shark Loto Logo" 
+                  className="w-full h-full object-cover rounded-2xl"
+                />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent shark-brand">
                 Shark Loto 💵
