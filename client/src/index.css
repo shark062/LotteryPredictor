@@ -124,19 +124,6 @@
     font-weight: 700;
   }
 
-  .shark-swim-left {
-    animation: shark-swim-left 15s linear infinite;
-  }
-
-  .shark-swim-right {
-    animation: shark-swim-right 18s linear infinite;
-    animation-delay: 7s;
-  }
-
-  .shark-logo {
-    animation: money-hungry 2s ease-in-out infinite;
-  }
-
   .money-pulse {
     animation: money-hungry 1.5s ease-in-out infinite;
   }
@@ -171,18 +158,6 @@
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
-  }
-
-  @keyframes shark-swim-left {
-    0% { transform: translateX(-100px); }
-    50% { transform: translateX(50vw); }
-    100% { transform: translateX(100vw); }
-  }
-
-  @keyframes shark-swim-right {
-    0% { transform: translateX(100px) scaleX(-1); }
-    50% { transform: translateX(-50vw) scaleX(-1); }
-    100% { transform: translateX(-100vw) scaleX(-1); }
   }
 
   @keyframes money-hungry {

@@ -71,34 +71,12 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40 overflow-hidden relative">
-        {/* Swimming Sharks Animation */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="shark-swim-left absolute top-2 left-0 text-2xl opacity-70">
-            🦈💰
-          </div>
-          <div className="shark-swim-right absolute top-2 right-0 text-2xl opacity-70">
-            💰🦈
-          </div>
-        </div>
-        
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between relative z-10">
+      <header className="border-b border-border bg-card/30 backdrop-blur-md sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary via-accent to-secondary flex items-center justify-center glow-effect overflow-hidden animate-pulse shark-logo">
-              <img 
-                src={logoUrl} 
-                alt="Shark Loto Logo" 
-                className="w-full h-full object-cover rounded-xl animate-float"
-              />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent shark-brand animate-glow">
-                🦈 SHARK LOTO 💵
-              </h1>
-              <p className="text-xs text-accent font-semibold shark-brand animate-pulse">
-                FOME DE DINHEIRO! 🤑
-              </p>
-            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent shark-brand animate-glow">
+              SHARK LOTO 💵
+            </h1>
           </div>
 
           <div className="flex items-center space-x-4">
