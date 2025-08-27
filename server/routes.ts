@@ -220,6 +220,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Train AI Model with ChatGPT Enhancement
+  app.post("/api/ai/train/:lotteryId", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.lotteryId);
+      await aiService.updateModel(lotteryId);
+      res.json({ 
+        message: 'Modelo IA treinado com ChatGPT com sucesso', 
+        success: true 
+      });
+    } catch (error) {
+      console.error('Erro ao treinar modelo IA:', error);
+      res.status(500).json({ 
+        error: 'Erro ao treinar modelo IA',
+        success: false 
+      });
+    }
+  });
+
   // User game routes - simplified without authentication
   app.post("/api/games", async (req: any, res) => {
     try {

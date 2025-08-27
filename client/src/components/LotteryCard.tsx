@@ -67,7 +67,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         transition-all duration-500 ease-out
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
         ${isHovered ? 'scale-105 shadow-2xl shadow-cyan-500/25' : 'scale-100'}
-        bg-gradient-to-br ${getLotteryGradient(lottery.name)}
+        bg-card/20
         border border-border/50 hover:border-cyan-400/50
         rounded-xl glow-effect
       `}

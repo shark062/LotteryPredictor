@@ -17,7 +17,13 @@ export default function Home() {
   const { user, isLoading } = useAuth();
   const [selectedLottery, setSelectedLottery] = useState<number>(1);
 
-  const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery({
+  const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery<Array<{
+    id: number;
+    name: string;
+    minNumbers: number;
+    maxNumbers: number;
+    maxNumber: number;
+  }>>({
     queryKey: ["/api/lotteries"],
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 3,
@@ -31,7 +37,12 @@ export default function Home() {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const { data: userStats, refetch: refetchUserStats } = useQuery({
+  const { data: userStats, refetch: refetchUserStats } = useQuery<{
+    totalGames: number;
+    totalWins: number;
+    totalEarnings: number;
+    winRate: number;
+  }>({
     queryKey: ["/api/users/stats"],
     staleTime: 10 * 60 * 1000, // 10 minutos
     retry: 2,
@@ -121,7 +132,7 @@ export default function Home() {
 
             {/* User Stats */}
             {userStats && (
-              <Card className="group bg-card/30 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
+              <Card className="group bg-card/20 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
                 {/* Efeito de brilho no hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 
