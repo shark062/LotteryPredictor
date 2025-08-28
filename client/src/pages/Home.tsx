@@ -14,8 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
 
 export default function Home() {
-  const [selectedLottery, setSelectedLottery] = useState<number | null>(null);
   const { user, isLoading } = useAuth();
+  const [selectedLottery, setSelectedLottery] = useState<number | null>(null);
   
 
   const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery<Array<{
@@ -140,23 +140,23 @@ export default function Home() {
                       'Quina': { quina: 1, quadra: 67, terno: 4523 }
                     };
 
-                    const currentWinners = winnersData[lottery.name as keyof typeof winnersData] || { first: 0, second: 0, third: 0 };
+                    const currentWinners = winnersData[lottery.name as keyof typeof winnersData] || {};
                     const winnerCategories = lottery.name === 'Mega-Sena' 
                       ? [
-                          { label: 'Sena (6 números)', count: currentWinners.sena || 0, icon: '🎯', color: 'text-yellow-400' },
-                          { label: 'Quina (5 números)', count: currentWinners.quina || 0, icon: '⭐', color: 'text-blue-400' },
-                          { label: 'Quadra (4 números)', count: currentWinners.quadra || 0, icon: '🔸', color: 'text-green-400' }
+                          { label: 'Sena (6 números)', count: (currentWinners as any).sena || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: 'Quina (5 números)', count: (currentWinners as any).quina || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: 'Quadra (4 números)', count: (currentWinners as any).quadra || 0, icon: '🔸', color: 'text-green-400' }
                         ]
                       : lottery.name === 'Lotofácil'
                       ? [
-                          { label: '15 pontos', count: currentWinners.pontos15 || 0, icon: '🎯', color: 'text-yellow-400' },
-                          { label: '14 pontos', count: currentWinners.pontos14 || 0, icon: '⭐', color: 'text-blue-400' },
-                          { label: '13 pontos', count: currentWinners.pontos13 || 0, icon: '🔸', color: 'text-green-400' }
+                          { label: '15 pontos', count: (currentWinners as any).pontos15 || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: '14 pontos', count: (currentWinners as any).pontos14 || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: '13 pontos', count: (currentWinners as any).pontos13 || 0, icon: '🔸', color: 'text-green-400' }
                         ]
                       : [
-                          { label: 'Quina (5 números)', count: currentWinners.quina || 0, icon: '🎯', color: 'text-yellow-400' },
-                          { label: 'Quadra (4 números)', count: currentWinners.quadra || 0, icon: '⭐', color: 'text-blue-400' },
-                          { label: 'Terno (3 números)', count: currentWinners.terno || 0, icon: '🔸', color: 'text-green-400' }
+                          { label: 'Quina (5 números)', count: (currentWinners as any).quina || 0, icon: '🎯', color: 'text-yellow-400' },
+                          { label: 'Quadra (4 números)', count: (currentWinners as any).quadra || 0, icon: '⭐', color: 'text-blue-400' },
+                          { label: 'Terno (3 números)', count: (currentWinners as any).terno || 0, icon: '🔸', color: 'text-green-400' }
                         ];
 
                     return (
@@ -210,7 +210,7 @@ export default function Home() {
           {/* Generator */}
           <TabsContent value="generator">
             <NumberGenerator 
-              selectedLottery={selectedLottery} 
+              selectedLottery={selectedLottery || 1} 
               onLotteryChange={setSelectedLottery}
             />
           </TabsContent>
@@ -224,7 +224,7 @@ export default function Home() {
               </h2>
               {/* Analysis content will be implemented in NumberGenerator component */}
               <NumberGenerator 
-                selectedLottery={selectedLottery} 
+                selectedLottery={selectedLottery || 1} 
                 onLotteryChange={setSelectedLottery}
                 showAnalysis={true}
               />
@@ -233,7 +233,7 @@ export default function Home() {
 
           {/* Heat Map */}
           <TabsContent value="heatmap">
-            <HeatMap selectedLottery={selectedLottery} onLotteryChange={setSelectedLottery} />
+            <HeatMap selectedLottery={selectedLottery || 1} onLotteryChange={setSelectedLottery} />
           </TabsContent>
 
           {/* Results */}
