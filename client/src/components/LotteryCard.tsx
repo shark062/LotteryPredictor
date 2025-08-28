@@ -146,13 +146,15 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
           <div className="flex items-center justify-between">
             <span
               className={`
-                text-2xl font-bold text-accent transition-all duration-300
+                text-xl font-bold text-accent transition-all duration-300
                 ${isHovered ? 'scale-105 text-cyan-300' : 'scale-100'}
               `}
             >
-              {upcomingDraw?.prize || (
-                <span className="text-lg text-muted-foreground animate-pulse">
-                  Carregando...
+              {upcomingDraw?.prize ? (
+                upcomingDraw.prize
+              ) : (
+                <span className="text-lg text-cyan-400/60 animate-pulse">
+                  Atualizando...
                 </span>
               )}
             </span>
@@ -162,7 +164,11 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
                 ${isHovered ? 'text-cyan-300' : ''}
               `}
             >
-              Concurso: {upcomingDraw?.contestNumber || '---'}
+              {upcomingDraw?.contestNumber ? (
+                `Concurso: ${upcomingDraw.contestNumber}`
+              ) : (
+                <span className="text-cyan-400/60">---</span>
+              )}
             </span>
           </div>
 
@@ -172,7 +178,13 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
               ${isHovered ? 'text-cyan-200/70' : ''}
             `}
           >
-            Próximo sorteio: {upcomingDraw?.date || '--/-- - --:--h'}
+            {upcomingDraw?.date ? (
+              `Próximo sorteio: ${upcomingDraw.date}`
+            ) : (
+              <span className="text-cyan-400/60 animate-pulse">
+                Buscando data...
+              </span>
+            )}
           </div>
 
           {/* Barra de progresso animada */}

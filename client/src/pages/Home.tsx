@@ -39,12 +39,14 @@ export default function Home() {
 
   const { data: upcomingDraws, refetch: refetchUpcomingDraws, isLoading: upcomingLoading } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
-    staleTime: 10 * 60 * 1000, // 10 minutos
-    gcTime: 15 * 60 * 1000, // 15 minutos
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    retry: 2, // Reduzir tentativas
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 15000), // Delays menores
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    refetchInterval: false, // Desabilitar refetch automático
+    networkMode: 'always', // Sempre tentar buscar dados
   });
 
   const { mutate: updateLotteryData, isPending: isUpdating } = useMutation({
@@ -71,34 +73,41 @@ export default function Home() {
     }
   });
 
-  // Auto-refresh mais inteligente - apenas se a aba estiver ativa
+  // Auto-refresh otimizado - reduzir frequência para evitar travamentos
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
 
     const startInterval = () => {
       interval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          updateLotteryData();
+        if (document.visibilityState === 'visible' && !isUpdating) {
+          // Apenas atualizar dados dos próximos sorteios
+          refetchUpcomingDraws();
         }
-      }, 10 * 60 * 1000); // 10 minutos
+      }, 2 * 60 * 1000); // 2 minutos ao invés de 10
     };
 
-    startInterval();
+    // Aguardar 10 segundos antes de iniciar o interval
+    const initialDelay = setTimeout(() => {
+      startInterval();
+    }, 10000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Atualizar dados quando a aba ficar ativa novamente
-        refetchUpcomingDraws();
+        // Pequeno delay para evitar múltiplas requisições
+        setTimeout(() => {
+          refetchUpcomingDraws();
+        }, 1000);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      clearTimeout(initialDelay);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [updateLotteryData, refetchUpcomingDraws]);
+  }, [refetchUpcomingDraws, isUpdating]);
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
