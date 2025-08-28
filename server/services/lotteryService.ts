@@ -139,18 +139,19 @@ export class LotteryService {
 
   async getUpcomingDraws(): Promise<{ [key: string]: { prize: string; date: string; contestNumber: number } }> {
     try {
-      // Primeiro tentar obter dados do lotteryDataService
-      const { lotteryDataService } = await import('./lotteryDataService');
-      const realData = await lotteryDataService.getAllLotteryData();
+      // Tentar obter dados do web scraping
+      const { webScrapingService } = await import('./webScrapingService');
+      const scrapedData = await webScrapingService.getLotteryInfo();
       
       // Converter formato dos dados para o formato esperado
       const result: { [key: string]: { prize: string; date: string; contestNumber: number } } = {};
       
-      for (const [name, info] of Object.entries(realData)) {
+      for (const [name, info] of Object.entries(scrapedData)) {
+        const lotteryInfo = info as any;
         result[name] = {
-          prize: info.estimatedPrize,
-          date: info.nextDrawDate,
-          contestNumber: info.contestNumber
+          prize: lotteryInfo.prize || 'R$ 1.000.000',
+          date: lotteryInfo.nextDrawDate || this.getNextDrawDate('Sábado'),
+          contestNumber: lotteryInfo.contestNumber || 1000
         };
       }
       

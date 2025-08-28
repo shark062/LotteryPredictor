@@ -221,8 +221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lotteries/:slug/community-insights", async (req, res) => {
     try {
       const { slug } = req.params;
-      const insights = await lotteryDataService.getCollaborativeInsights(slug);
-      res.json(insights);
+      // const insights = await lotteryDataService.getCollaborativeInsights(slug);
+      res.json({ message: "Community insights feature temporarily disabled" });
     } catch (error) {
       console.error("Error fetching community insights:", error);
       res.status(500).json({ message: "Failed to fetch community insights" });

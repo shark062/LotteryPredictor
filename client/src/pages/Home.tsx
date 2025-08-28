@@ -12,7 +12,7 @@ import AILearningStatus from "@/components/AILearningStatus";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
-import CommunityInsights from '@/components/CommunityInsights';
+// import CommunityInsights from '@/components/CommunityInsights';
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -37,14 +37,14 @@ export default function Home() {
   const { data: upcomingDraws, refetch: refetchUpcomingDraws, isLoading: upcomingLoading } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
     staleTime: 10 * 60 * 1000, // 10 minutos
-    cacheTime: 15 * 60 * 1000, // 15 minutos
+    gcTime: 15 * 60 * 1000, // 15 minutos
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 
-  const { mutate: updateLotteryData, isLoading: isUpdating } = useMutation({
+  const { mutate: updateLotteryData, isPending: isUpdating } = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/lotteries/update', { 
         method: 'POST',
@@ -319,9 +319,10 @@ export default function Home() {
                 🌐 Inteligência Colaborativa
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <CommunityInsights lotterySlug="mega-sena" />
-                <CommunityInsights lotterySlug="lotofacil" />
-                <CommunityInsights lotterySlug="quina" />
+                {/* Community insights feature temporarily disabled */}
+                <div className="text-center p-4 text-muted-foreground">
+                  <p>Insights da comunidade em breve...</p>
+                </div>
               </div>
             </div>
           </TabsContent>
