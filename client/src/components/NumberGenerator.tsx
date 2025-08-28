@@ -26,9 +26,9 @@ export default function NumberGenerator({
   const [numberCount, setNumberCount] = useState('');
   const [gameCount, setGameCount] = useState('1');
   const [preferences, setPreferences] = useState({
-    useHot: true,
+    useHot: false,
     useCold: false,
-    useMixed: true,
+    useMixed: false,
   });
   const [generatedNumbers, setGeneratedNumbers] = useState<number[][]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -225,43 +225,71 @@ export default function NumberGenerator({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="use-hot"
-                checked={preferences.useHot}
-                onCheckedChange={(checked) =>
-                  setPreferences(prev => ({ ...prev, useHot: !!checked }))
-                }
-                data-testid="checkbox-use-hot"
-                disabled={!selectedLotteryData}
-              />
-              <Label htmlFor="use-hot" className="cursor-pointer">🔥 Números Quentes</Label>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground bg-background/50 p-3 rounded-lg border">
+              <p className="mb-2 font-medium">Estratégias de Seleção:</p>
+              <p>Escolha como a IA deve selecionar seus números baseado em análise estatística dos concursos passados.</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="use-cold"
-                checked={preferences.useCold}
-                onCheckedChange={(checked) =>
-                  setPreferences(prev => ({ ...prev, useCold: !!checked }))
-                }
-                data-testid="checkbox-use-cold"
-                disabled={!selectedLotteryData}
-              />
-              <Label htmlFor="use-cold" className="cursor-pointer">🥶 Números Frios</Label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-start space-x-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                <Checkbox
+                  id="use-hot"
+                  checked={preferences.useHot}
+                  onCheckedChange={(checked) =>
+                    setPreferences(prev => ({ ...prev, useHot: !!checked }))
+                  }
+                  data-testid="checkbox-use-hot"
+                  disabled={!selectedLotteryData}
+                  className="mt-1"
+                />
+                <div>
+                  <Label htmlFor="use-hot" className="cursor-pointer text-sm font-medium">🔥 Números Quentes</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Prioriza números que saíram com mais frequência recentemente</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                <Checkbox
+                  id="use-cold"
+                  checked={preferences.useCold}
+                  onCheckedChange={(checked) =>
+                    setPreferences(prev => ({ ...prev, useCold: !!checked }))
+                  }
+                  data-testid="checkbox-use-cold"
+                  disabled={!selectedLotteryData}
+                  className="mt-1"
+                />
+                <div>
+                  <Label htmlFor="use-cold" className="cursor-pointer text-sm font-medium">🥶 Números Frios</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Foca em números que não saem há muito tempo</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+                <Checkbox
+                  id="use-mixed"
+                  checked={preferences.useMixed}
+                  onCheckedChange={(checked) =>
+                    setPreferences(prev => ({ ...prev, useMixed: !!checked }))
+                  }
+                  data-testid="checkbox-use-mixed"
+                  disabled={!selectedLotteryData}
+                  className="mt-1"
+                />
+                <div>
+                  <Label htmlFor="use-mixed" className="cursor-pointer text-sm font-medium">🔮 Números Mistos</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Combina estratégias balanceando quentes e frios</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="use-mixed"
-                checked={preferences.useMixed}
-                onCheckedChange={(checked) =>
-                  setPreferences(prev => ({ ...prev, useMixed: !!checked }))
-                }
-                data-testid="checkbox-use-mixed"
-                disabled={!selectedLotteryData}
-              />
-              <Label htmlFor="use-mixed" className="cursor-pointer">🔮 Números Mistos</Label>
-            </div>
+            
+            {!preferences.useHot && !preferences.useCold && !preferences.useMixed && (
+              <div className="text-sm text-amber-600 bg-amber-50/50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="font-medium mb-1">🎲 Modo Aleatório Ativado</p>
+                <p>Como nenhuma estratégia foi selecionada, a IA gerará números de forma totalmente aleatória.</p>
+              </div>
+            )}
           </div>
 
           <Button
