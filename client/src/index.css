@@ -394,6 +394,43 @@
   }
 }
 
+/* Animações para o cabeçalho */
+@keyframes scan-lines {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes circuit-flow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 40px;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes text-glow {
+  0% {
+    text-shadow: 0 0 20px rgba(0, 255, 170, 0.4);
+  }
+  100% {
+    text-shadow: 0 0 30px rgba(0, 255, 170, 0.6);
+  }
+}
+
 .heat-0 { background: linear-gradient(135deg, #0f172a, #1e293b); } /* Muito frio - azul escuro */
 .heat-1 { background: linear-gradient(135deg, #1e40af, #3b82f6); } /* Frio - azul */
 .heat-2 { background: linear-gradient(135deg, #7c3aed, #a855f7); } /* Morno - roxo */

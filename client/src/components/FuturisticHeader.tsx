@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import logoUrl from '../assets/cyberpunk-shark.png';
@@ -12,19 +13,28 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
   const { data: aiStatus } = useQuery({
     queryKey: ["/api/ai/status"],
     refetchInterval: 10000, // Atualizar a cada 10 segundos
+    staleTime: 5000, // Cache por 5 segundos
   });
 
   // Buscar dados das loterias para detectar novos sorteios
   const { data: upcomingDraws } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
     refetchInterval: 30000, // Atualizar a cada 30 segundos
+    staleTime: 15000, // Cache por 15 segundos
   });
 
-  // Simular aumento de precisão baseado em novos dados
+  // Atualizar precisão baseado em dados da IA
   useEffect(() => {
-    if (aiStatus) {
-      const avgAccuracy = Object.values(aiStatus).reduce((acc: number, val: any) => acc + val, 0) / Object.keys(aiStatus).length;
-      setPrecision(Math.min(95, Math.max(70, avgAccuracy)));
+    if (aiStatus && typeof aiStatus === 'object') {
+      const validValues = Object.values(aiStatus).filter((val): val is number => 
+        typeof val === 'number' && !isNaN(val)
+      );
+      
+      if (validValues.length > 0) {
+        const avgAccuracy = validValues.reduce((acc, val) => acc + val, 0) / validValues.length;
+        setPrecision(Math.min(95, Math.max(70, avgAccuracy)));
+        setLastUpdate(new Date());
+      }
     }
   }, [aiStatus]);
 
@@ -32,62 +42,62 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       setPrecision(prev => {
-        const increment = Math.random() * 0.5; // Pequeno aumento aleatório
+        const increment = Math.random() * 0.3; // Pequeno aumento aleatório
         const newPrecision = Math.min(95, prev + increment);
         if (newPrecision > prev) {
           setLastUpdate(new Date());
         }
         return newPrecision;
       });
-    }, 15000); // A cada 15 segundos
+    }, 20000); // A cada 20 segundos
 
     return () => clearInterval(interval);
   }, []);
 
-  const formatPrecision = (value: number) => value.toFixed(1);
+  const formatPrecision = (value: number): string => value.toFixed(1);
 
   return (
     <header 
       className="relative overflow-hidden py-4 border-b border-cyan-400/30 shadow-lg"
       style={{
         background: `
+          linear-gradient(135deg, rgba(2, 6, 23, 0.95), rgba(8, 15, 30, 0.95)),
           url('${logoUrl}'),
-          radial-gradient(circle at 25% 25%, rgba(0, 191, 255, 0.1) 1px, transparent 1px),
-          radial-gradient(circle at 75% 75%, rgba(255, 0, 150, 0.1) 1px, transparent 1px),
-          linear-gradient(135deg, rgba(2, 6, 23, 0.95), rgba(8, 15, 30, 0.95))
+          radial-gradient(circle at 25% 25%, rgba(0, 191, 255, 0.08) 1px, transparent 1px),
+          radial-gradient(circle at 75% 75%, rgba(255, 0, 150, 0.08) 1px, transparent 1px)
         `,
-        backgroundSize: '50vh, 50px 50px, 50px 50px, cover',
-        backgroundPosition: 'center, 25% 25%, 75% 75%, center',
-        backgroundRepeat: 'no-repeat, repeat, repeat, no-repeat',
-        backgroundAttachment: 'fixed, local, local, local'
+        backgroundSize: 'cover, 60vh, 60px 60px, 60px 60px',
+        backgroundPosition: 'center, center, 25% 25%, 75% 75%',
+        backgroundRepeat: 'no-repeat, no-repeat, repeat, repeat',
+        backgroundAttachment: 'local',
       }}
     >
-      {/* Efeitos overlay */}
-      <div className="absolute inset-0">
+      {/* Efeitos overlay otimizados */}
+      <div className="absolute inset-0 pointer-events-none">
         {/* Efeito de scan lines */}
         <div 
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-15"
           style={{
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 170, 0.1) 2px, rgba(0, 255, 170, 0.1) 4px)',
-            animation: 'scan-lines 2s linear infinite'
+            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 170, 0.08) 2px, rgba(0, 255, 170, 0.08) 4px)',
+            animation: 'scan-lines 3s linear infinite'
           }}
         />
         
         {/* Circuitos animados */}
         <div 
-          className="absolute inset-0 opacity-30"
+          className="absolute inset-0 opacity-20"
           style={{
             backgroundImage: `
-              linear-gradient(90deg, rgba(0, 255, 170, 0.1) 1px, transparent 1px),
-              linear-gradient(rgba(255, 0, 150, 0.1) 1px, transparent 1px)
+              linear-gradient(90deg, rgba(0, 255, 170, 0.06) 1px, transparent 1px),
+              linear-gradient(rgba(255, 0, 150, 0.06) 1px, transparent 1px)
             `,
-            backgroundSize: '30px 30px',
-            animation: 'circuit-flow 20s linear infinite'
+            backgroundSize: '40px 40px',
+            animation: 'circuit-flow 25s linear infinite'
           }}
         />
         
-        {/* Glow holográfico */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent animate-pulse" />
+        {/* Glow holográfico suavizado */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent animate-pulse" />
       </div>
 
       <div className="relative container mx-auto px-6">
@@ -100,7 +110,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
                 className="w-full h-full bg-cover bg-center opacity-80"
                 style={{ backgroundImage: `url('${logoUrl}')` }}
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/15 to-purple-400/15 animate-pulse" />
             </div>
             
             {/* Nome dinâmico */}
@@ -114,8 +124,8 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
                   WebkitTextFillColor: 'transparent',
                   animation: 'gradient-shift 4s ease-in-out infinite, text-glow 2s ease-in-out infinite alternate',
                   fontFamily: 'Orbitron, monospace',
-                  textShadow: '0 0 20px rgba(0, 255, 170, 0.6)',
-                  filter: 'drop-shadow(0 4px 8px rgba(0, 255, 170, 0.3))'
+                  textShadow: '0 0 20px rgba(0, 255, 170, 0.4)',
+                  filter: 'drop-shadow(0 4px 8px rgba(0, 255, 170, 0.2))'
                 }}
               >
                 SHARK LOTERIAS
@@ -123,7 +133,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               
               {/* Efeito de profundidade */}
               <h1 
-                className="absolute inset-0 text-3xl md:text-4xl font-black tracking-wider opacity-30 blur-sm"
+                className="absolute inset-0 text-3xl md:text-4xl font-black tracking-wider opacity-20 blur-sm"
                 style={{
                   background: 'linear-gradient(45deg, #ff00aa, #00aaff)',
                   WebkitBackgroundClip: 'text',
@@ -135,17 +145,17 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
                 SHARK LOTERIAS
               </h1>
               
-              {/* Partículas flutuantes */}
+              {/* Partículas flutuantes otimizadas */}
               <div className="absolute -inset-2">
-                {[...Array(6)].map((_, i) => (
+                {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute w-1 h-1 bg-cyan-400 rounded-full opacity-60"
+                    className="absolute w-1 h-1 bg-cyan-400/60 rounded-full"
                     style={{
-                      left: `${20 + i * 15}%`,
+                      left: `${20 + i * 20}%`,
                       top: `${10 + (i % 2) * 80}%`,
-                      animation: `float ${2 + i * 0.5}s ease-in-out infinite`,
-                      animationDelay: `${i * 0.3}s`
+                      animation: `float ${2.5 + i * 0.5}s ease-in-out infinite`,
+                      animationDelay: `${i * 0.4}s`
                     }}
                   />
                 ))}
@@ -155,17 +165,22 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
 
           {/* Controles do header */}
           <div className="flex items-center space-x-3">
-            {/* Precisão Dinâmica */}
-            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/60 border border-cyan-400/50 backdrop-blur-md">
+            {/* Precisão Dinâmica - CORREÇÃO DO BORRÃO VERDE */}
+            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/70 border border-cyan-400/40 backdrop-blur-md">
               <div className="flex flex-col items-center">
-                <span className="text-cyan-400 font-mono text-xs uppercase tracking-wider">Precisão</span>
+                <span className="text-cyan-300 font-mono text-xs uppercase tracking-wider mb-1">Precisão</span>
                 <div className="flex items-center space-x-2">
                   <span 
                     className="text-2xl font-black font-mono tracking-tight"
                     style={{
-                      background: `linear-gradient(45deg, #00ffaa ${precision}%, #ff6600 ${precision + 10}%)`,
+                      background: precision >= 90 
+                        ? 'linear-gradient(45deg, #00ffaa 0%, #00dd88 100%)'
+                        : precision >= 80
+                        ? 'linear-gradient(45deg, #00bbff 0%, #0099dd 100%)'
+                        : 'linear-gradient(45deg, #ffaa00 0%, #dd8800 100%)',
                       WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+                      WebkitTextFillColor: 'transparent',
+                      filter: 'none' // Removido filtro que causava borrão
                     }}
                   >
                     {formatPrecision(precision)}%
@@ -175,8 +190,8 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               </div>
               <div className="h-8 w-px bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent" />
               <div className="flex flex-col text-xs">
-                <span className="text-cyan-300/80 font-mono">Última atualização:</span>
-                <span className="text-cyan-200/60 font-mono">
+                <span className="text-cyan-300/80 font-mono text-[10px]">Última atualização:</span>
+                <span className="text-cyan-200/70 font-mono text-[10px]">
                   {lastUpdate.toLocaleTimeString('pt-BR', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -186,21 +201,21 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
             </div>
 
             {/* Status IA */}
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/50 border border-green-400/40 backdrop-blur-md">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/60 border border-green-400/40 backdrop-blur-md">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-green-400 font-mono text-sm font-semibold">IA ATIVA</span>
+              <span className="text-green-300 font-mono text-sm font-semibold">IA ATIVA</span>
             </div>
 
             {/* Premium badge */}
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/50 border border-yellow-400/40 backdrop-blur-md">
-              <span className="text-yellow-400 font-mono text-sm font-semibold">💰 PREMIUM</span>
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/60 border border-yellow-400/40 backdrop-blur-md">
+              <span className="text-yellow-300 font-mono text-sm font-semibold">💰 PREMIUM</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Linha inferior cyberpunk */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
     </header>
   );
 }
