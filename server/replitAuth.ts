@@ -127,31 +127,72 @@ export async function setupAuth(app: Express) {
   });
 }
 
+// Rate limiting para autenticação
+const authAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const MAX_AUTH_ATTEMPTS = 5;
+const AUTH_LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutos
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const attempts = authAttempts.get(ip);
+  
+  if (!attempts) {
+    authAttempts.set(ip, { count: 1, lastAttempt: now });
+    return true;
+  }
+  
+  // Reset se passou do tempo de lockout
+  if (now - attempts.lastAttempt > AUTH_LOCKOUT_TIME) {
+    authAttempts.set(ip, { count: 1, lastAttempt: now });
+    return true;
+  }
+  
+  if (attempts.count >= MAX_AUTH_ATTEMPTS) {
+    return false;
+  }
+  
+  attempts.count++;
+  attempts.lastAttempt = now;
+  return true;
+}
+
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
   try {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    
+    // Verificar rate limiting
+    if (!checkRateLimit(clientIP)) {
+      return res.status(429).json({ 
+        message: "Too many authentication attempts. Please try again later." 
+      });
+    }
+
+    const user = req.user as any;
+
+    if (!req.isAuthenticated() || !user?.expires_at) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Verificar se o token ainda é válido
+    if (now <= user.expires_at) {
+      return next();
+    }
+
+    const refreshToken = user.refresh_token;
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Tentar renovar o token
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    
     return next();
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    console.error('Authentication error:', error);
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };

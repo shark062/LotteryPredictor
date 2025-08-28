@@ -188,19 +188,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rate limiting para rotas de IA
+  const aiRequestsMap = new Map<string, { count: number; lastRequest: number }>();
+  const AI_RATE_LIMIT = 10; // 10 requests por minuto
+  const AI_RATE_WINDOW = 60 * 1000; // 1 minuto
+
+  function checkAIRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const requests = aiRequestsMap.get(ip);
+    
+    if (!requests) {
+      aiRequestsMap.set(ip, { count: 1, lastRequest: now });
+      return true;
+    }
+    
+    if (now - requests.lastRequest > AI_RATE_WINDOW) {
+      aiRequestsMap.set(ip, { count: 1, lastRequest: now });
+      return true;
+    }
+    
+    if (requests.count >= AI_RATE_LIMIT) {
+      return false;
+    }
+    
+    requests.count++;
+    return true;
+  }
+
   // AI prediction routes
   app.post("/api/ai/predict", async (req, res) => {
     try {
-      const { lotteryId, count, preferences } = req.body;
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
       
-      if (!lotteryId || !count || count <= 0) {
-        return res.status(400).json({ message: "Invalid parameters" });
+      if (!checkAIRateLimit(clientIP)) {
+        return res.status(429).json({ 
+          message: "Rate limit exceeded. Please wait before making more predictions." 
+        });
       }
 
+      const { lotteryId, count, preferences } = req.body;
+      
+      // Validações rigorosas
+      if (!lotteryId || typeof lotteryId !== 'number' && typeof lotteryId !== 'string') {
+        return res.status(400).json({ message: "Invalid lottery ID" });
+      }
+
+      if (!count || typeof count !== 'number' && typeof count !== 'string') {
+        return res.status(400).json({ message: "Invalid count parameter" });
+      }
+
+      const parsedLotteryId = parseInt(String(lotteryId));
+      const parsedCount = parseInt(String(count));
+
+      if (isNaN(parsedLotteryId) || parsedLotteryId <= 0) {
+        return res.status(400).json({ message: "Invalid lottery ID" });
+      }
+
+      if (isNaN(parsedCount) || parsedCount <= 0 || parsedCount > 20) {
+        return res.status(400).json({ message: "Count must be between 1 and 20" });
+      }
+
+      // Verificar se a loteria existe
+      const lottery = await storage.getLotteryById(parsedLotteryId);
+      if (!lottery) {
+        return res.status(404).json({ message: "Lottery not found" });
+      }
+
+      const sanitizedPreferences = {
+        useHot: Boolean(preferences?.useHot ?? true),
+        useCold: Boolean(preferences?.useCold ?? false),
+        useMixed: Boolean(preferences?.useMixed ?? true)
+      };
+
       const prediction = await aiService.generatePrediction(
-        parseInt(lotteryId),
-        parseInt(count),
-        preferences || { useHot: true, useCold: false, useMixed: true }
+        parsedLotteryId,
+        parsedCount,
+        sanitizedPreferences
       );
 
       res.json({ numbers: prediction });

@@ -26,10 +26,19 @@ interface ScrapedResult {
   specialNumber?: string;
 }
 
-export class LotteryDataService {
-  private baseUrl = 'https://lotericanova.com';
+interface LotteryInfo {
+  contestNumber: number;
+  nextDrawDate: string;
+  estimatedPrize: string;
+  lotteryName: string;
+  slug: string;
+  extractedAt: Date;
+}
 
-  // Configuração de todas as loterias brasileiras
+export class LotteryDataService {
+  private static instance: LotteryDataService;
+  private baseUrl = 'https://loterica-nova.com.br';
+  private requestTimeout = 8000;
   private readonly lotteryConfigs = [
     {
       name: 'Mega-Sena',
@@ -141,12 +150,17 @@ export class LotteryDataService {
     }
   ];
 
+  public static getInstance(): LotteryDataService {
+    if (!LotteryDataService.instance) {
+      LotteryDataService.instance = new LotteryDataService();
+    }
+    return LotteryDataService.instance;
+  }
+
   async initializeLotteries(): Promise<void> {
     console.log('Inicializando loterias brasileiras...');
-    
     for (const lotteryConfig of this.lotteryConfigs) {
       try {
-        // Verificar se a loteria já existe
         const existingLottery = await db.select()
           .from(lotteries)
           .where(eq(lotteries.slug, lotteryConfig.slug))
@@ -156,7 +170,6 @@ export class LotteryDataService {
           await db.insert(lotteries).values(lotteryConfig);
           console.log(`Loteria ${lotteryConfig.name} criada com sucesso`);
         } else {
-          // Atualizar configurações se necessário
           await db.update(lotteries)
             .set(lotteryConfig)
             .where(eq(lotteries.slug, lotteryConfig.slug));
@@ -172,7 +185,7 @@ export class LotteryDataService {
     try {
       console.log('Buscando dados atualizados das loterias...');
       const response = await axios.get(this.baseUrl, {
-        timeout: 10000,
+        timeout: this.requestTimeout,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
@@ -181,14 +194,13 @@ export class LotteryDataService {
       const $ = cheerio.load(response.data);
       const lotteryData: LotteryData[] = [];
 
-      // Extrair dados dos próximos concursos
       $('.grid-cols-3 > div').each((index, element) => {
         try {
           const $element = $(element);
           const name = $element.find('h3').text().trim();
           const prizeText = $element.find('h4').text().trim();
           const contestInfo = $element.find('p').text().trim();
-          
+
           if (name && prizeText && contestInfo) {
             const contestMatch = contestInfo.match(/(\d+)\s*\|\s*(\d{2}\/\d{2}\/\d{4})/);
             if (contestMatch) {
@@ -232,7 +244,6 @@ export class LotteryDataService {
 
       const $ = cheerio.load(response.data);
       
-      // Processar cada seção de resultado
       const processResults = async () => {
         const elements = $('div[class*="border"]').toArray();
         for (const element of elements) {
@@ -249,13 +260,8 @@ export class LotteryDataService {
             const slug = this.getSlugFromName(lotteryName);
             
             if (slug && contestNumber && drawDate) {
-              // Buscar números sorteados se disponíveis
               const drawnNumbers = this.extractNumbersFromText(numbersButton);
-              
-              // Verificar se é resultado acumulado
               const isAccumulated = $element.text().includes('Acumulou');
-              
-              // Extrair valor do prêmio
               const prizeText = $element.find('td').last().text().trim();
               
               await this.saveResult({
@@ -283,7 +289,6 @@ export class LotteryDataService {
 
   private async saveResult(resultData: ScrapedResult & { slug: string }): Promise<void> {
     try {
-      // Buscar ID da loteria
       const lottery = await db.select()
         .from(lotteries)
         .where(eq(lotteries.slug, resultData.slug))
@@ -293,7 +298,6 @@ export class LotteryDataService {
 
       const lotteryId = lottery[0].id;
 
-      // Verificar se o resultado já existe
       const existingResult = await db.select()
         .from(lotteryResults)
         .where(and(
@@ -327,148 +331,101 @@ export class LotteryDataService {
     }
   }
 
-  async getLotteryResults(slug: string): Promise<any> {
+  async getLotteryResults(slug: string): Promise<LotteryInfo | null> {
     try {
-      console.log(`Buscando dados para ${slug}...`);
-      
-      // Buscar dados da página principal
       const response = await axios.get(this.baseUrl, {
+        timeout: this.requestTimeout,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
         }
       });
 
+      if (response.status !== 200) {
+        return null;
+      }
+
       const $ = cheerio.load(response.data);
-      
-      // Buscar informações na seção de próximos concursos
-      const lotteryData = this.extractLotteryFromHome($, slug);
-      
-      return lotteryData;
+      return this.extractLotteryFromHome($, slug);
     } catch (error) {
-      console.error(`Erro ao buscar ${slug}:`, error instanceof Error ? error.message : error);
+      console.error(`Erro ao buscar dados da loteria ${slug}:`, error);
       return null;
     }
   }
 
-  private extractLotteryFromHome($: any, targetSlug: string): any {
-    const nameToSlugMap: { [key: string]: string } = {
-      'Lotomania': 'lotomania',
-      'Lotofácil': 'lotofacil', 
-      'Mega-Sena': 'mega-sena',
-      'Quina': 'quina',
-      'Dia de Sorte': 'dia-de-sorte',
-      'Timemania': 'timemania',
-      'Dupla-Sena': 'duplasena',
-      'Super Sete': 'super-sete',
-      'Lotofácil-Independência': 'lotofacil-independencia'
-    };
-
-    // Buscar na seção "Próximos concursos"
-    let foundData = null;
-    
-    $('h3').each((i: number, element: any) => {
-      const lotteryName = $(element).text().trim();
-      const slug = nameToSlugMap[lotteryName];
-      
-      if (slug === targetSlug) {
-        const container = $(element).closest('div');
-        
-        // Extrair número do concurso
-        const contestText = container.find('h3').next().text().trim();
-        const contestNumber = parseInt(contestText);
-        
-        // Extrair data
-        const dateText = container.find('h3').next().next().text().trim();
-        
-        // Extrair valor do prêmio
-        const prizeContainer = container.find('h4');
-        const prizeText = prizeContainer.text().trim();
-        
-        foundData = {
-          contestNumber: contestNumber || 0,
-          nextDrawDate: dateText,
-          estimatedPrize: prizeText,
-          lotteryName: lotteryName,
-          slug: slug,
-          extractedAt: new Date()
-        };
-      }
-    });
-
-    return foundData;
-  }
-
-  async getAllLotteryData(): Promise<any> {
+  private extractLotteryFromHome($: cheerio.CheerioAPI, targetSlug: string): LotteryInfo | null {
     try {
-      console.log('Buscando dados reais da Lotérica Nova...');
-      const response = await axios.get(this.baseUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-      });
+      const nameToSlugMap: { [key: string]: string } = {
+        'Lotomania': 'lotomania',
+        'Lotofácil': 'lotofacil', 
+        'Mega-Sena': 'mega-sena',
+        'Quina': 'quina',
+        'Dia de Sorte': 'dia-de-sorte',
+        'Timemania': 'timemania',
+        'Dupla-Sena': 'duplasena',
+        'Super Sete': 'super-sete',
+        'Lotofácil-Independência': 'lotofacil-independencia'
+      };
 
-      const $ = cheerio.load(response.data);
-      const lotteries: any = {};
+      let foundData: LotteryInfo | null = null;
 
-      // Usar estrutura mais específica baseada no HTML real
-      const lotteryNames = ['Lotomania', 'Lotofácil', 'Mega-Sena', 'Quina', 'Dia de Sorte', 'Timemania', 'Dupla-Sena', 'Super Sete', 'Lotofácil-Independência'];
-      
-      // Buscar pelos dados na seção de loteria específica
       $('h3').each((i: number, element: any) => {
+        if (foundData) return false; 
+
         const lotteryName = $(element).text().trim();
-        
-        if (lotteryNames.includes(lotteryName)) {
-          const container = $(element).closest('div');
-          
-          // Buscar valor do prêmio (h4 com R$)
-          const prizeElement = container.find('h4').filter((idx: number, el: any) => {
-            return $(el).text().includes('R$');
-          }).first();
-          const prizeText = prizeElement.text().trim();
-          
-          // Buscar número do concurso e data (buscar por padrão de números e data)
-          let contestNumber = 0;
-          let dateText = '';
-          
-          container.find('*').each((idx: number, el: any) => {
-            const text = $(el).text().trim();
-            
-            // Extrair número do concurso (sequência de 3-4 dígitos)
-            const contestMatch = text.match(/\b(\d{3,4})\b/);
-            if (contestMatch && !contestNumber) {
-              contestNumber = parseInt(contestMatch[1]);
-            }
-            
-            // Extrair data (formato DD/MM/YYYY)
-            const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
-            if (dateMatch && !dateText) {
-              dateText = text;
-            }
-          });
-          
-          if (prizeText && (contestNumber || dateText)) {
-            lotteries[lotteryName] = {
+        const slug = nameToSlugMap[lotteryName];
+
+        if (slug === targetSlug) {
+          try {
+            const container = $(element).closest('div');
+
+            const contestText = container.find('h3').next().text().trim();
+            const contestNumber = parseInt(contestText) || 0;
+
+            const dateText = container.find('h3').next().next().text().trim();
+
+            const prizeContainer = container.find('h4');
+            const prizeText = prizeContainer.text().trim();
+
+            foundData = {
               contestNumber: contestNumber,
               nextDrawDate: dateText || 'Data não disponível',
-              estimatedPrize: prizeText,
+              estimatedPrize: prizeText || 'Prêmio não disponível',
+              lotteryName: lotteryName,
+              slug: slug,
               extractedAt: new Date()
             };
-            console.log(`Dados extraídos para ${lotteryName}:`, lotteries[lotteryName]);
+          } catch (error) {
+            console.error('Erro ao processar resultado:', error);
           }
         }
       });
 
-      if (Object.keys(lotteries).length > 0) {
-        console.log(`Dados reais obtidos para ${Object.keys(lotteries).length} loterias`);
-        return lotteries;
-      } else {
-        console.log('Nenhum dado real foi extraído, usando fallback');
-        return {};
-      }
+      return foundData;
     } catch (error) {
-      console.error('Erro ao buscar dados reais:', error instanceof Error ? error.message : error);
-      return {};
+      console.error('Erro ao buscar dados:', error);
+      return null;
     }
+  }
+
+  async getAllLotteryData(): Promise<{ [key: string]: LotteryInfo }> {
+    const result: { [key: string]: LotteryInfo } = {};
+
+    const lotteries = ['mega-sena', 'lotofacil', 'quina']; // Limit to common lotteries for this method
+
+    for (const slug of lotteries) {
+      try {
+        const data = await this.getLotteryResults(slug);
+        if (data) {
+          result[slug] = data;
+        }
+      } catch (error) {
+        console.error(`Erro ao obter dados da loteria ${slug}:`, error);
+      }
+    }
+
+    return result;
   }
 
   private getSlugFromName(name: string): string | null {
@@ -488,7 +445,6 @@ export class LotteryDataService {
   }
 
   private parseDate(dateStr: string): string {
-    // Converter formato DD/MM/YYYY para ISO
     const parts = dateStr.split('/');
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -505,7 +461,6 @@ export class LotteryDataService {
   }
 
   private parsePrizeValue(prizeText: string): string {
-    // Extrair valor monetário do texto
     const match = prizeText.match(/R\$\s*([\d.,]+)/);
     if (match) {
       return match[1].replace(/\./g, '').replace(',', '.');
@@ -515,11 +470,9 @@ export class LotteryDataService {
 
   async updateAllData(): Promise<void> {
     console.log('Iniciando atualização completa dos dados das loterias...');
-    
     try {
-      await this.initializeLotteries();
-      await this.fetchLotteryData();
-      await this.fetchResultsData();
+      await this.initializeLotteries(); 
+      await this.fetchResultsData(); 
       
       console.log('Atualização completa finalizada com sucesso!');
     } catch (error) {
@@ -528,4 +481,4 @@ export class LotteryDataService {
   }
 }
 
-export const lotteryDataService = new LotteryDataService();
+export const lotteryDataService = LotteryDataService.getInstance();

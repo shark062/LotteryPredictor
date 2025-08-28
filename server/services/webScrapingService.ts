@@ -1,27 +1,20 @@
+
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { lotteryDataService } from './lotteryDataService';
 
 interface LotteryDrawInfo {
   name: string;
-  contestNumber: number | null;
-  prize: string | null;
+  contestNumber: number;
+  prize: string;
   date: string;
-  nextDrawDate: string | null;
-}
-
-// Define um tipo mais específico para os resultados esperados de uma loteria
-interface LotteryInfo {
-  [key: string]: {
-    contestNumber: number | null;
-    prize: string | null;
-    nextDrawDate: string | null;
-  };
+  nextDrawDate: string;
 }
 
 export class WebScrapingService {
   private static instance: WebScrapingService;
-  private baseUrl = 'https://lotericanova.com';
+  private baseUrl = 'https://loterica-nova.com.br';
+  private requestTimeout = 5000; // 5 segundos
+  private maxRetries = 3;
 
   public static getInstance(): WebScrapingService {
     if (!WebScrapingService.instance) {
@@ -30,273 +23,257 @@ export class WebScrapingService {
     return WebScrapingService.instance;
   }
 
-  async getLotteryInfo(): Promise<LotteryInfo> {
-    const results: LotteryInfo = {};
-
+  async getLotteryInfo(): Promise<{ [key: string]: LotteryDrawInfo }> {
+    const results: { [key: string]: LotteryDrawInfo } = {};
+    
     try {
-      // Usar o novo serviço de dados reais da Lotérica Nova
-      const realData = await lotteryDataService.getAllLotteryData();
+      console.log('Buscando dados reais da Lotérica Nova...');
       
-      if (realData && Object.keys(realData).length > 0) {
-        // Converter os dados para o formato esperado
-        for (const [lotteryName, data] of Object.entries(realData)) {
-          results[lotteryName] = {
-            contestNumber: data.contestNumber,
-            prize: data.estimatedPrize,
-            nextDrawDate: data.nextDrawDate
-          };
-        }
-        
-        console.log('Dados reais obtidos da Lotérica Nova:', Object.keys(results));
-        return results;
-      }
-
-      // Usar dados reais extraídos da Lotérica Nova (atualizados manualmente)
-      console.log('Usando dados reais da Lotérica Nova...');
-      const realLotteryData = [
-        { name: 'Lotofácil', contestNumber: 3480, prize: 'R$ 220.000.000,00', nextDrawDate: '06/09/2025' },
-        { name: 'Mega-Sena', contestNumber: 2907, prize: 'R$ 3.500.000,00', nextDrawDate: '28/08/2025' },
-        { name: 'Quina', contestNumber: 6811, prize: 'R$ 600.000,00', nextDrawDate: '27/08/2025' },
-        { name: 'Lotomania', contestNumber: 2815, prize: 'R$ 1.600.000,00', nextDrawDate: '27/08/2025' },
-        { name: 'Timemania', contestNumber: 2287, prize: 'R$ 18.500.000,00', nextDrawDate: '28/08/2025' },
-        { name: 'Dupla-Sena', contestNumber: 2852, prize: 'R$ 5.000.000,00', nextDrawDate: '27/08/2025' },
-        { name: 'Dia de Sorte', contestNumber: 1108, prize: 'R$ 800.000,00', nextDrawDate: '28/08/2025' },
-        { name: 'Super Sete', contestNumber: 738, prize: 'R$ 300.000,00', nextDrawDate: '27/08/2025' },
-        { name: 'Lotofácil-Independência', contestNumber: 2900, prize: 'R$ 200.000.000,00', nextDrawDate: '09/09/2023' }
-      ];
-
-      for (const lottery of realLotteryData) {
-        results[lottery.name] = {
-          contestNumber: lottery.contestNumber,
-          prize: lottery.prize,
-          nextDrawDate: lottery.nextDrawDate
-        };
-      }
-
-    } catch (error: any) {
-      console.error('Erro geral no web scraping:', error);
-      // Retornar dados de fallback completos
-      return {
-        'Lotofácil': this.getFallbackData('Lotofácil'),
-        'Mega-Sena': this.getFallbackData('Mega-Sena'),
-        'Quina': this.getFallbackData('Quina')
-      };
-    }
-
-    return results;
-  }
-
-  private async scrapeLotteryPage(url: string, name: string): Promise<LotteryDrawInfo | null> {
-    try {
-      const response = await axios.get(`${this.baseUrl}${url}`, {
-        timeout: 10000,
+      const response = await axios.get(this.baseUrl, {
+        timeout: this.requestTimeout,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        },
+        validateStatus: (status) => status < 500 // Aceita status codes < 500
       });
 
-      const $ = cheerio.load(response.data);
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
-      // Buscar informações específicas baseadas na estrutura do site
-      const contestNumber = this.extractContestNumber($);
-      const prize = this.extractPrize($);
-      const nextDrawDate = this.extractNextDrawDate($);
+      const $ = cheerio.load(response.data);
+      
+      // Extrair dados das loterias principais
+      const lotteryMappings = {
+        'Lotofácil': 'lotofacil',
+        'Mega-Sena': 'mega-sena', 
+        'Quina': 'quina'
+      };
+
+      for (const [displayName, slug] of Object.entries(lotteryMappings)) {
+        try {
+          const data = await this.extractLotteryData($, displayName);
+          if (data) {
+            results[displayName] = data;
+          }
+        } catch (error) {
+          console.error(`Erro ao extrair dados da ${displayName}:`, error);
+          results[displayName] = this.getFallbackData(displayName);
+        }
+      }
+
+      if (Object.keys(results).length === 0) {
+        console.log('Nenhum dado real foi extraído, usando fallback');
+        return this.getAllFallbackData();
+      }
+
+      console.log('Usando dados reais da Lotérica Nova...');
+      return results;
+
+    } catch (error: any) {
+      console.error('Erro geral no web scraping:', error.message);
+      return this.getAllFallbackData();
+    }
+  }
+
+  private async extractLotteryData($: cheerio.CheerioAPI, lotteryName: string): Promise<LotteryDrawInfo | null> {
+    try {
+      // Buscar seções que contenham o nome da loteria
+      const lotterySection = $(`h3:contains("${lotteryName}"), h2:contains("${lotteryName}"), .lottery-name:contains("${lotteryName}")`).first();
+      
+      if (lotterySection.length === 0) {
+        return null;
+      }
+
+      const container = lotterySection.closest('div, section, article');
+      
+      // Extrair número do concurso
+      const contestNumber = this.extractContestNumber(container);
+      
+      // Extrair prêmio
+      const prize = this.extractPrize(container);
+      
+      // Extrair data do próximo sorteio
+      const nextDrawDate = this.extractNextDrawDate(container);
 
       return {
-        name,
-        contestNumber: contestNumber || this.getDefaultContestNumber(name),
-        prize: prize || this.getDefaultPrize(name),
+        name: lotteryName,
+        contestNumber: contestNumber || this.getDefaultContestNumber(lotteryName),
+        prize: prize || this.getDefaultPrize(lotteryName),
         date: new Date().toLocaleDateString('pt-BR'),
-        nextDrawDate: nextDrawDate || this.getDefaultNextDrawDate(name)
+        nextDrawDate: nextDrawDate || this.getDefaultNextDrawDate(lotteryName)
       };
     } catch (error) {
-      console.error(`Erro ao fazer scraping da página ${url}:`, error);
+      console.error(`Erro ao processar ${lotteryName}:`, error);
       return null;
     }
   }
 
-  private extractContestNumber($: cheerio.CheerioAPI): number | null {
-    // Procurar por padrões comuns de número de concurso
-    const patterns = [
-      '.concurso',
-      '.contest',
-      '.numero-concurso',
-      '[data-contest]',
-      'span:contains("Concurso")',
-      'div:contains("Concurso")'
-    ];
+  private extractContestNumber(container: cheerio.Cheerio<any>): number | null {
+    try {
+      const patterns = [
+        /concurso[:\s]*(\d+)/i,
+        /contest[:\s]*(\d+)/i,
+        /n[°º][:\s]*(\d+)/i,
+        /(\d{4})/
+      ];
 
-    for (const pattern of patterns) {
-      const element = $(pattern);
-      if (element.length > 0) {
-        const text = element.text();
-        const match = text.match(/(\d+)/);
-        if (match) {
-          return parseInt(match[1]);
+      const text = container.text();
+      
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const num = parseInt(match[1]);
+          if (num > 100 && num < 9999) { // Validação básica
+            return num;
+          }
         }
       }
+      
+      return null;
+    } catch (error) {
+      return null;
     }
-
-    return null;
   }
 
-  private extractPrize($: cheerio.CheerioAPI): string | null {
-    // Procurar por padrões comuns de prêmio
-    const patterns = [
-      '.premio',
-      '.prize',
-      '.valor-premio',
-      '[data-prize]',
-      'span:contains("R$")',
-      'div:contains("milhão")',
-      'div:contains("milhões")'
-    ];
+  private extractPrize(container: cheerio.Cheerio<any>): string | null {
+    try {
+      const text = container.text();
+      
+      // Padrões para valores monetários
+      const patterns = [
+        /R\$\s*[\d.,]+(?:\s*(?:milhão|milhões|mil))?/gi,
+        /[\d.,]+\s*(?:milhão|milhões)\s*(?:de\s*)?(?:reais)?/gi
+      ];
 
-    for (const pattern of patterns) {
-      const element = $(pattern);
-      if (element.length > 0) {
-        const text = element.text().trim();
-        if (text.includes('R$') || text.includes('milhão')) {
-          return text;
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[0]) {
+          return match[0].trim();
         }
       }
+      
+      return null;
+    } catch (error) {
+      return null;
     }
-
-    return null;
   }
 
-  private extractNextDrawDate($: cheerio.CheerioAPI): string | null {
-    // Procurar por padrões de data do próximo concurso
-    const dateSelectors = [
-      '.next-draw-date',
-      '.proximo-concurso',
-      '.data-proximo-sorteio',
-      '.next-draw'
-    ];
+  private extractNextDrawDate(container: cheerio.Cheerio<any>): string | null {
+    try {
+      const text = container.text();
+      
+      // Padrões para datas
+      const patterns = [
+        /(\d{1,2}\/\d{1,2}\/\d{4})/,
+        /(segunda|terça|quarta|quinta|sexta|sábado|domingo)[^,]*(?:\d{1,2}\/\d{1,2})/i
+      ];
 
-    for (const selector of dateSelectors) {
-      const element = $(selector);
-      if (element.length > 0) {
-        return element.text().trim();
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[0]) {
+          return match[0].trim() + ' - 20:00h';
+        }
       }
+      
+      return null;
+    } catch (error) {
+      return null;
     }
-
-    // Se não encontrar, calcular próxima data baseada no dia atual
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toLocaleDateString('pt-BR') + ' - 20:00h';
   }
 
-  private getDefaultContestNumber(name: string): number {
-    const today = new Date();
-    const baseYear = 2024;
-    const currentYear = today.getFullYear();
-    const dayOfYear = Math.floor((today.getTime() - new Date(currentYear, 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-
-    const defaultResults: { [key: string]: number } = {
-      'Lotofácil': 3050 + Math.floor(dayOfYear / 2), // Aproximadamente 6 sorteios por semana
-      'Mega-Sena': 2800 + Math.floor(dayOfYear / 4), // 2 sorteios por semana
-      'Quina': 6600 + Math.floor(dayOfYear / 2) // 6 sorteios por semana
-    };
-    return defaultResults[name] || 1000;
-  }
-
-  private getDefaultPrize(name: string): string {
-    // Valores mais realistas baseados em premiações recentes
-    const minPrizes: { [key: string]: number } = {
-      'Lotofácil': 1500000, // R$ 1.5 milhão
-      'Mega-Sena': 3000000, // R$ 3 milhões
-      'Quina': 700000 // R$ 700 mil
-    };
-
-    const maxPrizes: { [key: string]: number } = {
-      'Lotofácil': 8000000, // R$ 8 milhões
-      'Mega-Sena': 120000000, // R$ 120 milhões
-      'Quina': 18000000 // R$ 18 milhões
-    };
-
-    const min = minPrizes[name] || 1000000;
-    const max = maxPrizes[name] || 10000000;
-    const randomPrize = Math.floor(Math.random() * (max - min) + min);
-
-    return `R$ ${randomPrize.toLocaleString('pt-BR')}`;
-  }
-
-  private getDefaultNextDrawDate(name: string): string {
-    const now = new Date();
-    const currentHour = now.getHours();
-
-    // Se passou das 20h, consideramos o próximo dia
-    const referenceDate = currentHour >= 20 ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : now;
-
-    const dayNames: { [key: string]: string } = {
-      'Lotofácil': 'Segunda',
-      'Mega-Sena': 'Sábado',
-      'Quina': 'Segunda'
-    };
-
-    return this.getNextDrawDateForLottery(name, referenceDate);
-  }
-
-  private getNextDrawDateForLottery(lotteryName: string, referenceDate: Date = new Date()): string {
-    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-    const drawDaysMap: { [key: string]: string[] } = {
-      'Lotofácil': ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
-      'Mega-Sena': ['Quarta', 'Sábado'],
-      'Quina': ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-    };
-
-    const lotteryDrawDays = drawDaysMap[lotteryName as keyof typeof drawDaysMap] || ['Sábado'];
-
-    let nextDrawDate = new Date(referenceDate);
-    let attempts = 0;
-
-    while (attempts < 7) {
-      const dayIndex = nextDrawDate.getDay();
-      const dayName = days[dayIndex];
-
-      if (lotteryDrawDays.includes(dayName)) {
-        return nextDrawDate.toLocaleDateString('pt-BR') + ' - 20:00h';
-      }
-
-      nextDrawDate.setDate(nextDrawDate.getDate() + 1);
-      attempts++;
-    }
-
-    // Fallback caso não encontre um dia de sorteio válido nos próximos 7 dias
-    return nextDrawDate.toLocaleDateString('pt-BR') + ' - 20:00h';
-  }
-
-
-  private getFallbackData(lotteryName: string): {
-    contestNumber: number | null;
-    prize: string | null;
-    nextDrawDate: string | null;
-  } {
-    const baseData = {
+  private getFallbackData(name: string): LotteryDrawInfo {
+    const defaults: { [key: string]: Partial<LotteryDrawInfo> } = {
       'Lotofácil': {
         contestNumber: 3015,
         prize: 'R$ 5.500.000',
-        nextDrawDate: this.getNextDrawDateForLottery('Lotofácil')
+        nextDrawDate: this.getNextWeekday('segunda')
       },
       'Mega-Sena': {
         contestNumber: 2785,
         prize: 'R$ 65.000.000',
-        nextDrawDate: this.getNextDrawDateForLottery('Mega-Sena')
+        nextDrawDate: this.getNextWeekday('sábado')
       },
       'Quina': {
         contestNumber: 6585,
         prize: 'R$ 3.200.000',
-        nextDrawDate: this.getNextDrawDateForLottery('Quina')
+        nextDrawDate: this.getNextWeekday('segunda')
       }
     };
 
-    return baseData[lotteryName as keyof typeof baseData] || {
+    const defaultData = defaults[name] || {
       contestNumber: 1000,
       prize: 'R$ 1.000.000',
-      nextDrawDate: new Date().toLocaleDateString('pt-BR') + ' - 20:00h'
+      nextDrawDate: this.getNextWeekday('segunda')
     };
+
+    return {
+      name,
+      contestNumber: defaultData.contestNumber!,
+      prize: defaultData.prize!,
+      date: new Date().toLocaleDateString('pt-BR'),
+      nextDrawDate: defaultData.nextDrawDate!
+    };
+  }
+
+  private getAllFallbackData(): { [key: string]: LotteryDrawInfo } {
+    return {
+      'Lotofácil': this.getFallbackData('Lotofácil'),
+      'Mega-Sena': this.getFallbackData('Mega-Sena'),
+      'Quina': this.getFallbackData('Quina')
+    };
+  }
+
+  private getDefaultContestNumber(name: string): number {
+    const defaults: { [key: string]: number } = {
+      'Lotofácil': 3015,
+      'Mega-Sena': 2785,
+      'Quina': 6585
+    };
+    return defaults[name] || 1000;
+  }
+
+  private getDefaultPrize(name: string): string {
+    const defaults: { [key: string]: string } = {
+      'Lotofácil': 'R$ 5.500.000',
+      'Mega-Sena': 'R$ 65.000.000',
+      'Quina': 'R$ 3.200.000'
+    };
+    return defaults[name] || 'R$ 1.000.000';
+  }
+
+  private getDefaultNextDrawDate(name: string): string {
+    const dayMappings: { [key: string]: string } = {
+      'Lotofácil': 'segunda',
+      'Mega-Sena': 'sábado',
+      'Quina': 'segunda'
+    };
+    return this.getNextWeekday(dayMappings[name] || 'segunda');
+  }
+
+  private getNextWeekday(dayName: string): string {
+    const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const today = new Date();
+    const targetDay = days.indexOf(dayName.toLowerCase());
+    
+    if (targetDay === -1) return today.toLocaleDateString('pt-BR') + ' - 20:00h';
+    
+    const todayDay = today.getDay();
+    let daysUntilTarget = targetDay - todayDay;
+    
+    if (daysUntilTarget <= 0) {
+      daysUntilTarget += 7;
+    }
+    
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysUntilTarget);
+    
+    return targetDate.toLocaleDateString('pt-BR') + ' - 20:00h';
   }
 }
 
