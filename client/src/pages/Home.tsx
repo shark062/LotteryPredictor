@@ -107,16 +107,25 @@ export default function Home() {
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {lotteries?.map((lottery: any, index: number) => (
-                <LotteryCard
-                  key={lottery.id}
-                  lottery={lottery}
-                  upcomingDraw={upcomingDraws?.[lottery.name]}
-                  onSelect={() => setSelectedLottery(lottery.id)}
-                  index={index}
-                />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {lotteries && lotteries.length > 0 ? (
+                lotteries.map((lottery: any, index: number) => (
+                  <LotteryCard
+                    key={lottery.id}
+                    lottery={lottery}
+                    upcomingDraw={upcomingDraws?.[lottery.name] || undefined}
+                    onSelect={() => setSelectedLottery(lottery.id)}
+                    index={index}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+                    <p className="text-muted-foreground">Carregando loterias...</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Winners Info */}
