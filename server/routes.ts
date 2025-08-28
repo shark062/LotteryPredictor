@@ -6,6 +6,7 @@ import { lotteryService } from "./services/lotteryService";
 import { aiService } from "./services/aiService";
 import { webScrapingService } from "./services/webScrapingService";
 import { lotteryDataService } from "./services/lotteryDataService";
+import { caixaLotteryService } from "./services/caixaLotteryService";
 import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -507,11 +508,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Nova rota para estatísticas reais dos últimos concursos
+  // Nova rota para buscar dados oficiais da Caixa em tempo real
+  app.get("/api/lotteries/official-results", async (req, res) => {
+    try {
+      console.log('🔄 Iniciando busca de dados oficiais da Caixa...');
+      const officialData = await caixaLotteryService.getLatestResults();
+      
+      res.json({
+        success: true,
+        data: officialData,
+        timestamp: new Date().toISOString(),
+        source: 'Caixa Econômica Federal - Dados Oficiais'
+      });
+    } catch (error) {
+      console.error("Erro ao buscar dados oficiais:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro ao buscar dados oficiais da Caixa",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Rota atualizada para estatísticas reais dos últimos concursos
   app.get("/api/lotteries/contest-winners", async (req, res) => {
     try {
-      // Dados reais dos últimos concursos - estas informações vêm de fontes oficiais
-      const realContestData = {
+      // Primeiro, tentar buscar dados oficiais em tempo real
+      let realContestData;
+      
+      try {
+        console.log('🔄 Buscando dados oficiais da Caixa...');
+        const officialResults = await caixaLotteryService.getLatestResults();
+        
+        // Converter dados oficiais para formato esperado pelo frontend
+        realContestData = {};
+        Object.entries(officialResults).forEach(([lotteryName, result]) => {
+          realContestData[lotteryName] = {
+            lastContest: result.contest,
+            date: result.date,
+            winners: result.winners,
+            accumulated: result.accumulated
+          };
+        });
+        
+        console.log('✅ Dados oficiais da Caixa obtidos com sucesso');
+      } catch (officialError) {
+        console.log('⚠️ Erro ao buscar dados oficiais, usando fallback...');
+        
+        // Fallback para dados estáticos em caso de erro
+        realContestData = {
         "Lotofácil": {
           lastContest: 3020,
           date: "24/01/2025",
@@ -604,12 +649,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "11": { count: 29951845, prize: "R$ 6,00" }
           }
         }
-      };
+      };}
 
-      res.json(realContestData);
+      res.json({
+        success: true,
+        data: realContestData,
+        timestamp: new Date().toISOString(),
+        source: realContestData === officialResults ? 'Caixa Econômica Federal - Tempo Real' : 'Dados Fallback'
+      });
     } catch (error) {
       console.error("Error fetching contest winners:", error);
       res.status(500).json({ message: "Failed to fetch contest winners" });
+    }
+  });
+
+  // Nova rota para forçar atualização dos dados em tempo real
+  app.post("/api/lotteries/update-official-data", async (req, res) => {
+    try {
+      console.log('🔄 Forçando atualização dos dados oficiais...');
+      const updatedData = await caixaLotteryService.getLatestResults();
+      
+      // Limpar caches
+      upcomingDrawsCache = null;
+      
+      res.json({
+        success: true,
+        message: 'Dados oficiais atualizados com sucesso',
+        data: updatedData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar dados oficiais:", error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao atualizar dados oficiais',
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
