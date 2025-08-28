@@ -487,20 +487,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User game routes - simplified without authentication
   app.post("/api/games", async (req: any, res) => {
     try {
-      const userId = 'demo-user';
-      const gameData = insertUserGameSchema.parse({
-        ...req.body,
-        userId,
+      // Assume authenticate is defined elsewhere and correctly authenticates the user
+      // For demonstration, using a placeholder user
+      const authenticate = async (req: any, res: any): Promise<any | null> => {
+        // In a real app, this would involve checking tokens, sessions, etc.
+        // For this example, we'll return a dummy user.
+        return { id: 'demo-user', email: 'usuario@demo.com', name: 'Usuário Demo' };
+      };
+      
+      const user = await authenticate(req, res);
+      if (!user) return;
+
+      const { lotteryId, numbers, isPlayed, contestNumber } = req.body;
+
+      // Validação mais robusta
+      if (!lotteryId || !numbers) {
+        return res.status(400).json({ message: "Missing required fields: lotteryId and numbers are required" });
+      }
+
+      // Validar se numbers é uma string JSON válida
+      let parsedNumbers;
+      try {
+        parsedNumbers = typeof numbers === 'string' ? JSON.parse(numbers) : numbers;
+        if (!Array.isArray(parsedNumbers) || parsedNumbers.length === 0) {
+          throw new Error('Numbers must be a non-empty array');
+        }
+      } catch (parseError) {
+        return res.status(400).json({ message: "Invalid numbers format. Must be a valid JSON array." });
+      }
+
+      // Validar se a loteria existe
+      const lottery = await storage.getLotteryById(parseInt(lotteryId));
+      if (!lottery) {
+        return res.status(404).json({ message: "Lottery not found" });
+      }
+
+      // Validar quantidade de números
+      if (parsedNumbers.length < lottery.minNumbers || parsedNumbers.length > lottery.maxNumbers) {
+        return res.status(400).json({ 
+          message: `Invalid number count. Must be between ${lottery.minNumbers} and ${lottery.maxNumbers} for ${lottery.name}` 
+        });
+      }
+
+      // Validar se todos os números estão no range válido
+      const invalidNumbers = parsedNumbers.filter((num: number) => num < 1 || num > lottery.maxNumber);
+      if (invalidNumbers.length > 0) {
+        return res.status(400).json({ 
+          message: `Invalid numbers: ${invalidNumbers.join(', ')}. Numbers must be between 1 and ${lottery.maxNumber}` 
+        });
+      }
+
+      const game = await storage.createUserGame({
+        userId: user.id,
+        lotteryId: parseInt(lotteryId),
+        numbers: JSON.stringify(parsedNumbers), // Garantir que é string JSON válida
+        isPlayed: Boolean(isPlayed),
+        contestNumber: contestNumber || null,
       });
 
-      const game = await storage.createUserGame(gameData);
-      res.json(game);
+      console.log(`✅ Jogo salvo: ${lottery.name} - ${parsedNumbers.length} números - Usuário: ${user.id}`);
+
+      res.json({
+        ...game,
+        message: `Jogo de ${lottery.name} salvo com sucesso!`
+      });
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid game data", errors: error.errors });
-      }
       console.error("Error creating game:", error);
-      res.status(500).json({ message: "Failed to create game" });
+      res.status(500).json({ 
+        message: "Failed to create game", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

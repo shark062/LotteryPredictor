@@ -37,6 +37,7 @@ export interface IStorage {
   // User games
   createUserGame(game: InsertUserGame): Promise<UserGame>;
   getUserGames(userId: string, lotteryId?: number): Promise<UserGame[]>;
+  getUserGamesByLottery(lotteryId: number): Promise<UserGame[]>;
 
   // Game results
   createGameResult(result: InsertGameResult): Promise<GameResult>;
@@ -131,20 +132,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserGames(userId: string, lotteryId?: number): Promise<UserGame[]> {
-    let whereCondition = eq(userGames.userId, userId);
+    const query = db.select().from(userGames).where(eq(userGames.userId, userId));
 
     if (lotteryId) {
-      whereCondition = and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId)) as any;
+      return await query.where(eq(userGames.lotteryId, lotteryId));
     }
 
-    return await db
-      .select()
-      .from(userGames)
-      .where(whereCondition)
-      .orderBy(desc(userGames.createdAt));
+    return await query;
   }
 
-  // Buscar todos os jogos de uma loteria específica (para cálculo de precisão)
   async getUserGamesByLottery(lotteryId: number): Promise<UserGame[]> {
     return await db
       .select()
