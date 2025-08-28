@@ -149,33 +149,35 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
 
           {/* Controles do header */}
           <div className="flex items-center space-x-3">
-            {/* Precisão Dinâmica - CORREÇÃO DO BORRÃO VERDE */}
-            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/70 border border-cyan-400/40 backdrop-blur-md">
+            {/* Precisão Dinâmica - Translúcido sem borrão */}
+            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/40 border border-cyan-400/30 backdrop-blur-sm">
               <div className="flex flex-col items-center">
-                <span className="text-cyan-300 font-mono text-xs uppercase tracking-wider mb-1">Precisão</span>
+                <span className="text-cyan-300/90 font-mono text-xs uppercase tracking-wider mb-1 font-semibold">Precisão</span>
                 <div className="flex items-center space-x-2">
                   <span 
                     className="text-2xl font-black font-mono tracking-tight"
                     style={{
-                      background: precision >= 90 
-                        ? 'linear-gradient(45deg, #00ffaa 0%, #00dd88 100%)'
+                      color: precision >= 90 
+                        ? '#00ffaa'
                         : precision >= 80
-                        ? 'linear-gradient(45deg, #00bbff 0%, #0099dd 100%)'
-                        : 'linear-gradient(45deg, #ffaa00 0%, #dd8800 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      filter: 'none' // Removido filtro que causava borrão
+                        ? '#00bbff'
+                        : '#ffaa00',
+                      textShadow: precision >= 90 
+                        ? '0 0 8px rgba(0, 255, 170, 0.4)'
+                        : precision >= 80
+                        ? '0 0 8px rgba(0, 187, 255, 0.4)'
+                        : '0 0 8px rgba(255, 170, 0, 0.4)'
                     }}
                   >
                     {formatPrecision(precision)}%
                   </span>
-                  <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse" />
+                  <div className="w-1 h-1 bg-cyan-400/80 rounded-full animate-pulse" />
                 </div>
               </div>
-              <div className="h-8 w-px bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent" />
+              <div className="h-8 w-px bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent" />
               <div className="flex flex-col text-xs">
-                <span className="text-cyan-300/80 font-mono text-[10px]">Última atualização:</span>
-                <span className="text-cyan-200/70 font-mono text-[10px]">
+                <span className="text-cyan-300/70 font-mono text-[10px] font-medium">Última atualização:</span>
+                <span className="text-cyan-200/60 font-mono text-[10px]">
                   {lastUpdate.toLocaleTimeString('pt-BR', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
@@ -185,14 +187,14 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
             </div>
 
             {/* Status IA */}
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/60 border border-green-400/40 backdrop-blur-md">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-green-300 font-mono text-sm font-semibold">IA ATIVA</span>
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/40 border border-green-400/30 backdrop-blur-sm">
+              <div className="w-2 h-2 bg-green-400/80 rounded-full animate-pulse" />
+              <span className="text-green-300/90 font-mono text-sm font-semibold">IA ATIVA</span>
             </div>
 
             {/* Premium badge */}
-            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/60 border border-yellow-400/40 backdrop-blur-md">
-              <span className="text-yellow-300 font-mono text-sm font-semibold">💰 PREMIUM</span>
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/40 border border-yellow-400/30 backdrop-blur-sm">
+              <span className="text-yellow-300/90 font-mono text-sm font-semibold">💰 PREMIUM</span>
             </div>
           </div>
         </div>
