@@ -52,9 +52,10 @@ const ContestWinners: React.FC = () => {
           });
 
           setContestData(formattedData);
-          setDataSource(`${result.source} (${result.responseTime})`);
+          setDataSource(result.source || 'Caixa Econômica Federal');
           setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
-          console.log(`✅ Dados oficiais da Caixa carregados - ${result.lotteriesCount} loterias em ${result.responseTime}`);
+          const lotteryCount = Object.keys(result.data || {}).length;
+          console.log(`✅ Dados oficiais da Caixa carregados - ${lotteryCount} loterias atualizadas`);
           return;
         }
       }

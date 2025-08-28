@@ -58,10 +58,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const now = Date.now();
       
-      // Verificar se o cache ainda é válido
-      if (upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
-        return res.json(upcomingDrawsCache);
-      }
+      // Limpar cache para forçar dados atualizados
+      upcomingDrawsCache = null;
+      cacheTimestamp = 0;
+      
+      // Verificar se o cache ainda é válido (desabilitado temporariamente para debug)
+      // if (upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      //   return res.json(upcomingDrawsCache);
+      // }
 
       console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
       const startTime = Date.now();

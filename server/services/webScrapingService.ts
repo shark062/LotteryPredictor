@@ -119,28 +119,55 @@ export class WebScrapingService {
   }
 
   private parseOfficialLotteryInfo(data: any, displayName: string): LotteryInfo {
-    const contestNumber = data.numero || data.concurso || parseInt(data.nmConcurso) || 0;
-    const prize = data.valorEstimadoProximoConcurso || data.vlEstimadoProxConcurso || 0;
-    const nextDrawDate = data.dataProximoConcurso || data.dtProximoConcurso;
+    console.log(`🔍 Processando dados da API para ${displayName}:`, {
+      numero: data.numero,
+      valorEstimado: data.valorEstimadoProximoConcurso,
+      dataProximo: data.dataProximoConcurso,
+      acumulado: data.acumulado
+    });
+
+    const contestNumber = data.numero || 0;
+    const prize = data.valorEstimadoProximoConcurso || data.valorAcumuladoProximoConcurso || 0;
+    const nextDrawDate = data.dataProximoConcurso;
 
     // Calcular próxima data de sorteio se não estiver disponível
     const formattedDate = nextDrawDate 
       ? this.formatDate(nextDrawDate) 
       : this.getNextDrawDate(displayName);
 
+    const formattedPrize = prize > 0 ? `R$ ${this.formatMoney(parseFloat(prize))}` : this.getDefaultPrize(displayName);
+
     return {
       contestNumber: contestNumber + 1, // Próximo concurso
       nextDrawDate: formattedDate,
-      prize: `R$ ${this.formatMoney(parseFloat(prize) || 0)}`
+      prize: formattedPrize
     };
   }
 
   private formatDate(dateString: string): string {
     try {
+      // A API da Caixa retorna datas no formato DD/MM/YYYY
+      // Precisamos converter para formato que o JavaScript entende
+      if (dateString && dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        
+        if (!isNaN(date.getTime())) {
+          return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
+        }
+      }
+      
+      // Tentar parser direto se não for formato DD/MM/YYYY
       const date = new Date(dateString);
-      return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
-    } catch {
-      return dateString;
+      if (!isNaN(date.getTime())) {
+        return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
+      }
+      
+      // Se não conseguir processar a data, usar o valor original ou calcular próxima
+      return dateString || this.getNextDrawDate('');
+    } catch (error) {
+      console.warn(`Erro ao formatar data: ${dateString}`, error);
+      return this.getNextDrawDate('');
     }
   }
 
@@ -179,6 +206,20 @@ export class WebScrapingService {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0 
     });
+  }
+
+  private getDefaultPrize(lotteryName: string): string {
+    const defaultPrizes: { [key: string]: string } = {
+      'Lotofácil': 'R$ 1.700.000',
+      'Mega-Sena': 'R$ 3.000.000',
+      'Quina': 'R$ 700.000',
+      'Lotomania': 'R$ 300.000',
+      'Timemania': 'R$ 1.400.000',
+      'Dupla-Sena': 'R$ 450.000',
+      'Dia de Sorte': 'R$ 200.000',
+      'Super Sete': 'R$ 500.000'
+    };
+    return defaultPrizes[lotteryName] || 'R$ 500.000';
   }
 }
 
