@@ -147,6 +147,42 @@ export default function CommunityInsights({ lotterySlug }: CommunityInsightsProp
     );
   }
 
+  // Verificar se não há dados ainda
+  if (insights.totalUsers === 0) {
+    return (
+      <Card className="bg-card/20 border-border/50 backdrop-blur-md" data-testid={`community-insights-${lotterySlug}-empty`}>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center space-x-3 text-xl">
+            <span className="text-2xl">{getLotteryIcon(lotterySlug)}</span>
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              {getLotteryDisplayName(lotterySlug)}
+            </span>
+            <Badge className="bg-gradient-to-r from-gray-500 to-gray-600 text-white">
+              <Clock className="w-3 h-3 mr-1" />
+              AGUARDANDO
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center py-8">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-semibold text-gray-300 mb-2">
+              Primeira vez aqui?
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Seja o primeiro a usar nossa IA para {getLotteryDisplayName(lotterySlug)}!
+            </p>
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg p-4 border border-cyan-500/20">
+              <p className="text-xs text-cyan-300">
+                💡 Os dados da comunidade aparecerão aqui conforme os usuários utilizarem o aplicativo
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-card/20 border-border/50 backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500" data-testid={`community-insights-${lotterySlug}`}>
       <CardHeader className="pb-4">

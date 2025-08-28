@@ -15,7 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize lottery service
   await lotteryService.initializeLotteries();
-  
+
   // Initialize Brazilian lotteries with real data
   await lotteryDataService.initializeLotteries();
 
@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const now = Date.now();
       const forceUpdate = req.query.force === 'true';
-      
+
       // Verificar se o cache ainda é válido
       if (!forceUpdate && upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
         return res.json(upcomingDrawsCache);
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const upcoming = await lotteryService.getUpcomingDraws();
       upcomingDrawsCache = upcoming;
       cacheTimestamp = now;
-      
+
       res.json(upcoming);
     } catch (error) {
       console.error("Error fetching upcoming draws:", error);
@@ -76,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Nova rota para atualizar dados manualmente com timeout e validação
   app.post("/api/lotteries/update", async (req, res) => {
     const updateTimeout = 30000; // 30 segundos timeout
-    
+
     try {
       // Timeout para evitar requisições muito longas
       const updatePromise = Promise.race([
@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await lotteryDataService.updateAllData();
           const enrichedData = await lotteryDataService.fetchLotteryDataFromMultipleSources();
           const scrapeData = await webScrapingService.getLotteryInfo();
-          
+
           return {
             enrichedData,
             webScrapingData: scrapeData,
@@ -96,12 +96,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           setTimeout(() => reject(new Error('Timeout na atualização')), updateTimeout)
         )
       ]);
-      
+
       const scrapeData = await updatePromise;
-      
+
       // Limpar cache
       upcomingDrawsCache = null;
-      
+
       res.json({ 
         success: true, 
         data: scrapeData,
@@ -110,10 +110,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error updating lottery data:", error);
-      
+
       const errorMessage = error.message || "Erro ao atualizar dados das loterias";
       const isTimeout = errorMessage.includes('Timeout');
-      
+
       res.status(isTimeout ? 408 : 500).json({ 
         success: false,
         message: errorMessage,
@@ -128,17 +128,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lotteryId = parseInt(req.params.id);
       const lottery = await storage.getLotteryById(lotteryId);
-      
+
       if (!lottery) {
         return res.status(404).json({ message: "Lottery not found" });
       }
 
       // Limpar dados de frequência existentes
       await storage.clearNumberFrequencies(lotteryId);
-      
+
       // Reinicializar com dados aleatórios
       await lotteryService.initializeFrequencyData(lotteryId, lottery.maxNumber);
-      
+
       res.json({ 
         success: true, 
         message: "Dados de frequência resetados com sucesso" 
@@ -156,14 +156,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/lotteries/reinitialize", async (req, res) => {
     try {
       console.log("Forçando reinicialização das loterias...");
-      
+
       // Forçar reinicialização das loterias através dos dois serviços
       await lotteryDataService.initializeLotteries();
       await lotteryService.initializeLotteries();
-      
+
       // Limpar cache
       upcomingDrawsCache = null;
-      
+
       res.json({ 
         success: true, 
         message: "Loterias reinicializadas com sucesso" 
@@ -194,11 +194,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { slug } = req.params;
       const result = await lotteryDataService.getLotteryResults(slug);
-      
+
       if (!result) {
         return res.status(404).json({ message: "Lottery not found or no results available" });
       }
-      
+
       res.json(result);
     } catch (error) {
       console.error("Error fetching latest lottery results:", error);
@@ -224,10 +224,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { slug } = req.params;
       const { numbers, result } = req.body;
-      
+
       // Simular contribuição para aprendizado colaborativo
       console.log(`📊 Usuário contribuiu com dados para ${slug}:`, { numbers, result });
-      
+
       res.json({ 
         success: true,
         message: "Obrigado por contribuir para o aprendizado da comunidade!" 
@@ -269,21 +269,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function checkAIRateLimit(ip: string): boolean {
     const now = Date.now();
     const requests = aiRequestsMap.get(ip);
-    
+
     if (!requests) {
       aiRequestsMap.set(ip, { count: 1, lastRequest: now });
       return true;
     }
-    
+
     if (now - requests.lastRequest > AI_RATE_WINDOW) {
       aiRequestsMap.set(ip, { count: 1, lastRequest: now });
       return true;
     }
-    
+
     if (requests.count >= AI_RATE_LIMIT) {
       return false;
     }
-    
+
     requests.count++;
     return true;
   }
@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/predict", async (req, res) => {
     try {
       const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-      
+
       if (!checkAIRateLimit(clientIP)) {
         return res.status(429).json({ 
           message: "Rate limit exceeded. Please wait before making more predictions." 
@@ -300,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { lotteryId, count, preferences } = req.body;
-      
+
       // Validações rigorosas
       if (!lotteryId || typeof lotteryId !== 'number' && typeof lotteryId !== 'string') {
         return res.status(400).json({ message: "Invalid lottery ID" });
@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lotteryId = parseInt(req.params.lotteryId);
       const lottery = await storage.getLotteryById(lotteryId);
-      
+
       if (!lottery) {
         return res.status(404).json({ message: "Lottery not found" });
       }
@@ -388,19 +388,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const drawnNumbers: number[] = [];
       const numCount = lottery.slug === 'mega-sena' ? 6 : 
                       lottery.slug === 'lotofacil' ? 15 : 5;
-      
+
       while (drawnNumbers.length < numCount) {
         const num = Math.floor(Math.random() * lottery.maxNumber) + 1;
         if (!drawnNumbers.includes(num)) {
           drawnNumbers.push(num);
         }
       }
-      
+
       drawnNumbers.sort((a, b) => a - b);
-      
+
       // Atualizar precisão
       await aiService.updatePrecisionOnDraw(lotteryId, drawnNumbers);
-      
+
       res.json({ 
         success: true,
         message: `Sorteio simulado para ${lottery.name}`,
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = 'demo-user';
       const lotteryId = req.query.lotteryId ? parseInt(req.query.lotteryId as string) : undefined;
-      
+
       const games = await storage.getUserGames(userId, lotteryId);
       res.json(games);
     } catch (error) {
@@ -476,106 +476,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lotteries/:slug/community-insights", async (req, res) => {
     try {
       const { slug } = req.params;
-      
-      // Simular dados realísticos de insights da comunidade
-      const mockInsights = {
-        totalUsers: Math.floor(Math.random() * 50000) + 25000,
-        activeUsers: Math.floor(Math.random() * 5000) + 2500,
-        successRate: Math.floor(Math.random() * 30) + 70,
-        topStrategies: [
-          {
-            name: "IA + Análise Estatística",
-            successRate: 87.5,
-            usageCount: 12543,
-            trend: "up"
-          },
-          {
-            name: "Números Quentes/Frios",
-            successRate: 82.1,
-            usageCount: 9876,
-            trend: "stable"
-          },
-          {
-            name: "Padrões Sequenciais",
-            successRate: 79.3,
-            usageCount: 7654,
-            trend: "up"
-          },
-          {
-            name: "Frequência Histórica",
-            successRate: 76.8,
-            usageCount: 6543,
-            trend: "down"
-          }
-        ],
-        hotNumbers: [
-          5, 12, 23, 33, 41, 47
-        ],
-        coldNumbers: [
-          2, 8, 19, 27, 35, 52
-        ],
-        patterns: [
-          {
-            pattern: "Números ímpares consecutivos",
-            confidence: 78,
-            frequency: 234
-          },
-          {
-            pattern: "Soma entre 150-180",
-            confidence: 85,
-            frequency: 456
-          },
-          {
-            pattern: "3 números baixos, 3 altos",
-            confidence: 72,
-            frequency: 187
-          }
-        ],
-        communityPredictions: [
-          {
-            numbers: [7, 14, 21, 28, 35, 42],
-            confidence: 89,
-            votes: 1547
-          },
-          {
-            numbers: [3, 11, 17, 29, 38, 44],
-            confidence: 84,
-            votes: 1203
-          },
-          {
-            numbers: [9, 16, 25, 31, 40, 48],
-            confidence: 81,
-            votes: 987
-          }
-        ],
-        recentWins: [
-          {
-            user: "LuckyPlayer2024",
-            numbers: [6, 15, 22, 29, 37, 43],
-            prize: "R$ 125.000",
-            date: "2 dias atrás"
-          },
-          {
-            user: "SharkPrediction",
-            numbers: [4, 13, 24, 31, 39, 45],
-            prize: "R$ 75.500",
-            date: "5 dias atrás"
-          },
-          {
-            user: "AIWinner2024",
-            numbers: [8, 18, 26, 34, 42, 49],
-            prize: "R$ 89.200",
-            date: "1 semana atrás"
-          }
-        ],
+
+      // Dados zerados inicialmente, a serem populados com uso real
+      const initialInsights = {
+        totalUsers: 0,
+        activeUsers: 0,
+        successRate: 0,
+        topStrategies: [],
+        hotNumbers: [],
+        coldNumbers: [],
+        patterns: [],
+        communityPredictions: [],
+        recentWins: [],
         liveStats: {
-          gamesPlayedToday: Math.floor(Math.random() * 10000) + 5000,
-          averageHitRate: Math.floor(Math.random() * 20) + 75,
-          mostUsedStrategy: "IA + Análise Estatística"
+          gamesPlayedToday: 0,
+          averageHitRate: 0,
+          mostUsedStrategy: ""
         }
       };
 
-      res.json(mockInsights);
+      // Lógica para buscar e agregar dados reais, se houver.
+      // Por enquanto, retornamos os dados zerados como ponto de partida.
+      // Futuramente, esta seção será expandida para buscar dados do storage
+      // e calcular as métricas com base no uso real dos usuários.
+      
+      res.json(initialInsights);
     } catch (error) {
       console.error("Error fetching community insights:", error);
       res.status(500).json({ message: "Failed to fetch community insights" });

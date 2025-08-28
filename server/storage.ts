@@ -308,6 +308,28 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  // Buscar todos os jogos de usuários (para estatísticas gerais)
+  async getAllUserGames(): Promise<UserGame[]> {
+    return await db
+      .select()
+      .from(userGames)
+      .orderBy(desc(userGames.createdAt));
+  }
+
+  // Buscar jogos recentes por data
+  async getRecentUserGames(lotteryId: number, since: Date): Promise<UserGame[]> {
+    return await db
+      .select()
+      .from(userGames)
+      .where(
+        and(
+          eq(userGames.lotteryId, lotteryId),
+          gte(userGames.createdAt, since)
+        )
+      )
+      .orderBy(desc(userGames.createdAt));
+  }
+
   async updateCollaborativeStrategies(lotterySlug: string, strategies: any[]): Promise<void> {
     try {
       // Salvar estratégias colaborativas (implementação simplificada usando uma tabela temporária ou cache)
