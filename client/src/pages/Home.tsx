@@ -16,7 +16,6 @@ import CommunityInsights from '@/components/CommunityInsights';
 import { useToast } from "@/hooks/use-toast";
 import ContestWinners from "@/components/ContestWinners";
 import NotificationSystem from "@/components/NotificationSystem";
-import NotificationTestPanel from "@/components/NotificationTestPanel";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -224,13 +223,6 @@ export default function Home() {
                 />
               ))}
             </div>
-            
-            {/* Notification Test Panel - Only in development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-6">
-                <NotificationTestPanel />
-              </div>
-            )}
           </TabsContent>
 
           {/* Generator */}

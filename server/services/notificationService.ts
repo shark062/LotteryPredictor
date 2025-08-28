@@ -1,3 +1,4 @@
+
 import { WebSocket } from 'ws';
 import { storage } from '../storage';
 
@@ -9,7 +10,7 @@ interface ConnectedUser {
 
 interface NotificationData {
   id: string;
-  type: 'winner' | 'draw_starting' | 'prize_update' | 'system';
+  type: 'winner' | 'draw_starting' | 'prize_update' | 'system' | 'status';
   title: string;
   message: string;
   lottery?: string;
@@ -18,10 +19,32 @@ interface NotificationData {
   data?: any;
 }
 
+interface WinnerStats {
+  totalWinners: number;
+  totalPrizes: string;
+  todayWinners: number;
+  weeklyWinners: number;
+  monthlyWinners: number;
+  averagePrize: string;
+  biggestPrize: string;
+  lotteryStats: { [key: string]: { winners: number; totalPrize: string } };
+}
+
 export class NotificationService {
   private static instance: NotificationService;
   private connectedUsers: Map<string, ConnectedUser> = new Map();
   private drawTimers: Map<string, NodeJS.Timeout> = new Map();
+  private lastKnownPrizes: Map<string, string> = new Map();
+  private winnerStats: WinnerStats = {
+    totalWinners: 0,
+    totalPrizes: 'R$ 0,00',
+    todayWinners: 0,
+    weeklyWinners: 0,
+    monthlyWinners: 0,
+    averagePrize: 'R$ 0,00',
+    biggestPrize: 'R$ 0,00',
+    lotteryStats: {}
+  };
 
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -39,6 +62,9 @@ export class NotificationService {
     });
 
     console.log(`👤 Usuário ${userId} conectado às notificações (${this.connectedUsers.size} usuários online)`);
+
+    // Enviar estatísticas atuais para o novo usuário
+    this.sendWinnerStatsToUser(userId);
 
     // Configurar cleanup quando desconectar
     socket.on('close', () => {
@@ -78,55 +104,148 @@ export class NotificationService {
     });
   }
 
-  // Notificar sobre ganhador - preservando privacidade
-  notifyWinner(lottery: string, winner: string, prize: string, contestNumber?: number, winnerUserId?: string) {
-    // Para o próprio ganhador - mostra nome completo
-    if (winnerUserId) {
-      const personalNotification: NotificationData = {
-        id: `winner-personal-${Date.now()}`,
-        type: 'winner',
-        title: '🎉 PARABÉNS! VOCÊ GANHOU! 🎉',
-        message: `Você ganhou ${prize} na ${lottery}!`,
-        lottery,
-        prize,
-        timestamp: new Date(),
-        data: { contestNumber, isPersonal: true }
-      };
+  // Detectar e notificar ganhadores reais
+  async checkForRealWinners() {
+    try {
+      const lotteries = await storage.getAllLotteries();
       
-      this.sendNotificationToUser(winnerUserId, personalNotification);
+      for (const lottery of lotteries) {
+        const latestResults = await storage.getLatestResults(lottery.id, 5);
+        
+        if (latestResults && latestResults.length > 0) {
+          const latestResult = latestResults[0];
+          
+          // Verificar se há ganhadores reais neste resultado
+          if (latestResult.winners && latestResult.winners.length > 0) {
+            for (const winner of latestResult.winners) {
+              if (winner.winners > 0 && winner.prize) {
+                // Atualizar estatísticas
+                this.updateWinnerStats(lottery.name, winner.winners, winner.prize);
+                
+                // Notificar sobre ganhador real
+                this.notifyRealWinner(
+                  lottery.name,
+                  winner.winners,
+                  winner.prize,
+                  latestResult.contestNumber,
+                  winner.category
+                );
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar ganhadores reais:', error);
     }
+  }
 
-    // Para todos os outros usuários - sem mostrar nome
-    const publicNotification: NotificationData = {
-      id: `winner-public-${Date.now()}`,
+  // Notificar sobre ganhador real - preservando privacidade
+  notifyRealWinner(lottery: string, winnerCount: number, prize: string, contestNumber?: number, category?: string) {
+    const message = winnerCount === 1 
+      ? `1 pessoa ganhou ${prize} na ${lottery}!`
+      : `${winnerCount} pessoas ganharam ${prize} cada na ${lottery}!`;
+
+    const notification: NotificationData = {
+      id: `real-winner-${Date.now()}`,
       type: 'winner',
-      title: '🎉 TEMOS UM GANHADOR! 🎉',
-      message: `Alguém ganhou ${prize} na ${lottery}!`,
+      title: '🎉 GANHADOR CONFIRMADO! 🎉',
+      message,
       lottery,
       prize,
       timestamp: new Date(),
-      data: { contestNumber, isPublic: true }
+      data: { 
+        contestNumber, 
+        category,
+        winnerCount,
+        isReal: true
+      }
     };
 
-    // Enviar para todos exceto o ganhador
-    this.connectedUsers.forEach((user, userId) => {
-      if (userId !== winnerUserId && user.socket.readyState === WebSocket.OPEN) {
-        try {
-          user.socket.send(JSON.stringify(publicNotification));
-        } catch (error) {
-          console.error(`Erro ao enviar notificação para ${userId}:`, error);
-          this.connectedUsers.delete(userId);
-        }
-      } else if (user.socket.readyState !== WebSocket.OPEN) {
-        this.connectedUsers.delete(userId);
-      }
-    });
+    this.broadcast(notification);
     
-    // Log importante
-    console.log(`🏆 GANHADOR DETECTADO: ${winner} - ${prize} na ${lottery}`);
+    console.log(`🏆 GANHADOR REAL DETECTADO: ${winnerCount} ganhador(es) - ${prize} na ${lottery} (Concurso ${contestNumber})`);
   }
 
-  // Notificar início de sorteio
+  // Atualizar estatísticas de ganhadores
+  updateWinnerStats(lottery: string, winnerCount: number, prize: string) {
+    // Converter prize string para número para cálculos
+    const prizeValue = this.parsePrizeValue(prize);
+    
+    this.winnerStats.totalWinners += winnerCount;
+    this.winnerStats.todayWinners += winnerCount;
+    
+    // Atualizar stats por loteria
+    if (!this.winnerStats.lotteryStats[lottery]) {
+      this.winnerStats.lotteryStats[lottery] = { winners: 0, totalPrize: 'R$ 0,00' };
+    }
+    
+    this.winnerStats.lotteryStats[lottery].winners += winnerCount;
+    const currentLotteryPrize = this.parsePrizeValue(this.winnerStats.lotteryStats[lottery].totalPrize);
+    this.winnerStats.lotteryStats[lottery].totalPrize = this.formatPrizeValue(currentLotteryPrize + (prizeValue * winnerCount));
+    
+    // Atualizar maior prêmio
+    if (prizeValue > this.parsePrizeValue(this.winnerStats.biggestPrize)) {
+      this.winnerStats.biggestPrize = prize;
+    }
+    
+    // Recalcular totais
+    const totalPrizeValue = this.parsePrizeValue(this.winnerStats.totalPrizes) + (prizeValue * winnerCount);
+    this.winnerStats.totalPrizes = this.formatPrizeValue(totalPrizeValue);
+    
+    if (this.winnerStats.totalWinners > 0) {
+      this.winnerStats.averagePrize = this.formatPrizeValue(totalPrizeValue / this.winnerStats.totalWinners);
+    }
+    
+    // Broadcast das estatísticas atualizadas
+    this.broadcastWinnerStats();
+  }
+
+  // Converter string de prêmio para número
+  private parsePrizeValue(prizeStr: string): number {
+    return parseFloat(prizeStr.replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+  }
+
+  // Formatar número para string de prêmio
+  private formatPrizeValue(value: number): string {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  }
+
+  // Detectar mudanças de prêmio
+  async checkPrizeUpdates() {
+    try {
+      const lotteries = await storage.getAllLotteries();
+      
+      for (const lottery of lotteries) {
+        // Aqui você pode integrar com o serviço que busca dados da Caixa
+        // Por enquanto, vamos simular verificação de mudança de prêmio
+        const currentPrize = await this.getCurrentPrize(lottery.name);
+        const lastKnownPrize = this.lastKnownPrizes.get(lottery.name);
+        
+        if (currentPrize && lastKnownPrize && currentPrize !== lastKnownPrize) {
+          this.notifyPrizeUpdate(lottery.name, currentPrize, lastKnownPrize);
+        }
+        
+        if (currentPrize) {
+          this.lastKnownPrizes.set(lottery.name, currentPrize);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar atualizações de prêmio:', error);
+    }
+  }
+
+  // Obter prêmio atual (integrar com serviço real)
+  private async getCurrentPrize(lotteryName: string): Promise<string | null> {
+    // Integrar com o serviço que busca dados da Caixa
+    // Por enquanto retorna null para não gerar notificações falsas
+    return null;
+  }
+
+  // Notificar início de sorteio baseado em dados reais
   notifyDrawStarting(lottery: string, drawTime: Date, contestNumber: number) {
     const timeUntil = Math.round((drawTime.getTime() - Date.now()) / (1000 * 60)); // minutos
     
@@ -135,8 +254,8 @@ export class NotificationService {
       type: 'draw_starting',
       title: '🎯 Sorteio Começando!',
       message: timeUntil > 0 
-        ? `Sorteio em ${timeUntil} minutos` 
-        : 'Sorteio acontecendo agora!',
+        ? `${lottery} em ${timeUntil} minutos` 
+        : `${lottery} acontecendo agora!`,
       lottery,
       timestamp: new Date(),
       data: { contestNumber, drawTime, timeUntil }
@@ -152,8 +271,8 @@ export class NotificationService {
       type: 'prize_update',
       title: '💰 Prêmio Atualizado!',
       message: previousPrize 
-        ? `Prêmio aumentou de ${previousPrize} para ${newPrize}`
-        : `Novo prêmio: ${newPrize}`,
+        ? `${lottery}: ${previousPrize} → ${newPrize}`
+        : `${lottery}: Novo prêmio ${newPrize}`,
       lottery,
       prize: newPrize,
       timestamp: new Date(),
@@ -163,110 +282,104 @@ export class NotificationService {
     this.broadcast(notification);
   }
 
-  // Programar notificações de sorteio
-  scheduleDrawNotifications(lottery: string, drawTime: Date, contestNumber: number) {
-    const now = new Date();
-    const timeDiff = drawTime.getTime() - now.getTime();
-    const lotteryKey = `${lottery}-${contestNumber}`;
+  // Enviar estatísticas para usuário específico
+  sendWinnerStatsToUser(userId: string) {
+    const notification: NotificationData = {
+      id: `stats-${userId}-${Date.now()}`,
+      type: 'status',
+      title: '📊 Estatísticas de Ganhadores',
+      message: `${this.winnerStats.totalWinners} ganhadores confirmados`,
+      timestamp: new Date(),
+      data: { stats: this.winnerStats }
+    };
 
-    // Limpar timer anterior se existir
-    if (this.drawTimers.has(lotteryKey)) {
-      clearTimeout(this.drawTimers.get(lotteryKey)!);
-    }
-
-    // Notificação 30 minutos antes
-    const thirtyMinsBefore = timeDiff - (30 * 60 * 1000);
-    if (thirtyMinsBefore > 0) {
-      const timer30 = setTimeout(() => {
-        this.notifyDrawStarting(lottery, drawTime, contestNumber);
-      }, thirtyMinsBefore);
-      this.drawTimers.set(`${lotteryKey}-30min`, timer30);
-    }
-
-    // Notificação 5 minutos antes
-    const fiveMinsBefore = timeDiff - (5 * 60 * 1000);
-    if (fiveMinsBefore > 0) {
-      const timer5 = setTimeout(() => {
-        this.notifyDrawStarting(lottery, drawTime, contestNumber);
-      }, fiveMinsBefore);
-      this.drawTimers.set(`${lotteryKey}-5min`, timer5);
-    }
-
-    // Notificação no momento do sorteio
-    if (timeDiff > 0) {
-      const timerNow = setTimeout(() => {
-        this.notifyDrawStarting(lottery, drawTime, contestNumber);
-      }, timeDiff);
-      this.drawTimers.set(`${lotteryKey}-now`, timerNow);
-    }
+    this.sendNotificationToUser(userId, notification);
   }
 
-  // Simular ganhadores para demonstração
-  simulateWinner(lottery: string, testUserId?: string) {
-    const names = [
-      'João Silva', 'Maria Santos', 'Pedro Oliveira', 'Ana Costa', 'Carlos Lima',
-      'Fernanda Souza', 'Rafael Pereira', 'Juliana Alves', 'Marcos Ferreira', 'Camila Rocha'
-    ];
-    
-    const prizes = [
-      'R$ 50.000,00', 'R$ 25.000,00', 'R$ 100.000,00', 'R$ 75.000,00', 
-      'R$ 15.000,00', 'R$ 200.000,00', 'R$ 35.000,00', 'R$ 80.000,00'
-    ];
+  // Broadcast das estatísticas atualizadas
+  broadcastWinnerStats() {
+    const notification: NotificationData = {
+      id: `stats-broadcast-${Date.now()}`,
+      type: 'status',
+      title: '📊 Estatísticas Atualizadas',
+      message: `${this.winnerStats.totalWinners} ganhadores confirmados`,
+      timestamp: new Date(),
+      data: { stats: this.winnerStats }
+    };
 
-    const randomName = names[Math.floor(Math.random() * names.length)];
-    const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
-
-    this.notifyWinner(lottery, randomName, randomPrize, Math.floor(Math.random() * 1000) + 2000, testUserId);
+    this.broadcast(notification);
   }
 
-  // Getter para usuários conectados (necessário para a rota de teste)
+  // Programar notificações de sorteio baseadas em dados reais
+  scheduleRealDrawNotifications() {
+    // Integrar com dados reais de próximos sorteios
+    // Por enquanto vazio, pode ser implementado quando houver integração completa
+  }
+
+  // Getter para usuários conectados
   getConnectedUsers() {
     return this.connectedUsers;
   }
 
-  // Status do serviço
+  // Status do serviço com estatísticas reais
   getStatus() {
     return {
       connectedUsers: this.connectedUsers.size,
       activeTimers: this.drawTimers.size,
-      users: Array.from(this.connectedUsers.keys())
+      users: Array.from(this.connectedUsers.keys()),
+      winnerStats: this.winnerStats,
+      lastUpdate: new Date().toISOString()
     };
   }
 
   // Monitorar resultados para detectar ganhadores automaticamente
   async checkForNewWinners() {
     try {
-      // Implementar lógica para verificar novos resultados e ganhadores
-      // Esta função seria chamada periodicamente ou quando novos resultados são obtidos
-      
-      const lotteries = await storage.getAllLotteries();
-      
-      for (const lottery of lotteries) {
-        // Verificar se há novos ganhadores nesta loteria
-        // Por enquanto, simular ocasionalmente
-        if (Math.random() < 0.05) { // 5% de chance
-          this.simulateWinner(lottery.name);
-        }
-      }
+      await this.checkForRealWinners();
+      await this.checkPrizeUpdates();
     } catch (error) {
-      console.error('Erro ao verificar ganhadores:', error);
+      console.error('Erro ao verificar novos ganhadores:', error);
     }
   }
 
-  // Iniciar monitoramento periódico
+  // Iniciar monitoramento periódico com dados reais
   startPeriodicChecks() {
-    // Verificar ganhadores a cada 2 minutos
+    // Verificar ganhadores reais a cada 30 segundos
     setInterval(() => {
       this.checkForNewWinners();
-    }, 2 * 60 * 1000);
+    }, 30 * 1000);
+
+    // Reset das estatísticas diárias à meia-noite
+    setInterval(() => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        this.winnerStats.todayWinners = 0;
+      }
+    }, 60 * 1000); // Verificar a cada minuto
 
     // Status log a cada 10 minutos
     setInterval(() => {
       const status = this.getStatus();
-      console.log(`📊 Notificações: ${status.connectedUsers} usuários, ${status.activeTimers} timers ativos`);
+      console.log(`📊 Notificações: ${status.connectedUsers} usuários, ${status.winnerStats.totalWinners} ganhadores detectados`);
     }, 10 * 60 * 1000);
 
-    console.log('🔔 Sistema de notificações iniciado com verificações periódicas');
+    console.log('🔔 Sistema de notificações iniciado com monitoramento de dados reais');
+  }
+
+  // Resetar estatísticas (para manutenção)
+  resetStats() {
+    this.winnerStats = {
+      totalWinners: 0,
+      totalPrizes: 'R$ 0,00',
+      todayWinners: 0,
+      weeklyWinners: 0,
+      monthlyWinners: 0,
+      averagePrize: 'R$ 0,00',
+      biggestPrize: 'R$ 0,00',
+      lotteryStats: {}
+    };
+    
+    this.broadcastWinnerStats();
   }
 }
 

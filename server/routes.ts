@@ -502,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Por enquanto, retornamos os dados zerados como ponto de partida.
       // Futuramente, esta seção será expandida para buscar dados do storage
       // e calcular as métricas com base no uso real dos usuários.
-      
+
       res.json(initialInsights);
     } catch (error) {
       console.error("Error fetching community insights:", error);
@@ -515,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔄 Iniciando busca de dados oficiais da Caixa...');
       const officialData = await caixaLotteryService.getLatestResults();
-      
+
       res.json({
         success: true,
         data: officialData,
@@ -537,11 +537,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Primeiro, tentar buscar dados oficiais em tempo real
       let realContestData;
-      
+
       try {
         console.log('🔄 Buscando dados oficiais da Caixa...');
         const officialResults = await caixaLotteryService.getLatestResults();
-        
+
         // Converter dados oficiais para formato esperado pelo frontend
         realContestData = {};
         Object.entries(officialResults).forEach(([lotteryName, result]) => {
@@ -552,11 +552,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             accumulated: result.accumulated
           };
         });
-        
+
         console.log('✅ Dados oficiais da Caixa obtidos com sucesso');
       } catch (officialError) {
         console.log('⚠️ Erro ao buscar dados oficiais, usando fallback...');
-        
+
         // Fallback para dados estáticos em caso de erro
         realContestData = {
         "Lotofácil": {
@@ -670,10 +670,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔄 Forçando atualização dos dados oficiais...');
       const updatedData = await caixaLotteryService.getLatestResults();
-      
+
       // Limpar caches
       upcomingDrawsCache = null;
-      
+
       res.json({
         success: true,
         message: 'Dados oficiais atualizados com sucesso',
@@ -701,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (message: string) => {
       try {
         const data = JSON.parse(message.toString());
-        
+
         if (data.type === 'register') {
           // Registrar usuário no sistema de notificações
           notificationService.registerUser(data.userId || 'guest', ws);
@@ -723,37 +723,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Iniciar sistema de notificações
   notificationService.startPeriodicChecks();
 
-  // Endpoint para testar notificações
-  app.post('/api/notifications/test/:type', async (req, res) => {
-    try {
-      const { type } = req.params;
-      const { lottery = 'Mega-Sena', prize = 'R$ 100.000,00' } = req.body;
-
-      switch (type) {
-        case 'winner':
-          // Simular ganhador - usar primeiro usuário conectado para demonstração
-          const connectedUsers = Array.from(notificationService.getConnectedUsers().keys());
-          const testUserId = connectedUsers.length > 0 ? connectedUsers[0] : undefined;
-          notificationService.simulateWinner(lottery, testUserId);
-          break;
-        case 'draw':
-          notificationService.notifyDrawStarting(lottery, new Date(Date.now() + 5 * 60 * 1000), 2500);
-          break;
-        case 'prize':
-          notificationService.notifyPrizeUpdate(lottery, prize);
-          break;
-        default:
-          return res.status(400).json({ message: 'Tipo de notificação inválido' });
-      }
-
-      res.json({ success: true, message: `Notificação ${type} enviada para ${lottery}` });
-    } catch (error) {
-      console.error('Erro ao enviar notificação de teste:', error);
-      res.status(500).json({ message: 'Erro ao enviar notificação' });
-    }
-  });
-
-  // Status do sistema de notificações
+  // Status do sistema de notificações com estatísticas reais
   app.get('/api/notifications/status', (req, res) => {
     const status = notificationService.getStatus();
     res.json(status);
