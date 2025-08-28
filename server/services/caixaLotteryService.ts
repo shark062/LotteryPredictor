@@ -18,7 +18,8 @@ interface LotteryResult {
 export class CaixaLotteryService {
   private static instance: CaixaLotteryService;
   private baseUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
-  private requestTimeout = 15000;
+  private requestTimeout = 8000;
+  private maxRetries = 2;
 
   public static getInstance(): CaixaLotteryService {
     if (!CaixaLotteryService.instance) {
@@ -40,23 +41,58 @@ export class CaixaLotteryService {
     ];
 
     const results: { [key: string]: LotteryResult } = {};
+    const validResults: string[] = [];
 
     for (const lottery of lotteries) {
       try {
         console.log(`🔄 Buscando dados oficiais da ${lottery.name}...`);
-        const result = await this.fetchLotteryData(lottery.endpoint, lottery.name);
-        if (result) {
+        const result = await this.fetchLotteryDataWithRetry(lottery.endpoint, lottery.name);
+        
+        if (result && this.validateResult(result, lottery.name)) {
           results[lottery.name] = result;
-          console.log(`✅ ${lottery.name}: dados oficiais obtidos`);
+          validResults.push(lottery.name);
+          console.log(`✅ ${lottery.name}: dados oficiais válidos obtidos (concurso ${result.contest})`);
+        } else {
+          console.warn(`⚠️ ${lottery.name}: dados inválidos, ignorando`);
         }
       } catch (error) {
         console.error(`❌ Erro ao buscar ${lottery.name}:`, error);
-        // Em caso de erro, usar dados fallback
-        results[lottery.name] = this.getFallbackData(lottery.name);
+        // Não adicionar dados de fallback - apenas dados reais
       }
     }
 
+    if (validResults.length === 0) {
+      throw new Error('Nenhum resultado válido obtido da API da Caixa');
+    }
+
+    console.log(`✅ Resultados válidos obtidos: ${validResults.join(', ')}`);
     return results;
+  }
+
+  private async fetchLotteryDataWithRetry(endpoint: string, lotteryName: string): Promise<LotteryResult | null> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Tentativa ${attempt}/${this.maxRetries} para ${lotteryName}`);
+        
+        const result = await this.fetchLotteryData(endpoint, lotteryName);
+        if (result && this.validateResult(result, lotteryName)) {
+          return result;
+        }
+        
+        throw new Error(`Dados inválidos na tentativa ${attempt}`);
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt < this.maxRetries) {
+          console.warn(`⚠️ Tentativa ${attempt} falhou, tentando novamente em 2s...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+
+    throw lastError || new Error(`Falha após ${this.maxRetries} tentativas`);
   }
 
   private async fetchLotteryData(endpoint: string, lotteryName: string): Promise<LotteryResult | null> {
@@ -65,68 +101,97 @@ export class CaixaLotteryService {
       const response = await axios.get(`${this.baseUrl}/${endpoint}`, {
         timeout: this.requestTimeout,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-          'Cache-Control': 'no-cache'
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Referer': 'https://loterias.caixa.gov.br/',
+          'Origin': 'https://loterias.caixa.gov.br'
+        },
+        validateStatus: function (status) {
+          return status === 200; // Aceitar apenas status 200
         }
       });
 
-      if (response.data) {
+      if (response.data && response.status === 200) {
         return this.parseOfficialData(response.data, lotteryName);
       }
     } catch (apiError) {
-      console.log(`⚠️ API oficial falhou para ${lotteryName}, tentando scraping...`);
-      
-      // Fallback para scraping do site da Caixa
-      try {
-        return await this.scrapeCaixaWebsite(endpoint, lotteryName);
-      } catch (scrapeError) {
-        console.error(`❌ Scraping também falhou para ${lotteryName}:`, scrapeError);
-        throw scrapeError;
+      if (axios.isAxiosError(apiError)) {
+        if (apiError.response?.status === 403) {
+          throw new Error(`Acesso negado pela API da Caixa para ${lotteryName}`);
+        }
+        if (apiError.response?.status === 429) {
+          throw new Error(`Rate limit atingido para ${lotteryName}`);
+        }
       }
+      throw apiError;
     }
 
     return null;
   }
 
-  private async scrapeCaixaWebsite(endpoint: string, lotteryName: string): Promise<LotteryResult | null> {
-    try {
-      const url = `https://loterias.caixa.gov.br/wps/portal/loterias/landing/${endpoint}`;
-      const response = await axios.get(url, {
-        timeout: this.requestTimeout,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+  private validateResult(result: LotteryResult, lotteryName: string): boolean {
+    // Validar dados essenciais
+    if (!result) return false;
+    
+    const isValidContest = result.contest > 0 && result.contest < 99999;
+    const isValidDate = result.date && result.date.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    const hasValidNumbers = result.drawnNumbers && result.drawnNumbers.length > 0;
+    const numbersAreValid = result.drawnNumbers.every(n => n > 0 && n <= 100);
+    
+    // Verificar se os números fazem sentido para a loteria específica
+    const expectedNumberCount = this.getExpectedNumberCount(lotteryName);
+    const hasCorrectCount = result.drawnNumbers.length === expectedNumberCount;
+    
+    const isValid = isValidContest && isValidDate && hasValidNumbers && numbersAreValid && hasCorrectCount;
+    
+    if (!isValid) {
+      console.warn(`❌ Dados inválidos para ${lotteryName}:`, {
+        contest: result.contest,
+        date: result.date,
+        numbersCount: result.drawnNumbers?.length,
+        expectedCount: expectedNumberCount
       });
-
-      const $ = cheerio.load(response.data);
-      
-      // Extrair informações do HTML
-      const contestNumber = this.extractContestNumber($);
-      const date = this.extractDate($);
-      const drawnNumbers = this.extractDrawnNumbers($, lotteryName);
-      const winners = this.extractWinners($, lotteryName);
-      const accumulated = this.extractAccumulated($);
-
-      return {
-        contest: contestNumber,
-        date,
-        drawnNumbers,
-        winners,
-        accumulated
-      };
-    } catch (error) {
-      console.error(`Erro no scraping para ${lotteryName}:`, error);
-      return null;
     }
+    
+    return isValid;
+  }
+
+  private getExpectedNumberCount(lotteryName: string): number {
+    const expectedCounts: { [key: string]: number } = {
+      'Lotofácil': 15,
+      'Mega-Sena': 6,
+      'Quina': 5,
+      'Lotomania': 20,
+      'Timemania': 7, // 7 números + time
+      'Dupla-Sena': 6,
+      'Dia de Sorte': 7,
+      'Super Sete': 7
+    };
+    
+    return expectedCounts[lotteryName] || 6;
   }
 
   private parseOfficialData(data: any, lotteryName: string): LotteryResult {
+    if (!data || typeof data !== 'object') {
+      throw new Error(`Dados inválidos recebidos para ${lotteryName}`);
+    }
+
     // Mapear dados da API oficial da Caixa
-    const contest = data.numero || data.concurso || 0;
-    const date = data.dataApuracao || data.data || new Date().toLocaleDateString('pt-BR');
+    const contest = parseInt(data.numero) || parseInt(data.concurso) || 0;
+    const date = data.dataApuracao || data.data || '';
     const drawnNumbers = data.listaDezenas || data.dezenas || [];
+    
+    // Validar dados essenciais antes de processar
+    if (contest <= 0) {
+      throw new Error(`Número do concurso inválido: ${contest}`);
+    }
+    
+    if (!Array.isArray(drawnNumbers) || drawnNumbers.length === 0) {
+      throw new Error(`Números sorteados inválidos para ${lotteryName}`);
+    }
     
     // Processar premiação baseado no tipo de loteria
     const winners = this.processWinnerData(data, lotteryName);
@@ -134,23 +199,36 @@ export class CaixaLotteryService {
 
     return {
       contest,
-      date,
-      drawnNumbers: drawnNumbers.map((n: string) => parseInt(n)),
+      date: date || new Date().toLocaleDateString('pt-BR'),
+      drawnNumbers: drawnNumbers.map((n: string) => {
+        const num = parseInt(n);
+        if (isNaN(num) || num <= 0) {
+          throw new Error(`Número inválido encontrado: ${n}`);
+        }
+        return num;
+      }),
       winners,
-      accumulated: accumulated ? `R$ ${this.formatMoney(accumulated)}` : undefined
+      accumulated: accumulated && accumulated > 0 ? `R$ ${this.formatMoney(accumulated)}` : undefined
     };
   }
 
   private processWinnerData(data: any, lotteryName: string): { [key: string]: { count: number; prize: string } } {
     const winners: { [key: string]: { count: number; prize: string } } = {};
     
-    if (data.listaRateioPremio) {
+    if (data.listaRateioPremio && Array.isArray(data.listaRateioPremio)) {
       data.listaRateioPremio.forEach((prize: any) => {
-        const description = this.getPrizeDescription(prize.descricaoFaixa, lotteryName);
-        winners[description] = {
-          count: prize.numeroDeGanhadores || 0,
-          prize: `R$ ${this.formatMoney(prize.valorPremio || 0)}`
-        };
+        if (prize && typeof prize === 'object') {
+          const description = this.getPrizeDescription(prize.descricaoFaixa, lotteryName);
+          const count = parseInt(prize.numeroDeGanhadores) || 0;
+          const prizeValue = parseFloat(prize.valorPremio) || 0;
+          
+          if (description && !isNaN(count) && !isNaN(prizeValue)) {
+            winners[description] = {
+              count: count,
+              prize: `R$ ${this.formatMoney(prizeValue)}`
+            };
+          }
+        }
       });
     }
 
@@ -158,21 +236,23 @@ export class CaixaLotteryService {
   }
 
   private getPrizeDescription(originalDesc: string, lotteryName: string): string {
+    if (!originalDesc) return '';
+    
     // Mapear descrições para formato padrão
-    const descriptions: { [key: string]: string } = {
-      'lotofácil': {
+    const descriptions: { [key: string]: { [key: string]: string } } = {
+      'Lotofácil': {
         '15': '15 pontos',
         '14': '14 pontos', 
         '13': '13 pontos',
         '12': '12 pontos',
         '11': '11 pontos'
       },
-      'mega-sena': {
+      'Mega-Sena': {
         '6': 'Sena (6 números)',
         '5': 'Quina (5 números)',
         '4': 'Quadra (4 números)'
       },
-      'quina': {
+      'Quina': {
         '5': 'Quina (5 números)',
         '4': 'Quadra (4 números)',
         '3': 'Terno (3 números)',
@@ -182,101 +262,18 @@ export class CaixaLotteryService {
 
     // Extrair número de acertos da descrição original
     const match = originalDesc.match(/(\d+)/);
-    if (match && descriptions[lotteryName.toLowerCase()]) {
-      return descriptions[lotteryName.toLowerCase()][match[1]] || originalDesc;
+    const lotteryKey = lotteryName.replace('-', '');
+    
+    if (match && descriptions[lotteryKey]) {
+      return descriptions[lotteryKey][match[1]] || originalDesc;
     }
 
     return originalDesc;
   }
 
-  private extractContestNumber($: cheerio.CheerioAPI): number {
-    // Lógica para extrair número do concurso do HTML
-    const contestText = $('.resultado-concurso, .numero-concurso, .concurso').first().text();
-    const match = contestText.match(/(\d+)/);
-    return match ? parseInt(match[1]) : 0;
-  }
-
-  private extractDate($: cheerio.CheerioAPI): string {
-    // Lógica para extrair data do HTML
-    const dateText = $('.data-sorteio, .data-concurso, .data').first().text();
-    return dateText || new Date().toLocaleDateString('pt-BR');
-  }
-
-  private extractDrawnNumbers($: cheerio.CheerioAPI, lotteryName: string): number[] {
-    // Lógica para extrair números sorteados do HTML
-    const numbers: number[] = [];
-    $('.numero-sorteado, .bola, .dezena').each((_, element) => {
-      const num = parseInt($(element).text());
-      if (!isNaN(num)) {
-        numbers.push(num);
-      }
-    });
-    return numbers.sort((a, b) => a - b);
-  }
-
-  private extractWinners($: cheerio.CheerioAPI, lotteryName: string): { [key: string]: { count: number; prize: string } } {
-    // Lógica para extrair ganhadores do HTML
-    const winners: { [key: string]: { count: number; prize: string } } = {};
-    
-    $('.premiacao tr, .resultado-premiacao tr').each((_, row) => {
-      const cells = $(row).find('td');
-      if (cells.length >= 3) {
-        const description = $(cells[0]).text().trim();
-        const count = parseInt($(cells[1]).text().replace(/\D/g, '')) || 0;
-        const prize = $(cells[2]).text().trim();
-        
-        if (description && description !== 'Faixa') {
-          winners[description] = { count, prize };
-        }
-      }
-    });
-
-    return winners;
-  }
-
-  private extractAccumulated($: cheerio.CheerioAPI): string | undefined {
-    const accText = $('.valor-acumulado, .acumulado').first().text();
-    const match = accText.match(/R\$\s*([\d.,]+)/);
-    return match ? `R$ ${match[1]}` : undefined;
-  }
-
   private formatMoney(value: number): string {
+    if (isNaN(value)) return '0,00';
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-  }
-
-  private getFallbackData(lotteryName: string): LotteryResult {
-    const fallbackData: { [key: string]: LotteryResult } = {
-      'Lotofácil': {
-        contest: 3020,
-        date: '24/01/2025',
-        drawnNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-        winners: {
-          '15 pontos': { count: 3, prize: 'R$ 1.892.403,23' },
-          '14 pontos': { count: 287, prize: 'R$ 2.654,98' },
-          '13 pontos': { count: 9124, prize: 'R$ 30,00' },
-          '12 pontos': { count: 116789, prize: 'R$ 12,00' },
-          '11 pontos': { count: 679456, prize: 'R$ 6,00' }
-        }
-      },
-      'Mega-Sena': {
-        contest: 2790,
-        date: '25/01/2025',
-        drawnNumbers: [6, 15, 22, 29, 37, 43],
-        winners: {
-          'Sena (6 números)': { count: 0, prize: 'R$ 0,00' },
-          'Quina (5 números)': { count: 48, prize: 'R$ 68.123,45' },
-          'Quadra (4 números)': { count: 2847, prize: 'R$ 1.234,56' }
-        },
-        accumulated: 'R$ 75.000.000,00'
-      }
-    };
-
-    return fallbackData[lotteryName] || {
-      contest: 1,
-      date: new Date().toLocaleDateString('pt-BR'),
-      drawnNumbers: [],
-      winners: {}
-    };
   }
 }
 

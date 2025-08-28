@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 interface LotteryInfo {
@@ -9,7 +10,8 @@ interface LotteryInfo {
 export class WebScrapingService {
   private static instance: WebScrapingService;
   private officialApiUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
-  private requestTimeout = 15000;
+  private requestTimeout = 10000;
+  private maxRetries = 3;
 
   public static getInstance(): WebScrapingService {
     if (!WebScrapingService.instance) {
@@ -33,25 +35,57 @@ export class WebScrapingService {
     };
 
     const results: { [key: string]: LotteryInfo } = {};
+    const errors: string[] = [];
 
     for (const [displayName, apiName] of Object.entries(lotteryMappings)) {
       try {
         console.log(`🔄 Buscando ${displayName}...`);
-        const data = await this.fetchOfficialLotteryInfo(apiName, displayName);
-        if (data) {
+        const data = await this.fetchOfficialLotteryInfoWithRetry(apiName, displayName);
+        if (data && this.validateLotteryData(data)) {
           results[displayName] = data;
-          console.log(`✅ ${displayName}: dados oficiais obtidos`);
+          console.log(`✅ ${displayName}: dados oficiais válidos obtidos`);
         } else {
-          throw new Error(`Dados não disponíveis para ${displayName}`);
+          errors.push(`Dados inválidos para ${displayName}`);
         }
       } catch (error) {
         console.error(`❌ Erro ao buscar ${displayName}:`, error);
-        throw new Error(`Falha ao obter dados oficiais de ${displayName}`);
+        errors.push(`Falha ao obter dados de ${displayName}`);
       }
     }
 
-    console.log(`✅ Busca concluída: ${Object.keys(results).length} loterias atualizadas`);
+    if (Object.keys(results).length === 0) {
+      throw new Error(`Nenhuma loteria válida encontrada. Erros: ${errors.join(', ')}`);
+    }
+
+    console.log(`✅ Busca concluída: ${Object.keys(results).length} loterias válidas de ${Object.keys(lotteryMappings).length} tentativas`);
     return results;
+  }
+
+  private async fetchOfficialLotteryInfoWithRetry(apiName: string, displayName: string): Promise<LotteryInfo | null> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Tentativa ${attempt}/${this.maxRetries} para ${displayName}`);
+        
+        const data = await this.fetchOfficialLotteryInfo(apiName, displayName);
+        if (data && this.validateLotteryData(data)) {
+          return data;
+        }
+        
+        throw new Error(`Dados inválidos recebidos na tentativa ${attempt}`);
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`⚠️ Tentativa ${attempt} falhou para ${displayName}: ${lastError.message}`);
+        
+        if (attempt < this.maxRetries) {
+          // Aguardar antes da próxima tentativa
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+
+    throw lastError || new Error(`Falha após ${this.maxRetries} tentativas`);
   }
 
   private async fetchOfficialLotteryInfo(apiName: string, displayName: string): Promise<LotteryInfo | null> {
@@ -62,80 +96,88 @@ export class WebScrapingService {
       const response = await axios.get(url, {
         timeout: this.requestTimeout,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
           'Cache-Control': 'no-cache',
-          'Referer': 'https://loterias.caixa.gov.br/'
+          'Pragma': 'no-cache',
+          'Referer': 'https://loterias.caixa.gov.br/',
+          'Origin': 'https://loterias.caixa.gov.br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-site'
+        },
+        validateStatus: function (status) {
+          return status === 200; // Aceitar apenas status 200
         }
       });
 
       if (response.data && response.status === 200) {
-        return this.parseOfficialLotteryInfo(response.data, displayName);
+        const parsedData = this.parseOfficialLotteryInfo(response.data, displayName);
+        if (this.validateLotteryData(parsedData)) {
+          return parsedData;
+        }
       }
 
-      throw new Error(`Resposta inválida da API oficial para ${displayName}`);
+      throw new Error(`Dados inválidos recebidos da API oficial`);
     } catch (error) {
-      console.error(`Erro ao buscar dados oficiais para ${displayName}:`, error);
-
-      // Tentar método alternativo - scraping do site oficial
-      try {
-        return await this.scrapeOfficialWebsite(apiName, displayName);
-      } catch (scrapeError) {
-        console.error(`Scraping também falhou para ${displayName}:`, scrapeError);
-        throw error;
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          console.warn(`🚫 Acesso negado (403) para ${displayName}. API pode estar bloqueando requests.`);
+          throw new Error(`API bloqueou acesso para ${displayName}`);
+        }
+        if (error.response?.status === 429) {
+          console.warn(`⏰ Rate limit (429) para ${displayName}. Muitas requisições.`);
+          throw new Error(`Rate limit atingido para ${displayName}`);
+        }
+        if (error.code === 'ENOTFOUND') {
+          throw new Error(`Erro de conectividade para ${displayName}`);
+        }
       }
+      throw error;
     }
   }
 
-  private async scrapeOfficialWebsite(apiName: string, displayName: string): Promise<LotteryInfo | null> {
-    const url = `https://loterias.caixa.gov.br/wps/portal/loterias/landing/${apiName}`;
-    console.log(`🌐 Fazendo scraping do site oficial: ${url}`);
-
-    const response = await axios.get(url, {
-      timeout: this.requestTimeout,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-
-    // Extrair informações básicas do HTML
-    const html = response.data;
-
-    // Buscar padrões de dados no HTML
-    const contestMatch = html.match(/concurso["\s]*:?\s*["\s]*(\d+)/i);
-    const prizeMatch = html.match(/R\$\s*([\d.,]+)/);
-    const dateMatch = html.match(/(\d{2}\/\d{2}\/\d{4})/);
-
-    if (contestMatch && prizeMatch) {
-      return {
-        contestNumber: parseInt(contestMatch[1]),
-        nextDrawDate: dateMatch ? `${dateMatch[1]} - 20:00h` : this.getNextDrawDate(displayName),
-        prize: `R$ ${prizeMatch[1]}`
-      };
-    }
-
-    throw new Error(`Não foi possível extrair dados do site oficial para ${displayName}`);
+  private validateLotteryData(data: LotteryInfo | null): boolean {
+    if (!data) return false;
+    
+    // Validar se os dados são reais e não falsos
+    const isValidContest = data.contestNumber > 0 && data.contestNumber < 99999;
+    const isValidPrize = data.prize && data.prize.includes('R$') && !data.prize.includes('NaN');
+    const isValidDate = data.nextDrawDate && data.nextDrawDate.match(/\d{2}\/\d{2}\/\d{4}/);
+    
+    return isValidContest && isValidPrize && isValidDate;
   }
 
   private parseOfficialLotteryInfo(data: any, displayName: string): LotteryInfo {
-    console.log(`🔍 Processando dados da API para ${displayName}:`, {
-      numero: data.numero,
-      valorEstimado: data.valorEstimadoProximoConcurso,
-      dataProximo: data.dataProximoConcurso,
-      acumulado: data.acumulado
-    });
+    console.log(`🔍 Processando dados da API para ${displayName}`);
 
-    const contestNumber = data.numero || 0;
-    const prize = data.valorEstimadoProximoConcurso || data.valorAcumuladoProximoConcurso || 0;
+    if (!data || typeof data !== 'object') {
+      throw new Error(`Dados inválidos recebidos para ${displayName}`);
+    }
+
+    const contestNumber = parseInt(data.numero) || 0;
+    const prize = parseFloat(data.valorEstimadoProximoConcurso) || parseFloat(data.valorAcumuladoProximoConcurso) || 0;
     const nextDrawDate = data.dataProximoConcurso;
 
-    // Calcular próxima data de sorteio se não estiver disponível
+    // Validar dados essenciais
+    if (contestNumber <= 0) {
+      throw new Error(`Número do concurso inválido para ${displayName}: ${contestNumber}`);
+    }
+
+    if (prize <= 0) {
+      throw new Error(`Valor do prêmio inválido para ${displayName}: ${prize}`);
+    }
+
+    // Calcular próxima data de sorteio
     const formattedDate = nextDrawDate 
       ? this.formatDate(nextDrawDate) 
       : this.getNextDrawDate(displayName);
 
-    const formattedPrize = prize > 0 ? `R$ ${this.formatMoney(parseFloat(prize))}` : this.getDefaultPrize(displayName);
+    const formattedPrize = `R$ ${this.formatMoney(prize)}`;
 
     return {
       contestNumber: contestNumber + 1, // Próximo concurso
@@ -146,25 +188,35 @@ export class WebScrapingService {
 
   private formatDate(dateString: string): string {
     try {
-      // A API da Caixa retorna datas no formato DD/MM/YYYY
-      // Precisamos converter para formato que o JavaScript entende
-      if (dateString && dateString.includes('/')) {
-        const [day, month, year] = dateString.split('/');
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        
-        if (!isNaN(date.getTime())) {
-          return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
+      if (!dateString) throw new Error('Data vazia');
+
+      let date: Date;
+      
+      // Tentar formato DD/MM/YYYY primeiro
+      if (dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/').map(Number);
+        if (!day || !month || !year || day > 31 || month > 12) {
+          throw new Error('Formato de data inválido');
         }
+        date = new Date(year, month - 1, day);
+      } else {
+        // Tentar parser direto
+        date = new Date(dateString);
       }
       
-      // Tentar parser direto se não for formato DD/MM/YYYY
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
+      if (isNaN(date.getTime())) {
+        throw new Error('Data inválida');
+      }
+
+      // Verificar se a data não está muito no passado ou futuro
+      const now = new Date();
+      const diffDays = Math.abs((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 365) {
+        throw new Error('Data fora do intervalo válido');
       }
       
-      // Se não conseguir processar a data, usar o valor original ou calcular próxima
-      return dateString || this.getNextDrawDate('');
+      return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
     } catch (error) {
       console.warn(`Erro ao formatar data: ${dateString}`, error);
       return this.getNextDrawDate('');
@@ -175,7 +227,7 @@ export class WebScrapingService {
     const today = new Date();
     const dayOfWeek = today.getDay();
 
-    // Cronograma oficial dos sorteios
+    // Cronograma oficial dos sorteios da Caixa
     const schedules: { [key: string]: number[] } = {
       'Lotofácil': [1, 2, 3, 4, 5, 6], // Segunda a sábado
       'Mega-Sena': [3, 6], // Quarta e sábado
@@ -193,6 +245,11 @@ export class WebScrapingService {
     let nextDate = new Date(today);
     let daysToAdd = 1;
 
+    // Se já passou das 20h, considerar o próximo dia
+    if (today.getHours() >= 20) {
+      nextDate.setDate(nextDate.getDate() + 1);
+    }
+
     while (!drawDays.includes(nextDate.getDay()) && daysToAdd <= 7) {
       nextDate.setDate(nextDate.getDate() + 1);
       daysToAdd++;
@@ -202,24 +259,14 @@ export class WebScrapingService {
   }
 
   private formatMoney(value: number): string {
+    if (isNaN(value) || value <= 0) {
+      throw new Error(`Valor monetário inválido: ${value}`);
+    }
+    
     return value.toLocaleString('pt-BR', { 
       minimumFractionDigits: 0,
       maximumFractionDigits: 0 
     });
-  }
-
-  private getDefaultPrize(lotteryName: string): string {
-    const defaultPrizes: { [key: string]: string } = {
-      'Lotofácil': 'R$ 1.700.000',
-      'Mega-Sena': 'R$ 3.000.000',
-      'Quina': 'R$ 700.000',
-      'Lotomania': 'R$ 300.000',
-      'Timemania': 'R$ 1.400.000',
-      'Dupla-Sena': 'R$ 450.000',
-      'Dia de Sorte': 'R$ 200.000',
-      'Super Sete': 'R$ 500.000'
-    };
-    return defaultPrizes[lotteryName] || 'R$ 500.000';
   }
 }
 

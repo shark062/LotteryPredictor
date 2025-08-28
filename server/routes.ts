@@ -1,3 +1,4 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
@@ -22,10 +23,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Brazilian lotteries with real data
   await lotteryDataService.initializeLotteries();
 
-  // Cache para dados das loterias (atualizado a cada 5 minutos)
+  // Cache para dados das loterias (atualizado apenas com dados válidos)
   let upcomingDrawsCache: any = null;
   let cacheTimestamp = 0;
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em milliseconds
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos para reduzir requests
 
   // Auth routes - simplified without authentication
   app.get('/api/auth/user', async (req: any, res) => {
@@ -58,102 +59,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const now = Date.now();
       
-      // Limpar cache para forçar dados atualizados
-      upcomingDrawsCache = null;
-      cacheTimestamp = 0;
-      
-      // Verificar se o cache ainda é válido (desabilitado temporariamente para debug)
-      // if (upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      //   return res.json(upcomingDrawsCache);
-      // }
+      // Verificar se o cache ainda é válido
+      if (upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+        console.log('📋 Retornando dados do cache válido');
+        return res.json(upcomingDrawsCache);
+      }
 
       console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
       const startTime = Date.now();
 
-      // Timeout para evitar requests muito longos
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
       try {
+        // Buscar dados oficiais com timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000); // Reduzido para 12s
+
         const officialData = await Promise.race([
           webScrapingService.getLotteryInfo(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 15000)
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout ao buscar dados')), 12000)
           )
         ]);
 
         clearTimeout(timeoutId);
         const endTime = Date.now();
 
+        // Validar se recebemos dados válidos
+        if (!officialData || Object.keys(officialData).length === 0) {
+          throw new Error('Nenhum dado válido recebido');
+        }
+
+        // Armazenar no cache apenas dados válidos
         upcomingDrawsCache = officialData;
         cacheTimestamp = now;
 
-        console.log(`✅ Próximos sorteios obtidos em ${endTime - startTime}ms`);
+        console.log(`✅ Próximos sorteios obtidos em ${endTime - startTime}ms - ${Object.keys(officialData).length} loterias válidas`);
 
-        res.json(officialData);
+        res.json({
+          success: true,
+          data: officialData,
+          source: 'Caixa Econômica Federal - Dados Oficiais',
+          timestamp: new Date().toISOString(),
+          cached: false
+        });
+
       } catch (fetchError) {
-        clearTimeout(timeoutId);
+        console.error("❌ Erro ao buscar próximos sorteios oficiais:", fetchError);
         
-        // Retornar cache antigo se disponível em caso de erro
+        // Se há cache antigo (mesmo expirado), usar como último recurso
         if (upcomingDrawsCache) {
-          console.log('⚠️ Usando cache anterior devido a erro na busca');
-          return res.json(upcomingDrawsCache);
+          console.log('⚠️ Usando cache expirado devido a erro na busca');
+          return res.json({
+            success: true,
+            data: upcomingDrawsCache,
+            source: 'Cache (dados podem estar desatualizados)',
+            timestamp: new Date(cacheTimestamp).toISOString(),
+            cached: true,
+            warning: 'Dados podem estar desatualizados devido a falha na API'
+          });
         }
         
-        throw fetchError;
+        // Se não há cache, retornar erro
+        res.status(503).json({ 
+          success: false,
+          message: "Serviço temporariamente indisponível. API da Caixa não está respondendo.",
+          error: fetchError.message,
+          timestamp: new Date().toISOString()
+        });
       }
     } catch (error) {
-      console.error("❌ Erro ao buscar próximos sorteios oficiais:", error);
-      
-      // Dados de fallback em caso de erro total
-      const fallbackData = {
-        "Lotofácil": { prize: "R$ 220.000.000,00", nextDrawDate: "26/01/2025", contest: 3021 },
-        "Mega-Sena": { prize: "R$ 75.000.000,00", nextDrawDate: "25/01/2025", contest: 2791 },
-        "Quina": { prize: "R$ 15.200.000,00", nextDrawDate: "24/01/2025", contest: 6591 },
-        "Lotomania": { prize: "R$ 10.000.000,00", nextDrawDate: "24/01/2025", contest: 2656 },
-        "Timemania": { prize: "R$ 15.000.000,00", nextDrawDate: "23/01/2025", contest: 2106 },
-        "Dupla-Sena": { prize: "R$ 2.500.000,00", nextDrawDate: "23/01/2025", contest: 2756 },
-        "Dia de Sorte": { prize: "R$ 1.000.000,00", nextDrawDate: "23/01/2025", contest: 966 },
-        "Super Sete": { prize: "R$ 2.500.000,00", nextDrawDate: "22/01/2025", contest: 546 }
-      };
-      
-      res.json(fallbackData);
+      console.error("❌ Erro geral na rota de próximos sorteios:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro interno do servidor",
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
-  // Nova rota para atualizar dados manualmente com timeout e validação
+  // Rota para forçar atualização dos dados
   app.post("/api/lotteries/update", async (req, res) => {
-    const updateTimeout = 30000; // 30 segundos timeout
+    const updateTimeout = 15000; // 15 segundos timeout
 
     try {
-      // Timeout para evitar requisições muito longas
+      console.log('🔄 Forçando atualização dos dados das loterias...');
+      
       const updatePromise = Promise.race([
         (async () => {
-          // Forçar atualização completa dos dados
-          await lotteryDataService.initializeLotteries();
-          const caixaData = await caixaLotteryService.getLatestResults();
+          // Limpar cache para forçar busca nova
+          upcomingDrawsCache = null;
+          cacheTimestamp = 0;
+
+          // Buscar dados atualizados
           const scrapeData = await webScrapingService.getLotteryInfo();
+          const caixaData = await caixaLotteryService.getLatestResults();
+
+          // Atualizar cache se dados válidos
+          if (scrapeData && Object.keys(scrapeData).length > 0) {
+            upcomingDrawsCache = scrapeData;
+            cacheTimestamp = Date.now();
+          }
 
           return {
-            caixaData: Object.keys(caixaData || {}).length,
-            webScrapingData: scrapeData,
-            sources: Object.keys(scrapeData || {}).length
+            upcomingDraws: Object.keys(scrapeData || {}).length,
+            officialResults: Object.keys(caixaData || {}).length,
+            success: true
           };
         })(),
-        new Promise((_, reject) => 
+        new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Timeout na atualização')), updateTimeout)
         )
       ]);
 
-      const scrapeData = await updatePromise;
-
-      // Limpar cache
-      upcomingDrawsCache = null;
+      const result = await updatePromise;
 
       res.json({ 
         success: true, 
-        data: scrapeData,
-        message: "Dados das loterias atualizados com sucesso",
+        data: result,
+        message: "Dados das loterias atualizados com dados oficiais",
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
@@ -166,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: errorMessage,
         timestamp: new Date().toISOString(),
-        errorType: isTimeout ? 'timeout' : 'server_error'
+        errorType: isTimeout ? 'timeout' : 'api_error'
       });
     }
   });
@@ -211,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Limpar cache
       upcomingDrawsCache = null;
+      cacheTimestamp = 0;
 
       res.json({ 
         success: true, 
@@ -264,8 +287,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch real lottery data" });
     }
   });
-
-  // Rota para insights colaborativos da comunidade - removida, implementada abaixo
 
   // Rota para registrar uso e contribuir para aprendizado
   app.post("/api/lotteries/:slug/contribute-usage", async (req, res) => {
@@ -543,11 +564,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      // Lógica para buscar e agregar dados reais, se houver.
-      // Por enquanto, retornamos os dados zerados como ponto de partida.
-      // Futuramente, esta seção será expandida para buscar dados do storage
-      // e calcular as métricas com base no uso real dos usuários.
-
       res.json(initialInsights);
     } catch (error) {
       console.error("Error fetching community insights:", error);
@@ -561,17 +577,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔄 Iniciando busca de dados oficiais da Caixa...');
       const officialData = await caixaLotteryService.getLatestResults();
 
+      if (!officialData || Object.keys(officialData).length === 0) {
+        return res.status(503).json({ 
+          success: false,
+          message: "Nenhum resultado oficial disponível no momento",
+          timestamp: new Date().toISOString()
+        });
+      }
+
       res.json({
         success: true,
         data: officialData,
         timestamp: new Date().toISOString(),
-        source: 'Caixa Econômica Federal - Dados Oficiais'
+        source: 'Caixa Econômica Federal - Dados Oficiais Validados'
       });
     } catch (error) {
       console.error("Erro ao buscar dados oficiais:", error);
-      res.status(500).json({ 
+      res.status(503).json({ 
         success: false,
-        message: "Erro ao buscar dados oficiais da Caixa",
+        message: "API da Caixa temporariamente indisponível",
         timestamp: new Date().toISOString()
       });
     }
@@ -580,11 +604,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rota atualizada para estatísticas reais dos últimos concursos
   app.get("/api/lotteries/contest-winners", async (req, res) => {
     try {
-      // Primeiro, tentar buscar dados oficiais em tempo real
+      console.log('🔄 Buscando dados oficiais dos últimos concursos...');
+      
       let realContestData;
-
       try {
-        console.log('🔄 Buscando dados oficiais da Caixa...');
         const officialResults = await caixaLotteryService.getLatestResults();
 
         // Converter dados oficiais para formato esperado pelo frontend
@@ -598,115 +621,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
 
-        console.log('✅ Dados oficiais da Caixa obtidos com sucesso');
+        console.log('✅ Dados oficiais dos últimos concursos obtidos com sucesso');
+
+        res.json({
+          success: true,
+          data: realContestData,
+          timestamp: new Date().toISOString(),
+          source: 'Caixa Econômica Federal - Resultados Oficiais'
+        });
+
       } catch (officialError) {
-        console.log('⚠️ Erro ao buscar dados oficiais, usando fallback...');
+        console.error('❌ Erro ao buscar dados oficiais dos concursos:', officialError);
 
-        // Fallback para dados estáticos em caso de erro
-        realContestData = {
-        "Lotofácil": {
-          lastContest: 3020,
-          date: "24/01/2025",
-          winners: {
-            "15": { count: 3, prize: "R$ 1.892.403,23" },
-            "14": { count: 287, prize: "R$ 2.654,98" },
-            "13": { count: 9124, prize: "R$ 30,00" },
-            "12": { count: 116789, prize: "R$ 12,00" },
-            "11": { count: 679456, prize: "R$ 6,00" }
-          }
-        },
-        "Mega-Sena": {
-          lastContest: 2790,
-          date: "25/01/2025",
-          winners: {
-            "6": { count: 0, prize: "R$ 0,00", accumulated: "R$ 75.000.000,00" },
-            "5": { count: 48, prize: "R$ 68.123,45" },
-            "4": { count: 2847, prize: "R$ 1.234,56" }
-          }
-        },
-        "Quina": {
-          lastContest: 6590,
-          date: "24/01/2025",
-          winners: {
-            "5": { count: 1, prize: "R$ 15.200.000,00" },
-            "4": { count: 67, prize: "R$ 12.456,78" },
-            "3": { count: 4523, prize: "R$ 234,50" }
-          }
-        },
-        "Lotomania": {
-          lastContest: 2655,
-          date: "24/01/2025",
-          winners: {
-            "20": { count: 0, prize: "R$ 0,00", accumulated: "R$ 10.000.000,00" },
-            "19": { count: 0, prize: "R$ 0,00" },
-            "18": { count: 12, prize: "R$ 45.678,90" },
-            "17": { count: 156, prize: "R$ 3.456,78" },
-            "16": { count: 2345, prize: "R$ 234,56" }
-          }
-        },
-        "Timemania": {
-          lastContest: 2105,
-          date: "23/01/2025",
-          winners: {
-            "7": { count: 0, prize: "R$ 0,00", accumulated: "R$ 15.000.000,00" },
-            "6": { count: 2, prize: "R$ 56.789,12" },
-            "5": { count: 45, prize: "R$ 2.345,67" },
-            "4": { count: 678, prize: "R$ 234,56" },
-            "3": { count: 8901, prize: "R$ 7,50" }
-          }
-        },
-        "Dupla-Sena": {
-          lastContest: 2755,
-          date: "23/01/2025",
-          winners: {
-            "6": { count: 1, prize: "R$ 2.500.000,00" },
-            "5": { count: 23, prize: "R$ 12.345,67" },
-            "4": { count: 567, prize: "R$ 567,89" },
-            "3": { count: 8901, prize: "R$ 5,00" }
-          }
-        },
-        "Dia de Sorte": {
-          lastContest: 965,
-          date: "23/01/2025",
-          winners: {
-            "7": { count: 0, prize: "R$ 0,00", accumulated: "R$ 1.000.000,00" },
-            "6": { count: 3, prize: "R$ 15.678,90" },
-            "5": { count: 89, prize: "R$ 1.234,56" },
-            "4": { count: 1234, prize: "R$ 123,45" }
-          }
-        },
-        "Super Sete": {
-          lastContest: 545,
-          date: "22/01/2025",
-          winners: {
-            "7": { count: 0, prize: "R$ 0,00", accumulated: "R$ 2.500.000,00" },
-            "6": { count: 1, prize: "R$ 45.678,90" },
-            "5": { count: 34, prize: "R$ 2.345,67" },
-            "4": { count: 456, prize: "R$ 234,56" }
-          }
-        },
-        "Lotofácil-Independência": {
-          lastContest: 3,
-          date: "07/09/2024",
-          winners: {
-            "15": { count: 79, prize: "R$ 2.248.149,10" },
-            "14": { count: 17834, prize: "R$ 1.118,33" },
-            "13": { count: 492491, prize: "R$ 30,00" },
-            "12": { count: 5934577, prize: "R$ 12,00" },
-            "11": { count: 29951845, prize: "R$ 6,00" }
-          }
-        }
-      };}
-
-      res.json({
-        success: true,
-        data: realContestData,
-        timestamp: new Date().toISOString(),
-        source: realContestData === officialResults ? 'Caixa Econômica Federal - Tempo Real' : 'Dados Fallback'
-      });
+        res.status(503).json({
+          success: false,
+          message: 'Dados dos concursos temporariamente indisponíveis',
+          error: officialError.message,
+          timestamp: new Date().toISOString()
+        });
+      }
     } catch (error) {
       console.error("Error fetching contest winners:", error);
-      res.status(500).json({ message: "Failed to fetch contest winners" });
+      res.status(500).json({ 
+        success: false,
+        message: "Erro interno do servidor",
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
@@ -714,22 +654,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/lotteries/update-official-data", async (req, res) => {
     try {
       console.log('🔄 Forçando atualização dos dados oficiais...');
-      const updatedData = await caixaLotteryService.getLatestResults();
+      
+      const [updatedResults, updatedUpcoming] = await Promise.allSettled([
+        caixaLotteryService.getLatestResults(),
+        webScrapingService.getLotteryInfo()
+      ]);
 
-      // Limpar caches
-      upcomingDrawsCache = null;
+      let resultsData = null;
+      let upcomingData = null;
+
+      if (updatedResults.status === 'fulfilled') {
+        resultsData = updatedResults.value;
+      }
+
+      if (updatedUpcoming.status === 'fulfilled') {
+        upcomingData = updatedUpcoming.value;
+        // Atualizar cache
+        upcomingDrawsCache = upcomingData;
+        cacheTimestamp = Date.now();
+      }
+
+      const hasResults = resultsData && Object.keys(resultsData).length > 0;
+      const hasUpcoming = upcomingData && Object.keys(upcomingData).length > 0;
+
+      if (!hasResults && !hasUpcoming) {
+        return res.status(503).json({
+          success: false,
+          message: 'Falha ao atualizar dados oficiais - API indisponível',
+          timestamp: new Date().toISOString()
+        });
+      }
 
       res.json({
         success: true,
         message: 'Dados oficiais atualizados com sucesso',
-        data: updatedData,
+        data: {
+          results: hasResults ? Object.keys(resultsData).length : 0,
+          upcoming: hasUpcoming ? Object.keys(upcomingData).length : 0
+        },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       console.error("Erro ao atualizar dados oficiais:", error);
       res.status(500).json({
         success: false,
-        message: 'Erro ao atualizar dados oficiais',
+        message: 'Erro interno na atualização',
         timestamp: new Date().toISOString()
       });
     }
@@ -753,7 +722,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error('Erro ao processar mensagem WebSocket:', error);
-        // Enviar erro de volta para o cliente se possível
         if (ws.readyState === WebSocket.OPEN) {
           try {
             ws.send(JSON.stringify({ 
