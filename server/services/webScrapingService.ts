@@ -132,10 +132,10 @@ export class WebScrapingService {
           nextDrawDate: '31/01/2025 - 20:00h',
           prize: 'R$ 2.500.000'
         },
-        'Lotofácil-Independência': { // Added mock data for Lotofácil-Independência
+        'Lotofácil-Independência': { // Dados da Lotofácil-Independência
           contestNumber: 3,
           nextDrawDate: '07/09/2025 - 20:00h',
-          prize: 'R$ 200.000.000'
+          prize: 'R$ 220.000.000' // Mesmo valor da Lotofácil regular
         }
       };
 
@@ -189,10 +189,10 @@ export class WebScrapingService {
         nextDrawDate: '31/01/2025 - 20:00h',
         prize: 'R$ 2.300.000'
       },
-      'Lotofácil-Independência': { // Added fallback data for Lotofácil-Independência
+      'Lotofácil-Independência': { // Dados fallback da Lotofácil-Independência
         contestNumber: 2,
         nextDrawDate: '07/09/2025 - 20:00h',
-        prize: 'R$ 180.000.000'
+        prize: 'R$ 5.500.000' // Mesmo valor da Lotofácil regular
       }
     };
 

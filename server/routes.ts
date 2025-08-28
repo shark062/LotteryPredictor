@@ -81,9 +81,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Timeout para evitar requisições muito longas
       const updatePromise = Promise.race([
         (async () => {
+          // Usar novo sistema inteligente de múltiplas fontes
           await lotteryDataService.updateAllData();
+          const enrichedData = await lotteryDataService.fetchLotteryDataFromMultipleSources();
           const scrapeData = await webScrapingService.getLotteryInfo();
-          return scrapeData;
+          
+          return {
+            enrichedData,
+            webScrapingData: scrapeData,
+            sources: enrichedData.length + Object.keys(scrapeData).length
+          };
         })(),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout na atualização')), updateTimeout)

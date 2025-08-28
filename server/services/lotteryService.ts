@@ -174,7 +174,15 @@ export class LotteryService {
         }
       }
       
-      return result;
+      // Filtrar loterias que devem estar ocultas
+      const filteredResult: { [key: string]: { prize: string; date: string; contestNumber: number } } = {};
+      for (const [key, value] of Object.entries(result)) {
+        if (value !== null) {
+          filteredResult[key] = value;
+        }
+      }
+      
+      return filteredResult;
     } catch (error) {
       console.error('Erro ao obter dados atualizados, usando fallback:', error);
       
@@ -226,13 +234,25 @@ export class LotteryService {
           date: this.getNextDrawDate('Sexta', referenceDate),
           contestNumber: 540,
         },
-        'Lotofácil-Independência': {
-          prize: 'R$ 200.000.000',
+        'Lotofácil-Independência': this.shouldShowLotofacilIndependencia() ? {
+          prize: 'R$ 5.500.000', // Mesmo valor da Lotofácil
           date: '07/09/2025 - 20:00h',
           contestNumber: 3,
-        }
+        } : null
       };
     }
+  }
+
+  private shouldShowLotofacilIndependencia(): boolean {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // Janeiro = 1
+    const currentDay = now.getDate();
+    
+    // Mostrar apenas de agosto a setembro (antes do sorteio)
+    // Ocultar após 7 de setembro até o próximo ano
+    if (currentMonth === 8) return true; // Agosto todo
+    if (currentMonth === 9 && currentDay <= 7) return true; // Até 7 de setembro
+    return false; // Resto do ano oculto
   }
 
   private getNextDrawDate(dayName: string, referenceDate: Date = new Date()): string {

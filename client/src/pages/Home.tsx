@@ -16,7 +16,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 export default function Home() {
   const { user, isLoading } = useAuth();
   const [selectedLottery, setSelectedLottery] = useState<number | null>(null);
-  
+
 
   const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery<Array<{
     id: number;
@@ -68,7 +68,7 @@ export default function Home() {
   // Auto-refresh mais inteligente - apenas se a aba estiver ativa
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     const startInterval = () => {
       interval = setInterval(() => {
         if (document.visibilityState === 'visible') {
@@ -196,11 +196,16 @@ export default function Home() {
                 <CardTitle className="flex items-center space-x-3">
                   <span className="text-2xl group-hover:scale-110 transition-transform duration-300">🏆</span>
                   <span className="group-hover:text-cyan-300 transition-colors duration-300">Ganhadores dos Últimos Concursos</span>
-                </CardTitle>
+                </CardHeader>
               </CardHeader>
               <CardContent className="relative">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {lotteries?.slice(0, 3).map((lottery: any, index: number) => {
+                  {Object.entries(upcomingDraws || {}).map(([name, info]: [string, any], index: number) => {
+                    // Apenas renderiza se o nome for válido e não for a Lotofácil da Independência Oculta
+                    if (!name || name === 'Lotofácil da Independência') {
+                      return null;
+                    }
+
                     // Simulando dados de ganhadores para demonstração
                     const winnersData = {
                       'Mega-Sena': { sena: 2, quina: 48, quadra: 2847 },
@@ -208,14 +213,14 @@ export default function Home() {
                       'Quina': { quina: 1, quadra: 67, terno: 4523 }
                     };
 
-                    const currentWinners = winnersData[lottery.name as keyof typeof winnersData] || {};
-                    const winnerCategories = lottery.name === 'Mega-Sena' 
+                    const currentWinners = winnersData[name as keyof typeof winnersData] || {};
+                    const winnerCategories = name === 'Mega-Sena' 
                       ? [
                           { label: 'Sena (6 números)', count: (currentWinners as any).sena || 0, icon: '🎯', color: 'text-yellow-400' },
                           { label: 'Quina (5 números)', count: (currentWinners as any).quina || 0, icon: '⭐', color: 'text-blue-400' },
                           { label: 'Quadra (4 números)', count: (currentWinners as any).quadra || 0, icon: '🔸', color: 'text-green-400' }
                         ]
-                      : lottery.name === 'Lotofácil'
+                      : name === 'Lotofácil'
                       ? [
                           { label: '15 pontos', count: (currentWinners as any).pontos15 || 0, icon: '🎯', color: 'text-yellow-400' },
                           { label: '14 pontos', count: (currentWinners as any).pontos14 || 0, icon: '⭐', color: 'text-blue-400' },
@@ -229,12 +234,12 @@ export default function Home() {
 
                     return (
                       <div 
-                        key={lottery.id}
+                        key={name}
                         className="group/lottery bg-card/10 border border-border/30 rounded-xl p-4 hover:scale-105 hover:shadow-lg transition-all duration-300 hover:border-cyan-400/40"
                       >
                         <h4 className="font-semibold text-lg mb-3 flex items-center space-x-2 group-hover/lottery:text-cyan-300 transition-colors duration-300">
-                          <span className="text-xl">{lottery.name === 'Mega-Sena' ? '💰' : lottery.name === 'Lotofácil' ? '🍀' : '⭐'}</span>
-                          <span>{lottery.name}</span>
+                          <span className="text-xl">{name === 'Mega-Sena' ? '💰' : name === 'Lotofácil' ? '🍀' : '⭐'}</span>
+                          <span>{name}</span>
                         </h4>
 
                         <div className="space-y-2">
