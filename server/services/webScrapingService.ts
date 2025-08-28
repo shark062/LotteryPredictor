@@ -11,17 +11,6 @@ export class WebScrapingService {
   private officialApiUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
   private requestTimeout = 15000;
 
-  private lotteryMapping: { [key: string]: string } = {
-    'Lotofácil': 'lotofacil',
-    'Mega-Sena': 'megasena',
-    'Quina': 'quina',
-    'Lotomania': 'lotomania',
-    'Timemania': 'timemania',
-    'Dupla-Sena': 'duplasena',
-    'Dia de Sorte': 'diadesorte',
-    'Super Sete': 'supersete'
-  };
-
   public static getInstance(): WebScrapingService {
     if (!WebScrapingService.instance) {
       WebScrapingService.instance = new WebScrapingService();
@@ -29,21 +18,28 @@ export class WebScrapingService {
     return WebScrapingService.instance;
   }
 
-  async getLotteryInfo(): Promise<{ [key: string]: { contestNumber: number; nextDrawDate: string; prize: string } }> {
+  async getLotteryInfo(): Promise<{ [key: string]: LotteryInfo }> {
     console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
 
-    const results: { [key: string]: { contestNumber: number; nextDrawDate: string; prize: string } } = {};
+    const lotteryMappings: { [key: string]: string } = {
+      'Lotofácil': 'lotofacil',
+      'Mega-Sena': 'megasena',
+      'Quina': 'quina',
+      'Lotomania': 'lotomania',
+      'Timemania': 'timemania',
+      'Dupla-Sena': 'duplasena',
+      'Dia de Sorte': 'diadesorte',
+      'Super Sete': 'supersete'
+    };
 
-    for (const [displayName, apiName] of Object.entries(this.lotteryMapping)) {
+    const results: { [key: string]: LotteryInfo } = {};
+
+    for (const [displayName, apiName] of Object.entries(lotteryMappings)) {
       try {
         console.log(`🔄 Buscando ${displayName}...`);
         const data = await this.fetchOfficialLotteryInfo(apiName, displayName);
         if (data) {
-          results[displayName] = {
-            contestNumber: data.contestNumber,
-            nextDrawDate: data.nextDrawDate,
-            prize: data.prize
-          };
+          results[displayName] = data;
           console.log(`✅ ${displayName}: dados oficiais obtidos`);
         } else {
           throw new Error(`Dados não disponíveis para ${displayName}`);
@@ -128,8 +124,8 @@ export class WebScrapingService {
     const nextDrawDate = data.dataProximoConcurso || data.dtProximoConcurso;
 
     // Calcular próxima data de sorteio se não estiver disponível
-    const formattedDate = nextDrawDate
-      ? this.formatDate(nextDrawDate)
+    const formattedDate = nextDrawDate 
+      ? this.formatDate(nextDrawDate) 
       : this.getNextDrawDate(displayName);
 
     return {
@@ -179,9 +175,9 @@ export class WebScrapingService {
   }
 
   private formatMoney(value: number): string {
-    return value.toLocaleString('pt-BR', {
+    return value.toLocaleString('pt-BR', { 
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0 
     });
   }
 }

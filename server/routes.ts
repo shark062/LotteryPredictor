@@ -63,11 +63,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
       const startTime = Date.now();
 
-      // Usar o serviço de loteria que já formata os dados corretamente
-      const upcomingData = await lotteryService.getUpcomingDraws();
+      const officialData = await webScrapingService.getLotteryInfo();
       const endTime = Date.now();
 
-      upcomingDrawsCache = upcomingData;
+      upcomingDrawsCache = officialData;
 
       console.log(`✅ Próximos sorteios obtidos em ${endTime - startTime}ms`);
 
@@ -76,23 +75,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         upcomingDrawsCache = null;
       }, 5 * 60 * 1000);
 
-      res.json(upcomingData);
+      res.json(officialData);
     } catch (error) {
       console.error("❌ Erro ao buscar próximos sorteios oficiais:", error);
-      
-      // Fallback para dados básicos
-      const fallbackData = {
-        'Lotofácil': { prize: 'R$ 5.500.000,00', date: '27/01/2025 - 20:00h', contestNumber: 3015 },
-        'Mega-Sena': { prize: 'R$ 65.000.000,00', date: '25/01/2025 - 20:00h', contestNumber: 2785 },
-        'Quina': { prize: 'R$ 3.200.000,00', date: '27/01/2025 - 20:00h', contestNumber: 6585 },
-        'Lotomania': { prize: 'R$ 8.500.000,00', date: '28/01/2025 - 20:00h', contestNumber: 2650 },
-        'Timemania': { prize: 'R$ 12.000.000,00', date: '30/01/2025 - 20:00h', contestNumber: 2100 },
-        'Dupla-Sena': { prize: 'R$ 4.200.000,00', date: '28/01/2025 - 20:00h', contestNumber: 2750 },
-        'Dia de Sorte': { prize: 'R$ 800.000,00', date: '30/01/2025 - 20:00h', contestNumber: 960 },
-        'Super Sete': { prize: 'R$ 2.300.000,00', date: '31/01/2025 - 20:00h', contestNumber: 540 }
-      };
-      
-      res.json(fallbackData);
+      res.status(500).json({ 
+        message: "Falha ao obter dados oficiais dos próximos sorteios",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 

@@ -146,45 +146,33 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
           <div className="flex items-center justify-between">
             <span
               className={`
-                text-xl font-bold text-accent transition-all duration-300
+                text-2xl font-bold text-accent transition-all duration-300
                 ${isHovered ? 'scale-105 text-cyan-300' : 'scale-100'}
-                ${!upcomingDraw?.prize ? 'animate-pulse text-muted-foreground' : ''}
               `}
             >
-              {upcomingDraw?.prize || 'Carregando...'}
+              {upcomingDraw?.prize || (
+                <span className="text-lg text-muted-foreground animate-pulse">
+                  Carregando...
+                </span>
+              )}
             </span>
-            <div className="text-right">
-              <span
-                className={`
-                  text-xs font-semibold text-primary transition-all duration-300
-                  ${isHovered ? 'text-cyan-300' : ''}
-                  block
-                `}
-              >
-                Concurso
-              </span>
-              <span
-                className={`
-                  text-sm font-bold transition-all duration-300
-                  ${isHovered ? 'text-cyan-300' : 'text-foreground'}
-                `}
-              >
-                {upcomingDraw?.contestNumber || '---'}
-              </span>
-            </div>
+            <span
+              className={`
+                text-sm font-semibold text-primary transition-all duration-300
+                ${isHovered ? 'text-cyan-300' : ''}
+              `}
+            >
+              Concurso: {upcomingDraw?.contestNumber || '---'}
+            </span>
           </div>
 
           <div
             className={`
               text-sm text-muted-foreground transition-all duration-300
               ${isHovered ? 'text-cyan-200/70' : ''}
-              flex items-center justify-between
             `}
           >
-            <span>Próximo sorteio:</span>
-            <span className="font-medium">
-              {upcomingDraw?.date || 'Carregando...'}
-            </span>
+            Próximo sorteio: {upcomingDraw?.date || '--/-- - --:--h'}
           </div>
 
           {/* Barra de progresso animada */}
