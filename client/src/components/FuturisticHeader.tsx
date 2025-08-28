@@ -165,8 +165,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
                     style={{
                       background: `linear-gradient(45deg, #00ffaa ${precision}%, #ff6600 ${precision + 10}%)`,
                       WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      filter: 'drop-shadow(0 0 8px rgba(0, 255, 170, 0.6))'
+                      WebkitTextFillColor: 'transparent'
                     }}
                   >
                     {formatPrecision(precision)}%
