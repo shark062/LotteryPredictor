@@ -272,11 +272,19 @@ export default function Home() {
             <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
               🚀 Experiência Única e Exclusiva
             </h3>
-            <p className="text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-muted-foreground max-w-3xl mx-auto mb-4">
               O Shark Loto utiliza inteligência artificial avançada para analisar padrões históricos, identificar números quentes e frios,
               e gerar combinações otimizadas que maximizam suas chances de sucesso. Nossa IA aprende continuamente com cada concurso,
               evoluindo para oferecer previsões cada vez mais precisas e personalizadas para seu perfil de jogo.
             </p>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-4xl mx-auto">
+              <p className="text-sm text-yellow-200 text-center">
+                ⚠️ <strong>IMPORTANTE:</strong> O Shark Loto é uma ferramenta educacional baseada em estudos estatísticos dos números que mais saem e menos saem com frequência nas loterias. 
+                Desenvolvemos estratégias para maximizar o número de acertos e aumentar as chances de êxito nos jogos. 
+                <strong> Não garantimos premiação</strong> - os jogos de loteria são baseados em sorte e probabilidade. 
+                Jogue com responsabilidade e apenas o que pode permitir-se perder.
+              </p>
+            </div>
           </div>
           <div className="text-sm text-muted-foreground space-y-2">
             <p>© 2025 Shark Loto. Análise inteligente de loterias com tecnologia de ponta.</p>
