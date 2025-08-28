@@ -147,11 +147,10 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
         <Tabs defaultValue="dashboard" className="space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
+          <TabsList className="grid grid-cols-5 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
             {[
               { value: 'dashboard', icon: '📊', label: 'Dashboard' },
               { value: 'generator', icon: '🎲', label: 'Gerador' },
-              { value: 'analysis', icon: '🔥', label: 'Análise' },
               { value: 'heatmap', icon: '🗺️', label: 'Mapa' },
               { value: 'results', icon: '🏆', label: 'Resultados' },
               { value: 'history', icon: '📈', label: 'Meus Jogos' }
@@ -248,21 +247,7 @@ export default function Home() {
             />
           </TabsContent>
 
-          {/* Analysis */}
-          <TabsContent value="analysis">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold flex items-center space-x-2">
-                <span>🔥</span>
-                <span>Análise de Frequência</span>
-              </h2>
-              {/* Analysis content will be implemented in NumberGenerator component */}
-              <NumberGenerator
-                selectedLottery={selectedLottery || 1}
-                onLotteryChange={setSelectedLottery}
-                showAnalysis={true}
-              />
-            </div>
-          </TabsContent>
+          
 
           {/* Heat Map */}
           <TabsContent value="heatmap">
