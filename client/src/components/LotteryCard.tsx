@@ -36,13 +36,14 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
     switch (name.toLowerCase()) {
       case 'mega-sena': return '💰';
       case 'lotofácil': return '🍀';
+      case 'lotofácil-independência': return '🇧🇷';
       case 'quina': return '⭐';
       case 'lotomania': return '🎯';
       case 'timemania': return '⚽';
       case 'dupla-sena': return '🎲';
       case 'dia de sorte': return '🌟';
       case 'super sete': return '🔥';
-      default: return '🎰';
+      default: return '🎰';t: return '🎰';
     }
   };
 

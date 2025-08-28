@@ -15,31 +15,31 @@ export class LotteryService {
     const existingLotteries = await storage.getAllLotteries();
     
     if (existingLotteries.length === 0) {
-      // Initialize default Brazilian lotteries
+      // Initialize all Brazilian lotteries to match lotteryDataService configuration
       const defaultLotteries = [
-        {
-          name: 'Lotofácil',
-          slug: 'lotofacil',
-          maxNumber: 25,
-          minNumbers: 15,
-          maxNumbers: 20,
-          drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
-          description: 'A loteria mais fácil de ganhar',
-          gameType: 'standard',
-          betValue: '3.00',
-          specialNumbers: false,
-        },
         {
           name: 'Mega-Sena',
           slug: 'mega-sena',
           maxNumber: 60,
           minNumbers: 6,
           maxNumbers: 15,
-          drawDays: JSON.stringify(['Quarta', 'Sábado']),
-          description: 'A maior premiação do Brasil',
+          drawDays: JSON.stringify(['quarta', 'sabado']),
+          description: 'A loteria mais famosa do Brasil. Escolha de 6 a 15 números entre 1 e 60.',
           gameType: 'standard',
           betValue: '5.00',
-          specialNumbers: false,
+          specialNumbers: false
+        },
+        {
+          name: 'Lotofácil',
+          slug: 'lotofacil',
+          maxNumber: 25,
+          minNumbers: 15,
+          maxNumbers: 20,
+          drawDays: JSON.stringify(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']),
+          description: 'Mais fácil de ganhar! Escolha de 15 a 20 números entre 1 e 25.',
+          gameType: 'standard',
+          betValue: '3.00',
+          specialNumbers: false
         },
         {
           name: 'Quina',
@@ -47,12 +47,84 @@ export class LotteryService {
           maxNumber: 80,
           minNumbers: 5,
           maxNumbers: 15,
-          drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
-          description: 'Cinco números para a sorte',
+          drawDays: JSON.stringify(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']),
+          description: 'Escolha de 5 a 15 números entre 1 e 80.',
           gameType: 'standard',
           betValue: '2.50',
-          specialNumbers: false,
+          specialNumbers: false
         },
+        {
+          name: 'Lotomania',
+          slug: 'lotomania',
+          maxNumber: 100,
+          minNumbers: 50,
+          maxNumbers: 50,
+          drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+          description: 'Escolha 50 números entre 1 e 100. Ganhe acertando 20, 19, 18, 17, 16, 15 ou nenhum número.',
+          gameType: 'standard',
+          betValue: '3.00',
+          specialNumbers: false
+        },
+        {
+          name: 'Timemania',
+          slug: 'timemania',
+          maxNumber: 80,
+          minNumbers: 10,
+          maxNumbers: 10,
+          drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+          description: 'Escolha 10 números entre 1 e 80 e torça pelo seu time do coração.',
+          gameType: 'special',
+          betValue: '3.50',
+          specialNumbers: true
+        },
+        {
+          name: 'Dupla-Sena',
+          slug: 'duplasena',
+          maxNumber: 50,
+          minNumbers: 6,
+          maxNumbers: 15,
+          drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+          description: 'Um bilhete, duas chances de ganhar! Escolha de 6 a 15 números entre 1 e 50.',
+          gameType: 'special',
+          betValue: '2.50',
+          specialNumbers: false
+        },
+        {
+          name: 'Dia de Sorte',
+          slug: 'dia-de-sorte',
+          maxNumber: 31,
+          minNumbers: 7,
+          maxNumbers: 15,
+          drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+          description: 'Escolha de 7 a 15 números entre 1 e 31 e um mês da sorte.',
+          gameType: 'special',
+          betValue: '2.00',
+          specialNumbers: true
+        },
+        {
+          name: 'Super Sete',
+          slug: 'super-sete',
+          maxNumber: 7,
+          minNumbers: 7,
+          maxNumbers: 21,
+          drawDays: JSON.stringify(['segunda', 'quarta', 'sexta']),
+          description: 'Escolha um número de 0 a 9 para cada uma das 7 colunas.',
+          gameType: 'special',
+          betValue: '2.50',
+          specialNumbers: false
+        },
+        {
+          name: 'Lotofácil-Independência',
+          slug: 'lotofacil-independencia',
+          maxNumber: 25,
+          minNumbers: 15,
+          maxNumbers: 20,
+          drawDays: JSON.stringify(['setembro']),
+          description: 'Edição especial da Lotofácil para o 7 de setembro.',
+          gameType: 'special',
+          betValue: '3.00',
+          specialNumbers: false
+        }
       ];
 
       // Create lotteries in database
@@ -153,6 +225,11 @@ export class LotteryService {
           prize: 'R$ 2.300.000',
           date: this.getNextDrawDate('Sexta', referenceDate),
           contestNumber: 540,
+        },
+        'Lotofácil-Independência': {
+          prize: 'R$ 200.000.000',
+          date: '07/09/2025 - 20:00h',
+          contestNumber: 3,
         }
       };
     }

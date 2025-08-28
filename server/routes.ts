@@ -145,6 +145,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para reinicializar todas as loterias (forçar criação)
+  app.post("/api/lotteries/reinitialize", async (req, res) => {
+    try {
+      console.log("Forçando reinicialização das loterias...");
+      
+      // Forçar reinicialização das loterias através dos dois serviços
+      await lotteryDataService.initializeLotteries();
+      await lotteryService.initializeLotteries();
+      
+      // Limpar cache
+      upcomingDrawsCache = null;
+      
+      res.json({ 
+        success: true, 
+        message: "Loterias reinicializadas com sucesso" 
+      });
+    } catch (error) {
+      console.error("Error reinitializing lotteries:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro ao reinicializar loterias" 
+      });
+    }
+  });
+
   app.get("/api/lotteries/:id/results", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);

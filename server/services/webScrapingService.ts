@@ -32,7 +32,8 @@ export class WebScrapingService {
       'Timemania': 'timemania',
       'Dupla-Sena': 'duplasena',
       'Dia de Sorte': 'dia-de-sorte',
-      'Super Sete': 'super-sete'
+      'Super Sete': 'super-sete',
+      'Lotofácil-Independência': 'lotofacil-independencia'
     };
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -130,6 +131,11 @@ export class WebScrapingService {
           contestNumber: 545,
           nextDrawDate: '31/01/2025 - 20:00h',
           prize: 'R$ 2.500.000'
+        },
+        'Lotofácil-Independência': { // Added mock data for Lotofácil-Independência
+          contestNumber: 3,
+          nextDrawDate: '07/09/2025 - 20:00h',
+          prize: 'R$ 200.000.000'
         }
       };
 
@@ -182,6 +188,11 @@ export class WebScrapingService {
         contestNumber: 540,
         nextDrawDate: '31/01/2025 - 20:00h',
         prize: 'R$ 2.300.000'
+      },
+      'Lotofácil-Independência': { // Added fallback data for Lotofácil-Independência
+        contestNumber: 2,
+        nextDrawDate: '07/09/2025 - 20:00h',
+        prize: 'R$ 180.000.000'
       }
     };
 
@@ -194,7 +205,7 @@ export class WebScrapingService {
 
   // Updated getAllFallbackData to include all expanded lotteries
   private getAllFallbackData(): { [key: string]: LotteryInfo } {
-    const lotteries = ['Lotofácil', 'Mega-Sena', 'Quina', 'Lotomania', 'Timemania', 'Dupla-Sena', 'Dia de Sorte', 'Super Sete'];
+    const lotteries = ['Lotofácil', 'Mega-Sena', 'Quina', 'Lotomania', 'Timemania', 'Dupla-Sena', 'Dia de Sorte', 'Super Sete', 'Lotofácil-Independência'];
     const result: { [key: string]: LotteryInfo } = {};
 
     for (const lottery of lotteries) {
