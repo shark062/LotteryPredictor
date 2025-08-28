@@ -45,6 +45,16 @@ export class AIService {
       throw new Error(`Invalid count: must be between 1 and ${lottery.maxNumbers}`);
     }
 
+    // Obter histórico de jogos já sorteados para evitar repetições
+    const historicalResults = await storage.getLatestResults(lotteryId, 100); // Últimos 100 concursos
+    const drawnCombinations = new Set<string>();
+    
+    historicalResults.forEach(result => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      const sortedNumbers = numbers.sort((a: number, b: number) => a - b);
+      drawnCombinations.add(JSON.stringify(sortedNumbers));
+    });
+
     const analysis = await lotteryService.getNumberAnalysis(lotteryId);
     const availableNumbers: number[] = [];
 
@@ -59,17 +69,49 @@ export class AIService {
       availableNumbers.push(...analysis.mixed);
     }
 
-    // If no preferences selected or not enough numbers, use all numbers
+    // Garantir que temos números suficientes
     if (availableNumbers.length === 0) {
       for (let i = 1; i <= lottery.maxNumber; i++) {
         availableNumbers.push(i);
       }
     }
 
-    // Remove duplicates and ensure we have enough numbers
+    // Tentar gerar uma combinação única até 50 tentativas
+    let attempts = 0;
+    const maxAttempts = 50;
+    let selectedNumbers: number[] = [];
+
+    do {
+      selectedNumbers = await this.generateUniqueStrategy(lotteryId, count, availableNumbers, lottery);
+      const sortedSelection = selectedNumbers.sort((a, b) => a - b);
+      const combinationKey = JSON.stringify(sortedSelection);
+      
+      // Se a combinação não foi sorteada antes, usar ela
+      if (!drawnCombinations.has(combinationKey)) {
+        break;
+      }
+      
+      attempts++;
+    } while (attempts < maxAttempts);
+
+    if (attempts >= maxAttempts) {
+      console.log(`Aviso: Após ${maxAttempts} tentativas, usando combinação que pode ter sido sorteada antes`);
+    }
+
+    return selectedNumbers;
+
+    }
+
+  private async generateUniqueStrategy(
+    lotteryId: number, 
+    count: number, 
+    availableNumbers: number[], 
+    lottery: any
+  ): Promise<number[]> {
+    // Remove duplicatas e garantir números suficientes
     const uniqueNumbers = Array.from(new Set(availableNumbers));
     
-    // If we still don't have enough numbers, fill with remaining numbers
+    // Se não temos números suficientes, adicionar números restantes
     if (uniqueNumbers.length < count) {
       const missingNumbers = [];
       for (let i = 1; i <= lottery.maxNumber; i++) {
@@ -80,15 +122,191 @@ export class AIService {
       uniqueNumbers.push(...missingNumbers);
     }
 
-    const shuffled = this.shuffleArray(uniqueNumbers);
+    // Aplicar diferentes estratégias de forma rotativa
+    const strategies = [
+      'balanced_distribution',
+      'hot_cold_mix',
+      'sequential_avoidance',
+      'prime_focus',
+      'fibonacci_pattern',
+      'random_weighted'
+    ];
 
-    // Apply AI weighting based on historical patterns
-    const weighted = await this.applyAIWeighting(lotteryId, shuffled);
+    const currentTime = Date.now();
+    const strategyIndex = Math.floor(currentTime / 10000) % strategies.length; // Muda estratégia a cada 10 segundos
+    const selectedStrategy = strategies[strategyIndex];
 
-    // Select the requested count
-    const selected = weighted.slice(0, count);
+    let selectedNumbers: number[] = [];
+
+    switch (selectedStrategy) {
+      case 'balanced_distribution':
+        selectedNumbers = this.generateBalancedDistribution(uniqueNumbers, count, lottery.maxNumber);
+        break;
+      case 'hot_cold_mix':
+        selectedNumbers = await this.generateHotColdMix(lotteryId, uniqueNumbers, count);
+        break;
+      case 'sequential_avoidance':
+        selectedNumbers = this.generateSequentialAvoidance(uniqueNumbers, count);
+        break;
+      case 'prime_focus':
+        selectedNumbers = this.generatePrimeFocus(uniqueNumbers, count);
+        break;
+      case 'fibonacci_pattern':
+        selectedNumbers = this.generateFibonacciPattern(uniqueNumbers, count, lottery.maxNumber);
+        break;
+      default:
+        selectedNumbers = await this.generateRandomWeighted(lotteryId, uniqueNumbers, count);
+    }
+
+    return selectedNumbers.sort((a, b) => a - b);
+  }
+
+  private generateBalancedDistribution(numbers: number[], count: number, maxNumber: number): number[] {
+    // Dividir em faixas e selecionar proporcionalmente
+    const ranges = 3;
+    const rangeSize = Math.ceil(maxNumber / ranges);
+    const perRange = Math.floor(count / ranges);
+    const extra = count % ranges;
     
-    return selected.sort((a, b) => a - b);
+    const selected: number[] = [];
+    
+    for (let i = 0; i < ranges; i++) {
+      const rangeStart = i * rangeSize + 1;
+      const rangeEnd = Math.min((i + 1) * rangeSize, maxNumber);
+      const rangeNumbers = numbers.filter(n => n >= rangeStart && n <= rangeEnd);
+      
+      const numbersToSelect = perRange + (i < extra ? 1 : 0);
+      const shuffled = this.shuffleArray(rangeNumbers);
+      selected.push(...shuffled.slice(0, numbersToSelect));
+    }
+    
+    // Se ainda precisamos de mais números
+    while (selected.length < count) {
+      const remaining = numbers.filter(n => !selected.includes(n));
+      if (remaining.length > 0) {
+        selected.push(remaining[Math.floor(Math.random() * remaining.length)]);
+      } else {
+        break;
+      }
+    }
+    
+    return selected.slice(0, count);
+  }
+
+  private async generateHotColdMix(lotteryId: number, numbers: number[], count: number): number[] {
+    try {
+      const analysis = await lotteryService.getNumberAnalysis(lotteryId);
+      const hotCount = Math.floor(count * 0.4); // 40% quentes
+      const coldCount = Math.floor(count * 0.3); // 30% frios
+      const mixedCount = count - hotCount - coldCount; // 30% mistos
+      
+      const selected: number[] = [];
+      
+      // Adicionar números quentes
+      const availableHot = analysis.hot.filter(n => numbers.includes(n));
+      selected.push(...this.shuffleArray(availableHot).slice(0, hotCount));
+      
+      // Adicionar números frios
+      const availableCold = analysis.cold.filter(n => numbers.includes(n) && !selected.includes(n));
+      selected.push(...this.shuffleArray(availableCold).slice(0, coldCount));
+      
+      // Adicionar números mistos
+      const availableMixed = analysis.mixed.filter(n => numbers.includes(n) && !selected.includes(n));
+      selected.push(...this.shuffleArray(availableMixed).slice(0, mixedCount));
+      
+      // Completar com números restantes se necessário
+      while (selected.length < count) {
+        const remaining = numbers.filter(n => !selected.includes(n));
+        if (remaining.length > 0) {
+          selected.push(remaining[Math.floor(Math.random() * remaining.length)]);
+        } else {
+          break;
+        }
+      }
+      
+      return selected.slice(0, count);
+    } catch (error) {
+      // Fallback para seleção aleatória
+      return this.shuffleArray(numbers).slice(0, count);
+    }
+  }
+
+  private generateSequentialAvoidance(numbers: number[], count: number): number[] {
+    const selected: number[] = [];
+    const shuffled = this.shuffleArray(numbers);
+    
+    for (const num of shuffled) {
+      // Evitar números consecutivos
+      const hasConsecutive = selected.some(s => Math.abs(s - num) === 1);
+      if (!hasConsecutive || selected.length >= count - 2) {
+        selected.push(num);
+        if (selected.length >= count) break;
+      }
+    }
+    
+    // Se não conseguimos evitar completamente, completar normalmente
+    while (selected.length < count) {
+      const remaining = numbers.filter(n => !selected.includes(n));
+      if (remaining.length > 0) {
+        selected.push(remaining[0]);
+      } else {
+        break;
+      }
+    }
+    
+    return selected;
+  }
+
+  private generatePrimeFocus(numbers: number[], count: number): number[] {
+    const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+    const primeNumbers = numbers.filter(n => primes.includes(n));
+    const nonPrimeNumbers = numbers.filter(n => !primes.includes(n));
+    
+    const primeCount = Math.min(Math.floor(count * 0.4), primeNumbers.length);
+    const selected: number[] = [];
+    
+    // Adicionar números primos
+    selected.push(...this.shuffleArray(primeNumbers).slice(0, primeCount));
+    
+    // Completar com não-primos
+    const remaining = count - selected.length;
+    selected.push(...this.shuffleArray(nonPrimeNumbers).slice(0, remaining));
+    
+    return selected.slice(0, count);
+  }
+
+  private generateFibonacciPattern(numbers: number[], count: number, maxNumber: number): number[] {
+    // Sequência de Fibonacci até maxNumber
+    const fibonacci = [1, 1];
+    while (fibonacci[fibonacci.length - 1] < maxNumber) {
+      const next = fibonacci[fibonacci.length - 1] + fibonacci[fibonacci.length - 2];
+      if (next <= maxNumber) {
+        fibonacci.push(next);
+      } else {
+        break;
+      }
+    }
+    
+    const fibNumbers = numbers.filter(n => fibonacci.includes(n));
+    const nonFibNumbers = numbers.filter(n => !fibonacci.includes(n));
+    
+    const fibCount = Math.min(Math.floor(count * 0.3), fibNumbers.length);
+    const selected: number[] = [];
+    
+    // Adicionar números de Fibonacci
+    selected.push(...this.shuffleArray(fibNumbers).slice(0, fibCount));
+    
+    // Completar com não-Fibonacci
+    const remaining = count - selected.length;
+    selected.push(...this.shuffleArray(nonFibNumbers).slice(0, remaining));
+    
+    return selected.slice(0, count);
+  }
+
+  private async generateRandomWeighted(lotteryId: number, numbers: number[], count: number): number[] {
+    const shuffled = this.shuffleArray(numbers);
+    const weighted = await this.applyAIWeighting(lotteryId, shuffled);
+    return weighted.slice(0, count);
   }
 
   private shuffleArray<T>(array: T[]): T[] {
