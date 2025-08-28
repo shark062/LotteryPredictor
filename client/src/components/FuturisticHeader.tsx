@@ -23,36 +23,21 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
     staleTime: 15000, // Cache por 15 segundos
   });
 
-  // Atualizar precisão baseado em dados da IA
+  // Atualizar precisão baseado apenas em dados reais da API
   useEffect(() => {
     if (aiStatus && typeof aiStatus === 'object') {
       const validValues = Object.values(aiStatus).filter((val): val is number => 
-        typeof val === 'number' && !isNaN(val)
+        typeof val === 'number' && !isNaN(val) && val > 0
       );
       
       if (validValues.length > 0) {
         const avgAccuracy = validValues.reduce((acc, val) => acc + val, 0) / validValues.length;
-        setPrecision(Math.min(95, Math.max(70, avgAccuracy)));
+        const realPrecision = Math.round(avgAccuracy * 10) / 10; // Uma casa decimal
+        setPrecision(realPrecision);
         setLastUpdate(new Date());
       }
     }
   }, [aiStatus]);
-
-  // Simular aumento incremental da precisão ao longo do tempo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPrecision(prev => {
-        const increment = Math.random() * 0.3; // Pequeno aumento aleatório
-        const newPrecision = Math.min(95, prev + increment);
-        if (newPrecision > prev) {
-          setLastUpdate(new Date());
-        }
-        return newPrecision;
-      });
-    }, 20000); // A cada 20 segundos
-
-    return () => clearInterval(interval);
-  }, []);
 
   const formatPrecision = (value: number): string => value.toFixed(1);
 
@@ -154,8 +139,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
                     style={{
                       left: `${20 + i * 20}%`,
                       top: `${10 + (i % 2) * 80}%`,
-                      animation: `float ${2.5 + i * 0.5}s ease-in-out infinite`,
-                      animationDelay: `${i * 0.4}s`
+                      animation: `float ${2.5 + i * 0.5}s ease-in-out infinite ${i * 0.4}s`
                     }}
                   />
                 ))}
