@@ -3,7 +3,17 @@ import { lotteryService } from './lotteryService';
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+
+// Initialize OpenAI only if API key is available
+if (process.env.OPENAI_API_KEY) {
+  try {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  } catch (error) {
+    console.warn('Failed to initialize OpenAI:', error);
+    openai = null;
+  }
+}
 
 export class AIService {
   private static instance: AIService;
@@ -97,7 +107,7 @@ export class AIService {
       const frequencies = await storage.getNumberFrequencies(lotteryId);
       const recentResults = await storage.getLatestResults(lotteryId, 10);
       
-      if (!lottery || !process.env.OPENAI_API_KEY) {
+      if (!lottery || !openai) {
         // Fallback to simple weighting
         return this.applySimpleWeighting(lotteryId, numbers);
       }
@@ -175,7 +185,7 @@ export class AIService {
         }
       `;
 
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
         messages: [
           { 
@@ -254,7 +264,7 @@ export class AIService {
 
   private async calculateEnhancedAccuracy(lotteryId: number, patterns: any, results: any[]): Promise<number> {
     try {
-      if (!process.env.OPENAI_API_KEY) {
+      if (!openai) {
         return this.calculateAccuracy(patterns);
       }
 
@@ -281,7 +291,7 @@ export class AIService {
         }
       `;
 
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
         messages: [
           { role: "system", content: "Analise a precisão de modelos estatísticos." },
