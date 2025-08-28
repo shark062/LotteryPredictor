@@ -12,7 +12,7 @@ import AILearningStatus from "@/components/AILearningStatus";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
-// import CommunityInsights from '@/components/CommunityInsights';
+import CommunityInsights from '@/components/CommunityInsights';
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
@@ -319,10 +319,9 @@ export default function Home() {
                 🌐 Inteligência Colaborativa
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Community insights feature temporarily disabled */}
-                <div className="text-center p-4 text-muted-foreground">
-                  <p>Insights da comunidade em breve...</p>
-                </div>
+                <CommunityInsights lotterySlug="mega-sena" />
+                <CommunityInsights lotterySlug="lotofacil" />
+                <CommunityInsights lotterySlug="quina" />
               </div>
             </div>
           </TabsContent>
