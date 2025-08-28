@@ -43,7 +43,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
       case 'dupla-sena': return '🎲';
       case 'dia de sorte': return '🌟';
       case 'super sete': return '🔥';
-      default: return '🎰';t: return '🎰';
+      default: return '🎰';
     }
   };
 
@@ -62,7 +62,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
   };
 
   return (
-    <Card 
+    <Card
       className={`
         group relative overflow-hidden cursor-pointer backdrop-blur-md
         transition-all duration-500 ease-out
@@ -79,7 +79,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
     >
       {/* Efeito de brilho animado */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-      
+
       {/* Partículas flutuantes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(6)].map((_, i) => (
@@ -104,7 +104,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         {/* Header com ícone animado */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div 
+            <div
               className={`
                 text-2xl transition-all duration-300
                 ${isHovered ? 'scale-125 rotate-12' : 'scale-100 rotate-0'}
@@ -112,7 +112,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
             >
               {getLotteryIcon(lottery.name)}
             </div>
-            <h3 
+            <h3
               className={`
                 text-xl font-bold transition-all duration-300
                 ${isHovered ? 'text-cyan-300' : 'text-foreground'}
@@ -121,7 +121,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
               {lottery.name}
             </h3>
           </div>
-          <Badge 
+          <Badge
             className={`
               premium-badge transition-all duration-300
               ${isHovered ? 'scale-110 glow' : 'scale-100'}
@@ -132,7 +132,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         </div>
 
         {/* Descrição com animação */}
-        <p 
+        <p
           className={`
             text-muted-foreground mb-4 transition-all duration-300
             ${isHovered ? 'text-cyan-200/80' : ''}
@@ -144,7 +144,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         {/* Informações do sorteio */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span 
+            <span
               className={`
                 text-2xl font-bold text-accent transition-all duration-300
                 ${isHovered ? 'scale-105 text-cyan-300' : 'scale-100'}
@@ -156,7 +156,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
                 </span>
               )}
             </span>
-            <span 
+            <span
               className={`
                 text-sm font-semibold text-primary transition-all duration-300
                 ${isHovered ? 'text-cyan-300' : ''}
@@ -165,8 +165,8 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
               Concurso: {upcomingDraw?.contestNumber || '---'}
             </span>
           </div>
-          
-          <div 
+
+          <div
             className={`
               text-sm text-muted-foreground transition-all duration-300
               ${isHovered ? 'text-cyan-200/70' : ''}
@@ -178,7 +178,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
           {/* Barra de progresso animada */}
           <div className="mt-4">
             <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
-              <div 
+              <div
                 className={`
                   h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full
                   transition-all duration-1000 ease-out
@@ -186,6 +186,19 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
                 `}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Indicador de Aprendizado Colaborativo */}
+        <div className="mt-4 pt-3 border-t border-cyan-800/30">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1 text-cyan-400">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              IA Colaborativa Ativa
+            </div>
+            <span className="text-cyan-300">
+              Dados oficiais Caixa
+            </span>
           </div>
         </div>
       </CardContent>

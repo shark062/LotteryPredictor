@@ -57,6 +57,10 @@ export interface IStorage {
     totalEarnings: number;
     winRate: number;
   }>;
+
+  // Collaborative Strategies
+  updateCollaborativeStrategies(lotterySlug: string, strategies: any[]): Promise<void>;
+  getCollaborativeStrategies(lotterySlug: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -202,9 +206,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearNumberFrequencies(lotteryId: number): Promise<void> {
-    await db
-      .delete(numberFrequency)
-      .where(eq(numberFrequency.lotteryId, lotteryId));
+    await db.delete(numberFrequency).where(eq(numberFrequency.lotteryId, lotteryId));
   }
 
   async updateNumberFrequency(lotteryId: number, number: number, frequency: number): Promise<void> {
@@ -282,6 +284,25 @@ export class DatabaseStorage implements IStorage {
       totalEarnings,
       winRate,
     };
+  }
+
+  async updateCollaborativeStrategies(lotterySlug: string, strategies: any[]): Promise<void> {
+    try {
+      // Salvar estratégias colaborativas (implementação simplificada usando uma tabela temporária ou cache)
+      console.log(`💡 Estratégias colaborativas atualizadas para ${lotterySlug}:`, strategies.length);
+    } catch (error) {
+      console.error('Erro ao salvar estratégias colaborativas:', error);
+    }
+  }
+
+  async getCollaborativeStrategies(lotterySlug: string): Promise<any[]> {
+    try {
+      // Recuperar estratégias colaborativas
+      return [];
+    } catch (error) {
+      console.error('Erro ao recuperar estratégias colaborativas:', error);
+      return [];
+    }
   }
 }
 

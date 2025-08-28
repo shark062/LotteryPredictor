@@ -12,6 +12,7 @@ import AILearningStatus from "@/components/AILearningStatus";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
+import CommunityInsights from '@/components/CommunityInsights';
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -278,6 +279,18 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Insights da Comunidade */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-cyan-300 mb-4 text-center">
+                🌐 Inteligência Colaborativa
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <CommunityInsights lotterySlug="mega-sena" />
+                <CommunityInsights lotterySlug="lotofacil" />
+                <CommunityInsights lotterySlug="quina" />
+              </div>
+            </div>
           </TabsContent>
 
           {/* Generator */}

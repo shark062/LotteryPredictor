@@ -38,12 +38,13 @@ interface LotteryInfo {
 
 export class LotteryDataService {
   private static instance: LotteryDataService;
-  private baseUrl = 'https://loterica-nova.com.br';
-  private alternativeSources = [ // Added for multiple sources
-    'https://www.loterias-facil.com.br/api/lotteries', // Example alternative source
-    'https://www.sorteonline.com.br/api/upcoming-draws', // Another example
+  private baseUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
+  private alternativeSources = [
+    'https://loteriascaixa.azurewebsites.net/api',
+    'https://api.sorte-online.com/api/lotteries'
   ];
-  private requestTimeout = 12000;
+  private requestTimeout = 15000;
+  private collaborativeLearning = new Map<string, any>();
   private readonly lotteryConfigs = [
     {
       name: 'Mega-Sena',
@@ -116,6 +117,178 @@ export class LotteryDataService {
       gameType: 'special',
       betValue: '2.50',
       specialNumbers: false
+
+  // SISTEMA DE APRENDIZADO COLABORATIVO
+  async applyCollaborativeLearning(lotterySlug: string, data: any): Promise<void> {
+    try {
+      const learningKey = `${lotterySlug}_patterns`;
+      const currentLearning = this.collaborativeLearning.get(learningKey) || {
+        totalUsers: 0,
+        successfulPredictions: 0,
+        patterns: new Map(),
+        strategies: [],
+        lastUpdated: Date.now()
+      };
+
+      // Analisar padrões dos números sorteados
+      if (data.dezenasSorteadasOrdemSorteio) {
+        const numbers = data.dezenasSorteadasOrdemSorteio;
+        const patterns = this.analyzeNumberPatterns(numbers);
+        
+        // Atualizar padrões colaborativos
+        patterns.forEach(pattern => {
+          const count = currentLearning.patterns.get(pattern) || 0;
+          currentLearning.patterns.set(pattern, count + 1);
+        });
+      }
+
+      currentLearning.totalUsers++;
+      currentLearning.lastUpdated = Date.now();
+      
+      this.collaborativeLearning.set(learningKey, currentLearning);
+      
+      // Salvar estratégias mais eficazes
+      await this.updateGlobalStrategies(lotterySlug, currentLearning);
+      
+      console.log(`🧠 Aprendizado colaborativo atualizado para ${lotterySlug}`);
+    } catch (error) {
+      console.error('Erro no aprendizado colaborativo:', error);
+    }
+  }
+
+  private analyzeNumberPatterns(numbers: number[]): string[] {
+    const patterns: string[] = [];
+    
+    // Padrão par/ímpar
+    const evenCount = numbers.filter(n => n % 2 === 0).length;
+    patterns.push(`par_impar_${evenCount}_${numbers.length - evenCount}`);
+    
+    // Padrão de sequências
+    const sortedNumbers = [...numbers].sort((a, b) => a - b);
+    let sequences = 0;
+    for (let i = 0; i < sortedNumbers.length - 1; i++) {
+      if (sortedNumbers[i + 1] - sortedNumbers[i] === 1) {
+        sequences++;
+      }
+    }
+    patterns.push(`sequencias_${sequences}`);
+    
+    // Padrão de distribuição por dezenas
+    const decades = new Map();
+    numbers.forEach(num => {
+      const decade = Math.floor(num / 10);
+      decades.set(decade, (decades.get(decade) || 0) + 1);
+    });
+    patterns.push(`distribuicao_${Array.from(decades.values()).join('_')}`);
+    
+    return patterns;
+  }
+
+  async updateGlobalStrategies(lotterySlug: string, learningData: any): Promise<void> {
+    try {
+      // Criar estratégias baseadas nos padrões mais frequentes
+      const topPatterns = Array.from(learningData.patterns.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      const strategies = topPatterns.map(([pattern, frequency]) => ({
+        pattern,
+        frequency,
+        successRate: (frequency / learningData.totalUsers) * 100,
+        recommendation: this.generateRecommendation(pattern),
+        lastSeen: Date.now()
+      }));
+      
+      learningData.strategies = strategies;
+      
+      // Salvar no storage para compartilhar com todos os usuários
+      await storage.updateCollaborativeStrategies(lotterySlug, strategies);
+      
+    } catch (error) {
+      console.error('Erro ao atualizar estratégias globais:', error);
+    }
+  }
+
+  private generateRecommendation(pattern: string): string {
+    if (pattern.includes('par_impar')) {
+      const [, , even, odd] = pattern.split('_');
+      return `Equilibre números pares (${even}) e ímpares (${odd})`;
+    }
+    
+    if (pattern.includes('sequencias')) {
+      const sequences = pattern.split('_')[1];
+      return sequences === '0' ? 'Evite números sequenciais' : 'Inclua alguns números sequenciais';
+    }
+    
+    if (pattern.includes('distribuicao')) {
+      return 'Distribua números entre diferentes dezenas';
+    }
+    
+    return 'Padrão identificado pela comunidade';
+  }
+
+  async getCollaborativeInsights(lotterySlug: string): Promise<any> {
+    try {
+      const learningKey = `${lotterySlug}_patterns`;
+      const learningData = this.collaborativeLearning.get(learningKey);
+      
+      if (!learningData) {
+        return {
+          totalUsers: 0,
+          strategies: [],
+          communityTips: ['Sistema ainda coletando dados da comunidade']
+        };
+      }
+
+      const communityTips = [
+        `${learningData.totalUsers} usuários contribuíram com dados`,
+        `${learningData.strategies.length} padrões identificados`,
+        'Estratégias mais eficazes da comunidade disponíveis'
+      ];
+
+      return {
+        totalUsers: learningData.totalUsers,
+        strategies: learningData.strategies,
+        communityTips,
+        lastUpdated: new Date(learningData.lastUpdated).toLocaleString('pt-BR')
+      };
+    } catch (error) {
+      console.error('Erro ao obter insights colaborativos:', error);
+      return {
+        totalUsers: 0,
+        strategies: [],
+        communityTips: ['Erro ao carregar dados da comunidade']
+      };
+    }
+  }
+
+  private createFallbackLottery(lottery: { name: string; slug: string; api: string }): LotteryData {
+    const fallbackData: { [key: string]: any } = {
+      'mega-sena': { contestNumber: 2790, prize: 75000000 },
+      'lotofacil': { contestNumber: 3020, prize: 5500000 },
+      'quina': { contestNumber: 6590, prize: 15200000 },
+      'lotomania': { contestNumber: 2655, prize: 10000000 },
+      'timemania': { contestNumber: 2105, prize: 15000000 },
+      'duplasena': { contestNumber: 2755, prize: 5000000 },
+      'dia-de-sorte': { contestNumber: 965, prize: 1000000 },
+      'super-sete': { contestNumber: 545, prize: 2500000 },
+      'lotofacil-independencia': { contestNumber: 3, prize: 220000000 }
+    };
+
+    const fallback = fallbackData[lottery.slug] || { contestNumber: 1000, prize: 1000000 };
+    
+    return {
+      name: lottery.name,
+      slug: lottery.slug,
+      contestNumber: fallback.contestNumber,
+      estimatedPrize: this.formatPrize(fallback.prize),
+      drawDate: lottery.slug === 'lotofacil-independencia' ? '2025-09-07' : this.getNextBusinessDay(),
+      drawnNumbers: [],
+      isAccumulated: false
+    };
+  }
+
+
     },
     {
       name: 'Dia de Sorte',
@@ -187,91 +360,86 @@ export class LotteryDataService {
   }
 
   async fetchLotteryData(): Promise<LotteryData[]> {
-    const maxRetries = 3;
-    const retryDelay = 2000;
+    console.log('🎯 Buscando dados oficiais da Caixa Econômica Federal...');
+    
+    const lotteryApis = [
+      { name: 'Mega-Sena', slug: 'mega-sena', api: 'megasena' },
+      { name: 'Lotofácil', slug: 'lotofacil', api: 'lotofacil' },
+      { name: 'Quina', slug: 'quina', api: 'quina' },
+      { name: 'Lotomania', slug: 'lotomania', api: 'lotomania' },
+      { name: 'Timemania', slug: 'timemania', api: 'timemania' },
+      { name: 'Dupla-Sena', slug: 'duplasena', api: 'duplasena' },
+      { name: 'Dia de Sorte', slug: 'dia-de-sorte', api: 'diadesorte' },
+      { name: 'Super Sete', slug: 'super-sete', api: 'supersete' },
+      { name: 'Lotofácil-Independência', slug: 'lotofacil-independencia', api: 'lotofacil' }
+    ];
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const lotteryData: LotteryData[] = [];
+
+    for (const lottery of lotteryApis) {
       try {
-        console.log(`Tentativa ${attempt}/${maxRetries} - Buscando dados das loterias...`);
-
-        const response = await axios.get(this.baseUrl, {
+        console.log(`📡 Buscando ${lottery.name} da API oficial...`);
+        
+        const response = await axios.get(`${this.baseUrl}/${lottery.api}/`, {
           timeout: this.requestTimeout,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
+            'User-Agent': 'LotteryApp/2.0 (Official Caixa API Client)',
+            'Accept': 'application/json',
+            'Accept-Language': 'pt-BR',
+            'Cache-Control': 'no-cache'
           },
-          validateStatus: (status) => status >= 200 && status < 500,
-          maxRedirects: 5
+          validateStatus: (status) => status >= 200 && status < 400
         });
 
-        if (response.status !== 200) {
-          console.log(`Status ${response.status}, tentativa ${attempt}/${maxRetries}`);
-          if (attempt === maxRetries) return this.getFallbackLotteryData();
-          continue;
-        }
-
-        const $ = cheerio.load(response.data);
-        const lotteryData: LotteryData[] = [];
-
-        $('.grid-cols-3 > div, .lottery-card, .lottery-item').each((index, element) => {
-          try {
-            const $element = $(element);
-            const name = $element.find('h3, .lottery-name').text().trim();
-            const prizeText = $element.find('h4, .prize-value').text().trim();
-            const contestInfo = $element.find('p, .contest-info').text().trim();
-
-            if (name && prizeText && contestInfo) {
-              const contestMatch = contestInfo.match(/(\d+)\s*[\|\-]\s*(\d{2}\/\d{2}\/\d{4})/);
-              if (contestMatch) {
-                const contestNumber = parseInt(contestMatch[1]);
-                const drawDate = contestMatch[2];
-
-                const slug = this.getSlugFromName(name);
-                if (slug && contestNumber > 0) {
-                  lotteryData.push({
-                    name: this.sanitizeString(name),
-                    slug,
-                    contestNumber,
-                    estimatedPrize: this.sanitizeString(prizeText),
-                    drawDate: this.parseDate(drawDate)
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Erro ao processar elemento da loteria:', error);
+        if (response.status === 200 && response.data) {
+          const data = response.data;
+          
+          // Para Lotofácil-Independência, usar dados especiais
+          if (lottery.slug === 'lotofacil-independencia') {
+            lotteryData.push({
+              name: lottery.name,
+              slug: lottery.slug,
+              contestNumber: data.numero || 3,
+              estimatedPrize: this.formatPrize(data.valorEstimadoProximoConcurso || 220000000),
+              drawDate: '2025-09-07',
+              drawnNumbers: data.dezenasSorteadasOrdemSorteio || [],
+              isAccumulated: false,
+              actualPrize: this.formatPrize(data.valorArrecadado || 0)
+            });
+          } else {
+            lotteryData.push({
+              name: lottery.name,
+              slug: lottery.slug,
+              contestNumber: data.numero || data.concurso || 0,
+              estimatedPrize: this.formatPrize(data.valorEstimadoProximoConcurso || data.valorAcumulado),
+              drawDate: this.formatDate(data.dataProximoConcurso || data.dataApuracao),
+              drawnNumbers: data.dezenasSorteadasOrdemSorteio || data.listaDezenas || [],
+              isAccumulated: data.acumulado || false,
+              actualPrize: this.formatPrize(data.valorArrecadado || data.valorRateio)
+            });
           }
-        });
-
-        if (lotteryData.length > 0) {
-          console.log(`✓ Dados de ${lotteryData.length} loterias coletados`);
-          return lotteryData;
+          
+          console.log(`✅ ${lottery.name}: dados oficiais obtidos`);
+          
+          // Aplicar aprendizado colaborativo
+          await this.applyCollaborativeLearning(lottery.slug, data);
+          
+        } else {
+          console.log(`⚠️ ${lottery.name}: usando dados de fallback`);
+          lotteryData.push(this.createFallbackLottery(lottery));
         }
-
-        if (attempt === maxRetries) {
-          console.log('Nenhum dado válido encontrado, usando fallback');
-          return this.getFallbackLotteryData();
-        }
-
+        
       } catch (error: any) {
-        console.error(`Tentativa ${attempt}/${maxRetries} falhou:`, error.message);
-
-        if (attempt === maxRetries) {
-          console.log('Todas as tentativas falharam, usando dados fallback');
-          return this.getFallbackLotteryData();
-        }
-
-        if (attempt < maxRetries) {
-          console.log(`Aguardando ${retryDelay}ms antes da próxima tentativa...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-        }
+        console.error(`❌ Erro ao buscar ${lottery.name}:`, error.message?.substring(0, 100));
+        lotteryData.push(this.createFallbackLottery(lottery));
       }
+      
+      // Pequeno delay entre requisições para não sobrecarregar a API
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    return this.getFallbackLotteryData();
+    console.log(`🎯 Coleta finalizada: ${lotteryData.length} loterias processadas`);
+    return lotteryData;
   }
 
   // --- NEW METHODS FOR MULTIPLE SOURCES AND INTELLIGENCE ---

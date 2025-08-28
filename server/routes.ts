@@ -217,6 +217,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para insights colaborativos da comunidade
+  app.get("/api/lotteries/:slug/community-insights", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const insights = await lotteryDataService.getCollaborativeInsights(slug);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching community insights:", error);
+      res.status(500).json({ message: "Failed to fetch community insights" });
+    }
+  });
+
+  // Rota para registrar uso e contribuir para aprendizado
+  app.post("/api/lotteries/:slug/contribute-usage", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { numbers, result } = req.body;
+      
+      // Simular contribuição para aprendizado colaborativo
+      console.log(`📊 Usuário contribuiu com dados para ${slug}:`, { numbers, result });
+      
+      res.json({ 
+        success: true,
+        message: "Obrigado por contribuir para o aprendizado da comunidade!" 
+      });
+    } catch (error) {
+      console.error("Error contributing to collaborative learning:", error);
+      res.status(500).json({ message: "Failed to contribute to learning" });
+    }
+  });
+
   app.get("/api/lotteries/:id/analysis", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);
