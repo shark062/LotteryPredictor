@@ -384,6 +384,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simular sorteio para testar atualização de precisão
+  app.post("/api/ai/simulate-draw/:lotteryId", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.lotteryId);
+      const lottery = await storage.getLotteryById(lotteryId);
+      
+      if (!lottery) {
+        return res.status(404).json({ message: "Lottery not found" });
+      }
+
+      // Gerar números aleatórios para simular sorteio
+      const drawnNumbers: number[] = [];
+      const numCount = lottery.slug === 'mega-sena' ? 6 : 
+                      lottery.slug === 'lotofacil' ? 15 : 5;
+      
+      while (drawnNumbers.length < numCount) {
+        const num = Math.floor(Math.random() * lottery.maxNumber) + 1;
+        if (!drawnNumbers.includes(num)) {
+          drawnNumbers.push(num);
+        }
+      }
+      
+      drawnNumbers.sort((a, b) => a - b);
+      
+      // Atualizar precisão
+      await aiService.updatePrecisionOnDraw(lotteryId, drawnNumbers);
+      
+      res.json({ 
+        success: true,
+        message: `Sorteio simulado para ${lottery.name}`,
+        drawnNumbers,
+        lotteryId
+      });
+    } catch (error) {
+      console.error('Erro ao simular sorteio:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Erro ao simular sorteio' 
+      });
+    }
+  });
+
   // User game routes - simplified without authentication
   app.post("/api/games", async (req: any, res) => {
     try {

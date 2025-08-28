@@ -1,9 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import logoUrl from '../assets/cyberpunk-shark.png';
 
 interface FuturisticHeaderProps {}
 
 export default function FuturisticHeader({}: FuturisticHeaderProps) {
+  const [precision, setPrecision] = useState(75);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  // Buscar status da IA
+  const { data: aiStatus } = useQuery({
+    queryKey: ["/api/ai/status"],
+    refetchInterval: 10000, // Atualizar a cada 10 segundos
+  });
+
+  // Buscar dados das loterias para detectar novos sorteios
+  const { data: upcomingDraws } = useQuery({
+    queryKey: ["/api/lotteries/upcoming"],
+    refetchInterval: 30000, // Atualizar a cada 30 segundos
+  });
+
+  // Simular aumento de precisão baseado em novos dados
+  useEffect(() => {
+    if (aiStatus) {
+      const avgAccuracy = Object.values(aiStatus).reduce((acc: number, val: any) => acc + val, 0) / Object.keys(aiStatus).length;
+      setPrecision(Math.min(95, Math.max(70, avgAccuracy)));
+    }
+  }, [aiStatus]);
+
+  // Simular aumento incremental da precisão ao longo do tempo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPrecision(prev => {
+        const increment = Math.random() * 0.5; // Pequeno aumento aleatório
+        const newPrecision = Math.min(95, prev + increment);
+        if (newPrecision > prev) {
+          setLastUpdate(new Date());
+        }
+        return newPrecision;
+      });
+    }, 15000); // A cada 15 segundos
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatPrecision = (value: number) => value.toFixed(1);
+
   return (
     <header 
       className="relative overflow-hidden py-4 border-b border-cyan-400/30 shadow-lg"
@@ -112,15 +154,46 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
           </div>
 
           {/* Controles do header */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            {/* Precisão Dinâmica */}
+            <div className="flex items-center space-x-3 px-4 py-2 rounded-lg bg-black/60 border border-cyan-400/50 backdrop-blur-md">
+              <div className="flex flex-col items-center">
+                <span className="text-cyan-400 font-mono text-xs uppercase tracking-wider">Precisão</span>
+                <div className="flex items-center space-x-2">
+                  <span 
+                    className="text-2xl font-black font-mono tracking-tight"
+                    style={{
+                      background: `linear-gradient(45deg, #00ffaa ${precision}%, #ff6600 ${precision + 10}%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: 'drop-shadow(0 0 8px rgba(0, 255, 170, 0.6))'
+                    }}
+                  >
+                    {formatPrecision(precision)}%
+                  </span>
+                  <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse" />
+                </div>
+              </div>
+              <div className="h-8 w-px bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent" />
+              <div className="flex flex-col text-xs">
+                <span className="text-cyan-300/80 font-mono">Última atualização:</span>
+                <span className="text-cyan-200/60 font-mono">
+                  {lastUpdate.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            </div>
+
             {/* Status IA */}
-            <div className="hidden md:flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/50 border border-green-400/40 backdrop-blur-md">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/50 border border-green-400/40 backdrop-blur-md">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span className="text-green-400 font-mono text-sm font-semibold">IA ATIVA</span>
             </div>
 
             {/* Premium badge */}
-            <div className="hidden md:flex items-center space-x-2 px-4 py-2 rounded-lg bg-black/50 border border-yellow-400/40 backdrop-blur-md">
+            <div className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg bg-black/50 border border-yellow-400/40 backdrop-blur-md">
               <span className="text-yellow-400 font-mono text-sm font-semibold">💰 PREMIUM</span>
             </div>
           </div>

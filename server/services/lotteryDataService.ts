@@ -890,9 +890,17 @@ export class LotteryDataService {
         updatedAt: new Date()
       };
 
-      if (existingResult.length === 0) {
+      const isNewResult = existingResult.length === 0;
+
+      if (isNewResult) {
         await db.insert(lotteryResults).values(resultToSave);
         console.log(`Resultado salvo: ${resultData.slug} #${resultData.contestNumber}`);
+        
+        // Atualizar precisão da IA com os novos números sorteados
+        if (resultData.drawnNumbers && resultData.drawnNumbers.length > 0) {
+          const { aiService } = await import('./aiService');
+          await aiService.updatePrecisionOnDraw(lotteryId, resultData.drawnNumbers);
+        }
       } else {
         await db.update(lotteryResults)
           .set(resultToSave)
