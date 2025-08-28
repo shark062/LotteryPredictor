@@ -116,10 +116,6 @@ const ContestWinners: React.FC = () => {
           <Trophy className="w-5 h-5" />
           Ganhadores dos Últimos Concursos
         </CardTitle>
-        <div className="text-sm text-slate-400 flex items-center gap-2">
-          <Target className="w-4 h-4" />
-          🎲 Simular Sorteio (Teste de Precisão)
-        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {Object.entries(contestData).map(([lotteryName, data]) => (
