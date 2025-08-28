@@ -62,12 +62,19 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
       });
     }, 500);
 
-    // Toast de celebração
+    // Toast de celebração - personalizado baseado se é pessoal ou público
+    const isPersonalWin = notification.data?.isPersonal;
+    const toastTitle = isPersonalWin 
+      ? "🎉 PARABÉNS! VOCÊ GANHOU! 🎉" 
+      : "🎉 TEMOS UM GANHADOR! 🎉";
+    
     toast({
-      title: "🎉 PARABÉNS! TEMOS UM GANHADOR! 🎉",
-      description: `${notification.message} - ${notification.lottery}`,
-      duration: 10000,
-      className: "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-yellow-400",
+      title: toastTitle,
+      description: `${notification.message}`,
+      duration: isPersonalWin ? 15000 : 8000, // Mais tempo para vitória pessoal
+      className: isPersonalWin 
+        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-400"
+        : "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-yellow-400",
     });
 
     // Som de celebração (se disponível)

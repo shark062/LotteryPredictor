@@ -12,6 +12,12 @@ Preferred communication style: Simple, everyday language.
 - No "Random Mode Activated" messages should be shown when no strategies are selected
 - Interface should remain clean and minimal without unnecessary notifications
 
+## Privacy and Security Preferences
+- Winner notifications should protect user privacy by not showing names to other users
+- Only the actual winner should see their own name in victory notifications
+- Other users see anonymous "Someone won" messages
+- No connection notifications should be shown when users connect to the real-time system
+
 # System Architecture
 
 ## Frontend Architecture

@@ -731,7 +731,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       switch (type) {
         case 'winner':
-          notificationService.simulateWinner(lottery);
+          // Simular ganhador - usar primeiro usuário conectado para demonstração
+          const connectedUsers = Array.from(notificationService.getConnectedUsers().keys());
+          const testUserId = connectedUsers.length > 0 ? connectedUsers[0] : undefined;
+          notificationService.simulateWinner(lottery, testUserId);
           break;
         case 'draw':
           notificationService.notifyDrawStarting(lottery, new Date(Date.now() + 5 * 60 * 1000), 2500);

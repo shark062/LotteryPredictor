@@ -40,15 +40,6 @@ export class NotificationService {
 
     console.log(`👤 Usuário ${userId} conectado às notificações (${this.connectedUsers.size} usuários online)`);
 
-    // Enviar notificação de boas-vindas
-    this.sendNotificationToUser(userId, {
-      id: `welcome-${Date.now()}`,
-      type: 'system',
-      title: '🎯 Shark Loto',
-      message: 'Conectado! Você receberá notificações em tempo real sobre sorteios e ganhadores.',
-      timestamp: new Date()
-    });
-
     // Configurar cleanup quando desconectar
     socket.on('close', () => {
       this.connectedUsers.delete(userId);
@@ -87,20 +78,49 @@ export class NotificationService {
     });
   }
 
-  // Notificar sobre ganhador
-  notifyWinner(lottery: string, winner: string, prize: string, contestNumber?: number) {
-    const notification: NotificationData = {
-      id: `winner-${Date.now()}`,
+  // Notificar sobre ganhador - preservando privacidade
+  notifyWinner(lottery: string, winner: string, prize: string, contestNumber?: number, winnerUserId?: string) {
+    // Para o próprio ganhador - mostra nome completo
+    if (winnerUserId) {
+      const personalNotification: NotificationData = {
+        id: `winner-personal-${Date.now()}`,
+        type: 'winner',
+        title: '🎉 PARABÉNS! VOCÊ GANHOU! 🎉',
+        message: `Você ganhou ${prize} na ${lottery}!`,
+        lottery,
+        prize,
+        timestamp: new Date(),
+        data: { contestNumber, isPersonal: true }
+      };
+      
+      this.sendNotificationToUser(winnerUserId, personalNotification);
+    }
+
+    // Para todos os outros usuários - sem mostrar nome
+    const publicNotification: NotificationData = {
+      id: `winner-public-${Date.now()}`,
       type: 'winner',
       title: '🎉 TEMOS UM GANHADOR! 🎉',
-      message: `${winner} ganhou ${prize}!`,
+      message: `Alguém ganhou ${prize} na ${lottery}!`,
       lottery,
       prize,
       timestamp: new Date(),
-      data: { contestNumber }
+      data: { contestNumber, isPublic: true }
     };
 
-    this.broadcast(notification);
+    // Enviar para todos exceto o ganhador
+    this.connectedUsers.forEach((user, userId) => {
+      if (userId !== winnerUserId && user.socket.readyState === WebSocket.OPEN) {
+        try {
+          user.socket.send(JSON.stringify(publicNotification));
+        } catch (error) {
+          console.error(`Erro ao enviar notificação para ${userId}:`, error);
+          this.connectedUsers.delete(userId);
+        }
+      } else if (user.socket.readyState !== WebSocket.OPEN) {
+        this.connectedUsers.delete(userId);
+      }
+    });
     
     // Log importante
     console.log(`🏆 GANHADOR DETECTADO: ${winner} - ${prize} na ${lottery}`);
@@ -182,7 +202,7 @@ export class NotificationService {
   }
 
   // Simular ganhadores para demonstração
-  simulateWinner(lottery: string) {
+  simulateWinner(lottery: string, testUserId?: string) {
     const names = [
       'João Silva', 'Maria Santos', 'Pedro Oliveira', 'Ana Costa', 'Carlos Lima',
       'Fernanda Souza', 'Rafael Pereira', 'Juliana Alves', 'Marcos Ferreira', 'Camila Rocha'
@@ -196,7 +216,12 @@ export class NotificationService {
     const randomName = names[Math.floor(Math.random() * names.length)];
     const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
 
-    this.notifyWinner(lottery, randomName, randomPrize);
+    this.notifyWinner(lottery, randomName, randomPrize, Math.floor(Math.random() * 1000) + 2000, testUserId);
+  }
+
+  // Getter para usuários conectados (necessário para a rota de teste)
+  getConnectedUsers() {
+    return this.connectedUsers;
   }
 
   // Status do serviço
