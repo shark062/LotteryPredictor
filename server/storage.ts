@@ -144,6 +144,28 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(userGames.createdAt));
   }
 
+  // Buscar todos os jogos de uma loteria específica (para cálculo de precisão)
+  async getUserGamesByLottery(lotteryId: number): Promise<UserGame[]> {
+    return await db
+      .select()
+      .from(userGames)
+      .where(eq(userGames.lotteryId, lotteryId))
+      .orderBy(desc(userGames.createdAt));
+  }
+
+  // Criar resultado de jogo para análise
+  async createGameResult(result: {
+    userGameId: number;
+    contestId: number | null;
+    hits: number;
+    prizeValue: string;
+  }): Promise<void> {
+    await db
+      .insert(gameResults)
+      .values(result)
+      .onConflictDoNothing(); // Evitar duplicatas
+  }
+
   // Game results
   async createGameResult(result: InsertGameResult): Promise<GameResult> {
     const [newResult] = await db

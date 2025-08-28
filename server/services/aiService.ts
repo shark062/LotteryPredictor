@@ -341,35 +341,165 @@ export class AIService {
   }
 
   private calculateAccuracy(patterns: any): number {
-    // Simple accuracy calculation based on pattern consistency
-    // In reality, this would be based on actual prediction performance
-    return Math.min(95, 70 + Math.random() * 25);
+    // A precisão inicial é sempre 0%, será calculada baseada em dados reais dos usuários
+    return 0;
   }
 
-  // Atualizar precisão baseado em novos sorteios
+  // Atualizar precisão baseado em novos sorteios reais
   async updatePrecisionOnDraw(lotteryId: number, drawnNumbers: number[]): Promise<void> {
     try {
-      const currentPrecision = this.precisionHistory.get(lotteryId) || 75;
-      const lastContest = this.lastDrawUpdate.get(lotteryId) || 0;
+      // Analisar todos os jogos dos usuários contra este resultado
+      const userGames = await storage.getUserGamesByLottery(lotteryId);
+      let totalLearning = 0;
+      let analyzedGames = 0;
+
+      for (const game of userGames) {
+        const gameNumbers = JSON.parse(game.numbers);
+        const hits = this.countHits(gameNumbers, drawnNumbers);
+        
+        // Aprender com cada jogo
+        const learningValue = this.extractLearningFromGame(gameNumbers, drawnNumbers, hits, lotteryId);
+        totalLearning += learningValue;
+        analyzedGames++;
+        
+        // Salvar resultado do jogo para análise futura
+        await this.saveGameResult(game.id!, drawnNumbers, hits);
+      }
+
+      if (analyzedGames > 0) {
+        // Calcular nova precisão baseada no aprendizado real
+        const currentPrecision = await this.calculateRealAccuracy(lotteryId);
+        const learningBonus = totalLearning / analyzedGames;
+        const newPrecision = Math.min(95, currentPrecision + learningBonus);
+        
+        this.precisionHistory.set(lotteryId, newPrecision);
+        this.lastDrawUpdate.set(lotteryId, Date.now());
+        
+        // Atualizar padrões aprendidos
+        await this.updateLearnedPatterns(lotteryId, drawnNumbers, userGames);
+        
+        console.log(`📈 Precisão da loteria ${lotteryId} atualizada: ${newPrecision.toFixed(1)}% (${analyzedGames} jogos analisados)`);
+      }
       
-      // Simular análise da precisão baseado nos números sorteados
-      const precisionIncrease = this.calculatePrecisionIncrease(drawnNumbers);
-      const newPrecision = Math.min(95, currentPrecision + precisionIncrease);
-      
-      this.precisionHistory.set(lotteryId, newPrecision);
-      this.lastDrawUpdate.set(lotteryId, Date.now());
-      
-      // Atualizar modelo no banco de dados
-      await storage.updateAIModel(lotteryId, { 
-        drawnNumbers, 
-        precisionUpdate: new Date(),
-        learningIncrement: precisionIncrease 
-      }, newPrecision);
-      
-      console.log(`📈 Precisão da loteria ${lotteryId} atualizada: ${newPrecision.toFixed(1)}% (+${precisionIncrease.toFixed(2)}%)`);
     } catch (error) {
       console.error('Erro ao atualizar precisão:', error);
     }
+  }
+
+  private extractLearningFromGame(userNumbers: number[], drawnNumbers: number[], hits: number, lotteryId: number): number {
+    let learning = 0;
+    
+    // Analisar padrões que funcionaram
+    if (hits > 0) {
+      const hitNumbers = userNumbers.filter(num => drawnNumbers.includes(num));
+      
+      // Aprender distribuição par/ímpar
+      const evenHits = hitNumbers.filter(n => n % 2 === 0).length;
+      const oddHits = hitNumbers.length - evenHits;
+      if (Math.abs(evenHits - oddHits) <= 1) learning += 0.1; // Distribuição equilibrada
+      
+      // Aprender sobre sequências
+      const hasSequence = hitNumbers.some((num, i) => 
+        i > 0 && hitNumbers[i-1] === num - 1
+      );
+      if (hasSequence) learning += 0.05;
+      
+      // Aprender sobre dispersão
+      if (hitNumbers.length > 1) {
+        const spread = Math.max(...hitNumbers) - Math.min(...hitNumbers);
+        const totalRange = this.getLotteryRange(lotteryId);
+        const spreadRatio = spread / totalRange;
+        if (spreadRatio > 0.3 && spreadRatio < 0.8) learning += 0.1; // Boa dispersão
+      }
+    }
+    
+    // Bonus baseado na qualidade do acerto
+    const expectedHits = this.getExpectedHits(lotteryId);
+    if (hits >= expectedHits) {
+      learning += Math.min(0.5, hits * 0.1);
+    }
+    
+    return learning;
+  }
+
+  private getLotteryRange(lotteryId: number): number {
+    const ranges: { [key: number]: number } = {
+      1: 60,  // Mega-Sena
+      2: 25,  // Lotofácil
+      3: 80,  // Quina
+      4: 100, // Lotomania
+      5: 80,  // Timemania
+      6: 50,  // Dupla-Sena
+      7: 31,  // Dia de Sorte
+      8: 7,   // Super Sete
+      9: 25,  // Lotofácil-Independência
+    };
+    return ranges[lotteryId] || 60;
+  }
+
+  private async saveGameResult(gameId: number, drawnNumbers: number[], hits: number): Promise<void> {
+    try {
+      await storage.createGameResult({
+        userGameId: gameId,
+        contestId: null, // Podemos não ter o ID do concurso
+        hits: hits,
+        prizeValue: '0'
+      });
+    } catch (error) {
+      console.error('Erro ao salvar resultado do jogo:', error);
+    }
+  }
+
+  private async updateLearnedPatterns(lotteryId: number, drawnNumbers: number[], userGames: any[]): Promise<void> {
+    // Analisar e atualizar padrões aprendidos
+    const patterns = {
+      successfulStrategies: [],
+      numberDistribution: {},
+      sequencePatterns: [],
+      lastUpdated: new Date()
+    };
+
+    // Identificar estratégias que funcionaram
+    for (const game of userGames) {
+      const gameNumbers = JSON.parse(game.numbers);
+      const hits = this.countHits(gameNumbers, drawnNumbers);
+      
+      if (hits > this.getExpectedHits(lotteryId)) {
+        // Esta foi uma estratégia bem-sucedida
+        patterns.successfulStrategies.push({
+          numbers: gameNumbers,
+          hits: hits,
+          strategy: this.identifyStrategy(gameNumbers, lotteryId)
+        });
+      }
+    }
+
+    // Salvar padrões aprendidos
+    await storage.updateAIModel(lotteryId, patterns, await this.calculateRealAccuracy(lotteryId));
+  }
+
+  private identifyStrategy(numbers: number[], lotteryId: number): string {
+    const evenCount = numbers.filter(n => n % 2 === 0).length;
+    const oddCount = numbers.length - evenCount;
+    const range = this.getLotteryRange(lotteryId);
+    const lowCount = numbers.filter(n => n <= range / 2).length;
+    const highCount = numbers.length - lowCount;
+    
+    let strategy = '';
+    
+    if (Math.abs(evenCount - oddCount) <= 1) strategy += 'equilibrada_par_impar,';
+    if (Math.abs(lowCount - highCount) <= 1) strategy += 'equilibrada_baixo_alto,';
+    
+    // Identificar sequências
+    const sortedNumbers = numbers.sort((a, b) => a - b);
+    let sequences = 0;
+    for (let i = 1; i < sortedNumbers.length; i++) {
+      if (sortedNumbers[i] === sortedNumbers[i-1] + 1) sequences++;
+    }
+    
+    if (sequences > 0) strategy += `sequencias_${sequences},`;
+    
+    return strategy || 'padrao_misto';
   }
 
   private calculatePrecisionIncrease(drawnNumbers: number[]): number {
@@ -415,39 +545,142 @@ export class AIService {
     const status: any = {};
 
     for (const lottery of lotteries) {
-      const model = await storage.getAIModel(lottery.id);
-      let accuracy = model ? parseFloat(model.accuracy || '0') : 0;
-      
-      // Usar precisão em memória se disponível (mais atualizada)
-      if (this.precisionHistory.has(lottery.id)) {
-        accuracy = this.precisionHistory.get(lottery.id)!;
-      }
-      
-      // Se não há dados, usar base inicial + incremento baseado no tempo
-      if (accuracy === 0) {
-        const baseAccuracy = 75 + Math.random() * 10; // Entre 75% e 85%
-        accuracy = baseAccuracy;
-        this.precisionHistory.set(lottery.id, accuracy);
-      }
+      // Calcular precisão real baseada nos jogos dos usuários
+      const realAccuracy = await this.calculateRealAccuracy(lottery.id);
       
       const normalizedName = lottery.name
         .toLowerCase()
         .replace(/[^a-z]/g, ''); // Remove acentos e caracteres especiais
       
-      status[normalizedName] = Math.round(accuracy * 10) / 10; // Uma casa decimal
+      status[normalizedName] = Math.round(realAccuracy * 10) / 10; // Uma casa decimal
     }
 
     return {
-      lotofacil: status.lotofacil || 85.2,
-      megasena: status.megasena || 78.5,
-      quina: status.quina || 82.1,
-      lotomania: status.lotomania || 74.8,
-      timemania: status.timemania || 79.3,
-      duplasena: status.duplasena || 76.7,
-      diadasorte: status.diadasorte || 81.4,
-      supersete: status.supersete || 73.9,
-      lotofacilindependencia: status.lotofacilindependencia || 87.6,
+      lotofacil: status.lotofacil || 0,
+      megasena: status.megasena || 0,
+      quina: status.quina || 0,
+      lotomania: status.lotomania || 0,
+      timemania: status.timemania || 0,
+      duplasena: status.duplasena || 0,
+      diadasorte: status.diadasorte || 0,
+      supersete: status.supersete || 0,
+      lotofacilindependencia: status.lotofacilindependencia || 0,
     };
+  }
+
+  // Calcular precisão real baseada nos jogos dos usuários
+  private async calculateRealAccuracy(lotteryId: number): Promise<number> {
+    try {
+      // Buscar todos os jogos realizados pelos usuários para esta loteria
+      const userGames = await storage.getUserGamesByLottery(lotteryId);
+      const results = await storage.getLatestResults(lotteryId, 50);
+      
+      if (userGames.length === 0 || results.length === 0) {
+        return 0; // Sem dados, precisão zero
+      }
+
+      let totalGames = 0;
+      let totalHits = 0;
+      let weightedAccuracy = 0;
+
+      // Analisar cada jogo do usuário
+      for (const game of userGames) {
+        const gameNumbers = JSON.parse(game.numbers);
+        
+        // Encontrar resultado correspondente (se houver)
+        const matchingResult = results.find(result => 
+          result.contestNumber === game.contestNumber
+        );
+        
+        if (matchingResult) {
+          const drawnNumbers = JSON.parse(matchingResult.drawnNumbers);
+          const hits = this.countHits(gameNumbers, drawnNumbers);
+          const maxHits = gameNumbers.length;
+          
+          totalGames++;
+          totalHits += hits;
+          
+          // Calcular peso baseado na qualidade do acerto
+          const hitRate = hits / maxHits;
+          const gameWeight = this.calculateGameWeight(hits, maxHits, lotteryId);
+          weightedAccuracy += hitRate * gameWeight;
+        }
+      }
+
+      if (totalGames === 0) return 0;
+
+      // Calcular precisão final
+      const baseAccuracy = (totalHits / (totalGames * this.getExpectedHits(lotteryId))) * 100;
+      const weightedFactor = weightedAccuracy / totalGames;
+      
+      // Aplicar fatores de melhoria baseados no volume de dados
+      const volumeBonus = Math.min(10, totalGames * 0.1); // Bonus até 10% baseado no volume
+      const learningBonus = this.calculateLearningBonus(totalGames, totalHits);
+      
+      const finalAccuracy = Math.min(95, baseAccuracy + (weightedFactor * 20) + volumeBonus + learningBonus);
+      
+      // Salvar precisão calculada para cache
+      this.precisionHistory.set(lotteryId, finalAccuracy);
+      
+      return Math.max(0, finalAccuracy);
+      
+    } catch (error) {
+      console.error('Erro ao calcular precisão real:', error);
+      return 0;
+    }
+  }
+
+  private countHits(userNumbers: number[], drawnNumbers: number[]): number {
+    return userNumbers.filter(num => drawnNumbers.includes(num)).length;
+  }
+
+  private getExpectedHits(lotteryId: number): number {
+    // Número esperado de acertos baseado na loteria
+    const expectedHits: { [key: number]: number } = {
+      1: 1.5, // Mega-Sena
+      2: 8,   // Lotofácil  
+      3: 1,   // Quina
+      4: 15,  // Lotomania
+      5: 2,   // Timemania
+      6: 1.5, // Dupla-Sena
+      7: 2,   // Dia de Sorte
+      8: 2,   // Super Sete
+      9: 8,   // Lotofácil-Independência
+    };
+    
+    return expectedHits[lotteryId] || 1;
+  }
+
+  private calculateGameWeight(hits: number, maxHits: number, lotteryId: number): number {
+    // Peso baseado na qualidade do acerto para cada tipo de loteria
+    const hitRate = hits / maxHits;
+    
+    // Mega-Sena: acertos altos são muito valiosos
+    if (lotteryId === 1) {
+      if (hits >= 4) return 3.0; // Quadra ou mais = peso alto
+      if (hits >= 3) return 2.0; // Terno = peso médio
+      return 0.5;
+    }
+    
+    // Lotofácil: acertos médios-altos são valiosos
+    if (lotteryId === 2 || lotteryId === 9) {
+      if (hits >= 12) return 2.5; // 12+ acertos = peso alto
+      if (hits >= 10) return 1.5; // 10-11 acertos = peso médio
+      return 1.0;
+    }
+    
+    // Para outras loterias, peso baseado na taxa de acerto
+    if (hitRate >= 0.4) return 2.0;
+    if (hitRate >= 0.2) return 1.5;
+    return 1.0;
+  }
+
+  private calculateLearningBonus(totalGames: number, totalHits: number): number {
+    // Bonus por aprendizado baseado no volume e consistência
+    const consistency = totalHits / totalGames;
+    const volumeFactor = Math.min(1, totalGames / 100); // Normalizado para 100 jogos
+    
+    return consistency * volumeFactor * 5; // Até 5% de bonus
   }
 }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import logoUrl from '../assets/cyberpunk-shark.png';
@@ -6,15 +5,24 @@ import logoUrl from '../assets/cyberpunk-shark.png';
 interface FuturisticHeaderProps {}
 
 export default function FuturisticHeader({}: FuturisticHeaderProps) {
-  const [precision, setPrecision] = useState(75);
+  // Estados para controlar os dados dinâmicos
+  const [precision, setPrecision] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   // Buscar status da IA
   const { data: aiStatus } = useQuery({
     queryKey: ["/api/ai/status"],
-    refetchInterval: 10000, // Atualizar a cada 10 segundos
-    staleTime: 5000, // Cache por 5 segundos
+    refetchInterval: 5000, // Atualizar a cada 5 segundos
   });
+
+  // Usar precisão real calculada pelo backend baseada em dados dos usuários
+  useEffect(() => {
+    if (aiStatus) {
+      const avgAccuracy = Object.values(aiStatus).reduce((acc: number, val: any) => acc + val, 0) / Object.keys(aiStatus).length;
+      setPrecision(Math.round(avgAccuracy * 10) / 10);
+      setLastUpdate(new Date());
+    }
+  }, [aiStatus]);
 
   // Buscar dados das loterias para detectar novos sorteios
   const { data: upcomingDraws } = useQuery({
@@ -26,10 +34,10 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
   // Atualizar precisão baseado apenas em dados reais da API
   useEffect(() => {
     if (aiStatus && typeof aiStatus === 'object') {
-      const validValues = Object.values(aiStatus).filter((val): val is number => 
+      const validValues = Object.values(aiStatus).filter((val): val is number =>
         typeof val === 'number' && !isNaN(val) && val > 0
       );
-      
+
       if (validValues.length > 0) {
         const avgAccuracy = validValues.reduce((acc, val) => acc + val, 0) / validValues.length;
         const realPrecision = Math.round(avgAccuracy * 10) / 10; // Uma casa decimal
@@ -42,7 +50,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
   const formatPrecision = (value: number): string => value.toFixed(1);
 
   return (
-    <header 
+    <header
       className="relative overflow-hidden py-4 border-b border-cyan-400/30 shadow-lg"
       style={{
         background: `
@@ -60,16 +68,16 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
       {/* Efeitos overlay otimizados */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Efeito de scan lines */}
-        <div 
+        <div
           className="absolute inset-0 opacity-15"
           style={{
             backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 170, 0.08) 2px, rgba(0, 255, 170, 0.08) 4px)',
             animation: 'scan-lines 3s linear infinite'
           }}
         />
-        
+
         {/* Circuitos animados */}
-        <div 
+        <div
           className="absolute inset-0 opacity-20"
           style={{
             backgroundImage: `
@@ -80,7 +88,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
             animation: 'circuit-flow 25s linear infinite'
           }}
         />
-        
+
         {/* Glow holográfico suavizado */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent animate-pulse" />
       </div>
@@ -91,16 +99,16 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
           <div className="flex items-center space-x-4">
             {/* Ícone logo */}
             <div className="relative w-12 h-12 rounded-xl bg-black/60 border border-cyan-400/40 backdrop-blur-md flex items-center justify-center overflow-hidden">
-              <div 
+              <div
                 className="w-full h-full bg-cover bg-center opacity-80"
                 style={{ backgroundImage: `url('${logoUrl}')` }}
               />
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/15 to-purple-400/15 animate-pulse" />
             </div>
-            
+
             {/* Nome dinâmico */}
             <div className="relative">
-              <h1 
+              <h1
                 className="text-3xl md:text-4xl font-black tracking-wider transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(45deg, #00ffaa 0%, #0088ff 25%, #aa00ff 50%, #ff0088 75%, #00ffaa 100%)',
@@ -115,9 +123,9 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               >
                 SHARK LOTERIAS
               </h1>
-              
+
               {/* Efeito de profundidade */}
-              <h1 
+              <h1
                 className="absolute inset-0 text-3xl md:text-4xl font-black tracking-wider opacity-20 blur-sm"
                 style={{
                   background: 'linear-gradient(45deg, #ff00aa, #00aaff)',
@@ -129,7 +137,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               >
                 SHARK LOTERIAS
               </h1>
-              
+
               {/* Partículas flutuantes otimizadas */}
               <div className="absolute -inset-2">
                 {[...Array(4)].map((_, i) => (
@@ -154,15 +162,15 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               <div className="flex flex-col items-center">
                 <span className="text-cyan-300/90 font-mono text-xs uppercase tracking-wider mb-1 font-semibold">Precisão</span>
                 <div className="flex items-center space-x-2">
-                  <span 
+                  <span
                     className="text-2xl font-black font-mono tracking-tight"
                     style={{
-                      color: precision >= 90 
+                      color: precision >= 90
                         ? '#00ffaa'
                         : precision >= 80
                         ? '#00bbff'
                         : '#ffaa00',
-                      textShadow: precision >= 90 
+                      textShadow: precision >= 90
                         ? '0 0 8px rgba(0, 255, 170, 0.4)'
                         : precision >= 80
                         ? '0 0 8px rgba(0, 187, 255, 0.4)'
@@ -178,9 +186,9 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
               <div className="flex flex-col text-xs">
                 <span className="text-cyan-300/70 font-mono text-[10px] font-medium">Última atualização:</span>
                 <span className="text-cyan-200/60 font-mono text-[10px]">
-                  {lastUpdate.toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                  {lastUpdate.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}
                 </span>
               </div>
