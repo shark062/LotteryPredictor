@@ -38,7 +38,7 @@ interface LotteryInfo {
 export class LotteryDataService {
   private static instance: LotteryDataService;
   private baseUrl = 'https://loterica-nova.com.br';
-  private requestTimeout = 8000;
+  private requestTimeout = 12000;
   private readonly lotteryConfigs = [
     {
       name: 'Mega-Sena',
@@ -187,9 +187,17 @@ export class LotteryDataService {
       const response = await axios.get(this.baseUrl, {
         timeout: this.requestTimeout,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
+        },
+        validateStatus: (status) => status >= 200 && status < 500
       });
+
+      if (response.status !== 200) {
+        console.log('Status não é 200, retornando array vazio');
+        return [];
+      }
 
       const $ = cheerio.load(response.data);
       const lotteryData: LotteryData[] = [];
@@ -238,9 +246,17 @@ export class LotteryDataService {
       const response = await axios.get(`${this.baseUrl}/premiacoes`, {
         timeout: 15000,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
+        },
+        validateStatus: (status) => status >= 200 && status < 500
       });
+
+      if (response.status !== 200) {
+        console.log('Erro ao buscar resultados: status', response.status);
+        return;
+      }
 
       const $ = cheerio.load(response.data);
       
