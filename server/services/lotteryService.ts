@@ -168,14 +168,14 @@ export class LotteryService {
       if (Object.keys(result).length < 3) {
         try {
           const { caixaLotteryService } = await import('./caixaLotteryService');
-          const officialData = await caixaLotteryService.getAllLotteryData();
+          const officialData = await caixaLotteryService.getLatestResults();
           
           for (const [name, info] of Object.entries(officialData)) {
             if (!result[name] && info) {
               result[name] = {
-                prize: info.prize || 'R$ 1.000.000',
-                date: info.nextDrawDate || this.getNextDrawDate('Sábado'),
-                contestNumber: info.contestNumber || 1000
+                prize: 'R$ 1.000.000', // Default value since prize data comes from another source
+                date: this.getNextDrawDate('Sábado'),
+                contestNumber: info.contest || 1000
               };
             }
           }
@@ -264,7 +264,6 @@ export class LotteryService {
         contestNumber: 540,
       }
     };
-    }
   }
 
   private shouldShowLotofacilIndependencia(): boolean {
