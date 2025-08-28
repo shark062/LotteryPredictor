@@ -67,19 +67,39 @@ export class LotteryService {
 
   async getUpcomingDraws(): Promise<{ [key: string]: { prize: string; date: string; contestNumber: number } }> {
     try {
-      // Tentar obter dados reais do web scraping
-      const { webScrapingService } = await import('./webScrapingService');
-      const scrapedData = await webScrapingService.getLotteryInfo();
+      // Primeiro tentar obter dados do lotteryDataService
+      const { lotteryDataService } = await import('./lotteryDataService');
+      const realData = await lotteryDataService.getAllLotteryData();
       
       // Converter formato dos dados para o formato esperado
       const result: { [key: string]: { prize: string; date: string; contestNumber: number } } = {};
       
-      for (const [name, info] of Object.entries(scrapedData)) {
+      for (const [name, info] of Object.entries(realData)) {
         result[name] = {
-          prize: info.prize,
+          prize: info.estimatedPrize,
           date: info.nextDrawDate,
           contestNumber: info.contestNumber
         };
+      }
+      
+      // Se não obteve dados suficientes, tentar web scraping como fallback
+      if (Object.keys(result).length < 3) {
+        try {
+          const { webScrapingService } = await import('./webScrapingService');
+          const scrapedData = await webScrapingService.getLotteryInfo();
+          
+          for (const [name, info] of Object.entries(scrapedData)) {
+            if (!result[name]) {
+              result[name] = {
+                prize: info.prize,
+                date: info.nextDrawDate,
+                contestNumber: info.contestNumber
+              };
+            }
+          }
+        } catch (webScrapingError) {
+          console.error('Erro no web scraping fallback:', webScrapingError);
+        }
       }
       
       return result;
@@ -109,6 +129,31 @@ export class LotteryService {
           date: this.getNextDrawDate('Segunda', referenceDate),
           contestNumber: 6585,
         },
+        'Lotomania': {
+          prize: 'R$ 8.500.000',
+          date: this.getNextDrawDate('Terça', referenceDate),
+          contestNumber: 2650,
+        },
+        'Timemania': {
+          prize: 'R$ 12.000.000',
+          date: this.getNextDrawDate('Quinta', referenceDate),
+          contestNumber: 2100,
+        },
+        'Dupla-Sena': {
+          prize: 'R$ 4.200.000',
+          date: this.getNextDrawDate('Terça', referenceDate),
+          contestNumber: 2750,
+        },
+        'Dia de Sorte': {
+          prize: 'R$ 800.000',
+          date: this.getNextDrawDate('Quinta', referenceDate),
+          contestNumber: 960,
+        },
+        'Super Sete': {
+          prize: 'R$ 2.300.000',
+          date: this.getNextDrawDate('Sexta', referenceDate),
+          contestNumber: 540,
+        }
       };
     }
   }

@@ -81,8 +81,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Timeout para evitar requisições muito longas
       const updatePromise = Promise.race([
         (async () => {
+          await lotteryDataService.updateAllData();
           const scrapeData = await webScrapingService.getLotteryInfo();
-          await lotteryDataService.updateAllData(); // Método correto
           return scrapeData;
         })(),
         new Promise((_, reject) => 

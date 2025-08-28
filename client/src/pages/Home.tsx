@@ -31,31 +31,68 @@ export default function Home() {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const { data: upcomingDraws, refetch: refetchUpcomingDraws } = useQuery({
+  const { data: upcomingDraws, refetch: refetchUpcomingDraws, isLoading: upcomingLoading } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    retry: 2,
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    cacheTime: 15 * 60 * 1000, // 15 minutos
+    retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
-  const { mutate: updateLotteryData } = useMutation({
+  const { mutate: updateLotteryData, isLoading: isUpdating } = useMutation({
     mutationFn: async () => {
-      await fetch('/api/lotteries/update', { method: 'POST' });
+      const response = await fetch('/api/lotteries/update', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Erro na atualização: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: () => {
+      // Forçar atualização dos dados
       refetchLotteries();
       refetchUpcomingDraws();
+      console.log('Dados das loterias atualizados com sucesso');
     },
+    onError: (error) => {
+      console.error('Erro ao atualizar dados:', error);
+    }
   });
 
-  // Auto-refresh a cada 5 minutos
+  // Auto-refresh mais inteligente - apenas se a aba estiver ativa
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      updateLotteryData();
-    }, 5 * 60 * 1000); // 5 minutos
+    let interval: NodeJS.Timeout;
+    
+    const startInterval = () => {
+      interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          updateLotteryData();
+        }
+      }, 10 * 60 * 1000); // 10 minutos
+    };
 
-    return () => clearInterval(interval);
-  }, [updateLotteryData]);
+    startInterval();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Atualizar dados quando a aba ficar ativa novamente
+        refetchUpcomingDraws();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [updateLotteryData, refetchUpcomingDraws]);
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -108,7 +145,16 @@ export default function Home() {
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {lotteries && lotteries.length > 0 ? (
+              {lotteriesLoading || upcomingLoading ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+                    <p className="text-muted-foreground">
+                      {isUpdating ? 'Atualizando dados...' : 'Carregando loterias...'}
+                    </p>
+                  </div>
+                </div>
+              ) : lotteries && lotteries.length > 0 ? (
                 lotteries.map((lottery: any, index: number) => (
                   <LotteryCard
                     key={lottery.id}
@@ -121,8 +167,21 @@ export default function Home() {
               ) : (
                 <div className="col-span-full flex items-center justify-center py-12">
                   <div className="text-center space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
-                    <p className="text-muted-foreground">Carregando loterias...</p>
+                    <div className="text-4xl mb-4">⚠️</div>
+                    <p className="text-muted-foreground">Nenhuma loteria encontrada</p>
+                    <Button onClick={() => updateLotteryData()} disabled={isUpdating}>
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Tentar Novamente
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
