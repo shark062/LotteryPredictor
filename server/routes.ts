@@ -73,25 +73,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Nova rota para atualizar dados manualmente
+  // Nova rota para atualizar dados manualmente com timeout e validação
   app.post("/api/lotteries/update", async (req, res) => {
+    const updateTimeout = 30000; // 30 segundos timeout
+    
     try {
-      const scrapeData = await webScrapingService.getLotteryInfo();
+      // Timeout para evitar requisições muito longas
+      const updatePromise = Promise.race([
+        (async () => {
+          const scrapeData = await webScrapingService.getLotteryInfo();
+          await lotteryDataService.updateAllData(); // Método correto
+          return scrapeData;
+        })(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout na atualização')), updateTimeout)
+        )
+      ]);
       
-      // Atualizar dados reais das loterias do site Lotérica Nova
-      await lotteryDataService.updateAllLotteries();
+      const scrapeData = await updatePromise;
       
-      upcomingDrawsCache = null; // Limpar cache
+      // Limpar cache
+      upcomingDrawsCache = null;
+      
       res.json({ 
         success: true, 
         data: scrapeData,
-        message: "Dados das loterias atualizados com sucesso"
+        message: "Dados das loterias atualizados com sucesso",
+        timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating lottery data:", error);
-      res.status(500).json({ 
+      
+      const errorMessage = error.message || "Erro ao atualizar dados das loterias";
+      const isTimeout = errorMessage.includes('Timeout');
+      
+      res.status(isTimeout ? 408 : 500).json({ 
         success: false,
-        message: "Erro ao atualizar dados das loterias" 
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+        errorType: isTimeout ? 'timeout' : 'server_error'
       });
     }
   });

@@ -14,8 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
 
 export default function Home() {
+  const [selectedLottery, setSelectedLottery] = useState<number | null>(null);
   const { user, isLoading } = useAuth();
-  const [selectedLottery, setSelectedLottery] = useState<number>(1);
+  
 
   const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery<Array<{
     id: number;
@@ -122,7 +123,7 @@ export default function Home() {
             <Card className="group bg-card/20 border border-border glow-effect backdrop-blur-md hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 overflow-hidden">
               {/* Efeito de brilho no hover */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              
+
               <CardHeader className="relative">
                 <CardTitle className="flex items-center space-x-3">
                   <span className="text-2xl group-hover:scale-110 transition-transform duration-300">🏆</span>
@@ -167,7 +168,7 @@ export default function Home() {
                           <span className="text-xl">{lottery.name === 'Mega-Sena' ? '💰' : lottery.name === 'Lotofácil' ? '🍀' : '⭐'}</span>
                           <span>{lottery.name}</span>
                         </h4>
-                        
+
                         <div className="space-y-2">
                           {winnerCategories.map((category, catIndex) => (
                             <div 
