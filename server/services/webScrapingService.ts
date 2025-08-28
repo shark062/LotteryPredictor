@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 
 interface LotteryInfo {
   contestNumber: number;
@@ -9,8 +8,8 @@ interface LotteryInfo {
 
 export class WebScrapingService {
   private static instance: WebScrapingService;
-  private baseUrl = 'https://loterica-nova.com.br'; // Changed base URL
-  private requestTimeout = 12000; // Adjusted timeout
+  private officialApiUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
+  private requestTimeout = 15000;
 
   public static getInstance(): WebScrapingService {
     if (!WebScrapingService.instance) {
@@ -20,207 +19,166 @@ export class WebScrapingService {
   }
 
   async getLotteryInfo(): Promise<{ [key: string]: LotteryInfo }> {
-    const maxRetries = 2; // Reduced retries
-    const retryDelay = 2000; // Retry delay
+    console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
 
-    // Expanded lottery mappings
     const lotteryMappings: { [key: string]: string } = {
       'Lotofácil': 'lotofacil',
-      'Mega-Sena': 'mega-sena',
+      'Mega-Sena': 'megasena',
       'Quina': 'quina',
       'Lotomania': 'lotomania',
       'Timemania': 'timemania',
       'Dupla-Sena': 'duplasena',
-      'Dia de Sorte': 'dia-de-sorte',
-      'Super Sete': 'super-sete',
-      'Lotofácil-Independência': 'lotofacil-independencia'
+      'Dia de Sorte': 'diadesorte',
+      'Super Sete': 'supersete'
     };
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const results: { [key: string]: LotteryInfo } = {};
+
+    for (const [displayName, apiName] of Object.entries(lotteryMappings)) {
       try {
-        console.log(`Iniciando busca de dados das loterias...`);
-
-        const results: { [key: string]: LotteryInfo } = {};
-        let successCount = 0;
-
-        for (const [displayName, apiName] of Object.entries(lotteryMappings)) {
-          try {
-            // Calling the updated fetchLotteryData which uses mock data
-            const data = await this.fetchLotteryData(apiName, displayName);
-            if (data) {
-              results[displayName] = data;
-              successCount++;
-              console.log(`✓ ${displayName}: dados obtidos com sucesso`);
-            } else {
-              // Using fallback data if fetch fails or returns null
-              results[displayName] = this.getFallbackData(displayName);
-              console.log(`⚠ ${displayName}: usando dados fallback`);
-            }
-          } catch (error) {
-            console.error(`Erro ao buscar ${displayName}:`, this.sanitizeError(error));
-            results[displayName] = this.getFallbackData(displayName);
-          }
+        console.log(`🔄 Buscando ${displayName}...`);
+        const data = await this.fetchOfficialLotteryInfo(apiName, displayName);
+        if (data) {
+          results[displayName] = data;
+          console.log(`✅ ${displayName}: dados oficiais obtidos`);
+        } else {
+          throw new Error(`Dados não disponíveis para ${displayName}`);
         }
-
-        if (successCount === 0) {
-          console.log('Nenhum dado real obtido, retornando fallback completo');
-          return this.getAllFallbackData();
-        }
-
-        console.log(`Busca concluída: ${successCount}/${Object.keys(lotteryMappings).length} loterias atualizadas`);
-        return results;
-
-      } catch (error: any) {
-        console.error(`Tentativa ${attempt}/${maxRetries} falhou:`, this.sanitizeError(error));
-
-        if (attempt < maxRetries) {
-          console.log(`Aguardando ${retryDelay}ms antes da próxima tentativa...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-        }
+      } catch (error) {
+        console.error(`❌ Erro ao buscar ${displayName}:`, error);
+        throw new Error(`Falha ao obter dados oficiais de ${displayName}`);
       }
     }
 
-    // If all retries fail, return fallback data
-    console.error('Erro geral no serviço de web scraping, usando fallback');
-    return this.getAllFallbackData();
+    console.log(`✅ Busca concluída: ${Object.keys(results).length} loterias atualizadas`);
+    return results;
   }
 
-  // Updated fetchLotteryData to use mock data and simplified logic
-  private async fetchLotteryData(apiName: string, displayName: string): Promise<LotteryInfo | null> {
+  private async fetchOfficialLotteryInfo(apiName: string, displayName: string): Promise<LotteryInfo | null> {
     try {
-      console.log(`✓ Requisição bem-sucedida na tentativa 1 para: [URL]`);
+      const url = `${this.officialApiUrl}/${apiName}`;
+      console.log(`🌐 Consultando API oficial: ${url}`);
 
-      // Mock data for demonstration purposes
-      const mockData: { [key: string]: LotteryInfo } = {
-        'Lotofácil': {
-          contestNumber: 3020,
-          nextDrawDate: '27/01/2025 - 20:00h',
-          prize: 'R$ 220.000.000'
-        },
-        'Mega-Sena': {
-          contestNumber: 2790,
-          nextDrawDate: '28/01/2025 - 20:00h',
-          prize: 'R$ 75.000.000'
-        },
-        'Quina': {
-          contestNumber: 6590,
-          nextDrawDate: '27/01/2025 - 20:00h',
-          prize: 'R$ 15.200.000'
-        },
-        'Lotomania': { // Added mock data for Lotomania
-          contestNumber: 2655,
-          nextDrawDate: '28/01/2025 - 20:00h',
-          prize: 'R$ 10.000.000'
-        },
-        'Timemania': { // Added mock data for Timemania
-          contestNumber: 2105,
-          nextDrawDate: '30/01/2025 - 20:00h',
-          prize: 'R$ 15.000.000'
-        },
-        'Dupla-Sena': { // Added mock data for Dupla-Sena
-          contestNumber: 2755,
-          nextDrawDate: '28/01/2025 - 20:00h',
-          prize: 'R$ 5.000.000'
-        },
-        'Dia de Sorte': { // Added mock data for Dia de Sorte
-          contestNumber: 965,
-          nextDrawDate: '30/01/2025 - 20:00h',
-          prize: 'R$ 1.000.000'
-        },
-        'Super Sete': { // Added mock data for Super Sete
-          contestNumber: 545,
-          nextDrawDate: '31/01/2025 - 20:00h',
-          prize: 'R$ 2.500.000'
-        },
-        'Lotofácil-Independência': { // Dados da Lotofácil-Independência
-          contestNumber: 3,
-          nextDrawDate: '07/09/2025 - 20:00h',
-          prize: 'R$ 220.000.000' // Mesmo valor da Lotofácil regular
+      const response = await axios.get(url, {
+        timeout: this.requestTimeout,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache',
+          'Referer': 'https://loterias.caixa.gov.br/'
         }
-      };
+      });
 
-      return mockData[displayName] || null;
-    } catch (error) {
-      console.error(`Erro ao buscar dados para ${displayName}:`, error);
-      return null;
-    }
-  }
-
-  // Updated getFallbackData to include all expanded lotteries
-  private getFallbackData(displayName: string): LotteryInfo {
-    const fallbackData: { [key: string]: LotteryInfo } = {
-      'Lotofácil': {
-        contestNumber: 3015,
-        nextDrawDate: '27/01/2025 - 20:00h',
-        prize: 'R$ 5.500.000'
-      },
-      'Mega-Sena': {
-        contestNumber: 2785,
-        nextDrawDate: '28/01/2025 - 20:00h',
-        prize: 'R$ 65.000.000'
-      },
-      'Quina': {
-        contestNumber: 6585,
-        nextDrawDate: '27/01/2025 - 20:00h',
-        prize: 'R$ 3.200.000'
-      },
-      'Lotomania': { // Added fallback data for Lotomania
-        contestNumber: 2650,
-        nextDrawDate: '28/01/2025 - 20:00h',
-        prize: 'R$ 8.500.000'
-      },
-      'Timemania': { // Added fallback data for Timemania
-        contestNumber: 2100,
-        nextDrawDate: '30/01/2025 - 20:00h',
-        prize: 'R$ 12.000.000'
-      },
-      'Dupla-Sena': { // Added fallback data for Dupla-Sena
-        contestNumber: 2750,
-        nextDrawDate: '28/01/2025 - 20:00h',
-        prize: 'R$ 4.200.000'
-      },
-      'Dia de Sorte': { // Added fallback data for Dia de Sorte
-        contestNumber: 960,
-        nextDrawDate: '30/01/2025 - 20:00h',
-        prize: 'R$ 800.000'
-      },
-      'Super Sete': { // Added fallback data for Super Sete
-        contestNumber: 540,
-        nextDrawDate: '31/01/2025 - 20:00h',
-        prize: 'R$ 2.300.000'
-      },
-      'Lotofácil-Independência': { // Dados fallback da Lotofácil-Independência
-        contestNumber: 2,
-        nextDrawDate: '07/09/2025 - 20:00h',
-        prize: 'R$ 5.500.000' // Mesmo valor da Lotofácil regular
+      if (response.data && response.status === 200) {
+        return this.parseOfficialLotteryInfo(response.data, displayName);
       }
-    };
 
-    return fallbackData[displayName] || {
-      contestNumber: 1000,
-      nextDrawDate: '27/01/2025 - 20:00h',
-      prize: 'R$ 1.000.000'
+      throw new Error(`Resposta inválida da API oficial para ${displayName}`);
+    } catch (error) {
+      console.error(`Erro ao buscar dados oficiais para ${displayName}:`, error);
+
+      // Tentar método alternativo - scraping do site oficial
+      try {
+        return await this.scrapeOfficialWebsite(apiName, displayName);
+      } catch (scrapeError) {
+        console.error(`Scraping também falhou para ${displayName}:`, scrapeError);
+        throw error;
+      }
+    }
+  }
+
+  private async scrapeOfficialWebsite(apiName: string, displayName: string): Promise<LotteryInfo | null> {
+    const url = `https://loterias.caixa.gov.br/wps/portal/loterias/landing/${apiName}`;
+    console.log(`🌐 Fazendo scraping do site oficial: ${url}`);
+
+    const response = await axios.get(url, {
+      timeout: this.requestTimeout,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    // Extrair informações básicas do HTML
+    const html = response.data;
+
+    // Buscar padrões de dados no HTML
+    const contestMatch = html.match(/concurso["\s]*:?\s*["\s]*(\d+)/i);
+    const prizeMatch = html.match(/R\$\s*([\d.,]+)/);
+    const dateMatch = html.match(/(\d{2}\/\d{2}\/\d{4})/);
+
+    if (contestMatch && prizeMatch) {
+      return {
+        contestNumber: parseInt(contestMatch[1]),
+        nextDrawDate: dateMatch ? `${dateMatch[1]} - 20:00h` : this.getNextDrawDate(displayName),
+        prize: `R$ ${prizeMatch[1]}`
+      };
+    }
+
+    throw new Error(`Não foi possível extrair dados do site oficial para ${displayName}`);
+  }
+
+  private parseOfficialLotteryInfo(data: any, displayName: string): LotteryInfo {
+    const contestNumber = data.numero || data.concurso || parseInt(data.nmConcurso) || 0;
+    const prize = data.valorEstimadoProximoConcurso || data.vlEstimadoProxConcurso || 0;
+    const nextDrawDate = data.dataProximoConcurso || data.dtProximoConcurso;
+
+    // Calcular próxima data de sorteio se não estiver disponível
+    const formattedDate = nextDrawDate 
+      ? this.formatDate(nextDrawDate) 
+      : this.getNextDrawDate(displayName);
+
+    return {
+      contestNumber: contestNumber + 1, // Próximo concurso
+      nextDrawDate: formattedDate,
+      prize: `R$ ${this.formatMoney(parseFloat(prize) || 0)}`
     };
   }
 
-  // Updated getAllFallbackData to include all expanded lotteries
-  private getAllFallbackData(): { [key: string]: LotteryInfo } {
-    const lotteries = ['Lotofácil', 'Mega-Sena', 'Quina', 'Lotomania', 'Timemania', 'Dupla-Sena', 'Dia de Sorte', 'Super Sete', 'Lotofácil-Independência'];
-    const result: { [key: string]: LotteryInfo } = {};
-
-    for (const lottery of lotteries) {
-      result[lottery] = this.getFallbackData(lottery);
+  private formatDate(dateString: string): string {
+    try {
+      const date = new Date(dateString);
+      return `${date.toLocaleDateString('pt-BR')} - 20:00h`;
+    } catch {
+      return dateString;
     }
-
-    return result;
   }
 
-  // Simplified sanitizeError function
-  private sanitizeError(error: any): string {
-    if (error?.message) {
-      return error.message.substring(0, 200); // Limit error message length
+  private getNextDrawDate(lotteryName: string): string {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+
+    // Cronograma oficial dos sorteios
+    const schedules: { [key: string]: number[] } = {
+      'Lotofácil': [1, 2, 3, 4, 5, 6], // Segunda a sábado
+      'Mega-Sena': [3, 6], // Quarta e sábado
+      'Quina': [1, 2, 3, 4, 5, 6], // Segunda a sábado
+      'Lotomania': [2, 5], // Terça e sexta
+      'Timemania': [2, 4, 6], // Terça, quinta e sábado
+      'Dupla-Sena': [2, 4, 6], // Terça, quinta e sábado
+      'Dia de Sorte': [2, 4, 6], // Terça, quinta e sábado
+      'Super Sete': [1, 3, 6] // Segunda, quarta e sábado
+    };
+
+    const drawDays = schedules[lotteryName] || [1, 2, 3, 4, 5, 6];
+
+    // Encontrar próximo dia de sorteio
+    let nextDate = new Date(today);
+    let daysToAdd = 1;
+
+    while (!drawDays.includes(nextDate.getDay()) && daysToAdd <= 7) {
+      nextDate.setDate(nextDate.getDate() + 1);
+      daysToAdd++;
     }
-    return 'Erro desconhecido';
+
+    return `${nextDate.toLocaleDateString('pt-BR')} - 20:00h`;
+  }
+
+  private formatMoney(value: number): string {
+    return value.toLocaleString('pt-BR', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    });
   }
 }
 

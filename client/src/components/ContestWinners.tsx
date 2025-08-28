@@ -52,9 +52,9 @@ const ContestWinners: React.FC = () => {
           });
 
           setContestData(formattedData);
-          setDataSource('Caixa Econômica Federal - Dados Oficiais');
+          setDataSource(`${result.source} (${result.responseTime})`);
           setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
-          console.log('✅ Dados oficiais da Caixa carregados');
+          console.log(`✅ Dados oficiais da Caixa carregados - ${result.lotteriesCount} loterias em ${result.responseTime}`);
           return;
         }
       }

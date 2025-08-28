@@ -56,23 +56,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/lotteries/upcoming", async (req, res) => {
     try {
-      const now = Date.now();
-      const forceUpdate = req.query.force === 'true';
-
-      // Verificar se o cache ainda é válido
-      if (!forceUpdate && upcomingDrawsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+      if (upcomingDrawsCache) {
         return res.json(upcomingDrawsCache);
       }
 
-      // Atualizar cache
-      const upcoming = await lotteryService.getUpcomingDraws();
-      upcomingDrawsCache = upcoming;
-      cacheTimestamp = now;
+      console.log('🔄 Buscando informações oficiais dos próximos sorteios...');
+      const startTime = Date.now();
 
-      res.json(upcoming);
+      const officialData = await webScrapingService.getLotteryInfo();
+      const endTime = Date.now();
+
+      upcomingDrawsCache = officialData;
+
+      console.log(`✅ Próximos sorteios obtidos em ${endTime - startTime}ms`);
+
+      // Cache por 5 minutos para dados mais atualizados
+      setTimeout(() => {
+        upcomingDrawsCache = null;
+      }, 5 * 60 * 1000);
+
+      res.json(officialData);
     } catch (error) {
-      console.error("Error fetching upcoming draws:", error);
-      res.status(500).json({ message: "Failed to fetch upcoming draws" });
+      console.error("❌ Erro ao buscar próximos sorteios oficiais:", error);
+      res.status(500).json({ 
+        message: "Falha ao obter dados oficiais dos próximos sorteios",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 
