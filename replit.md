@@ -6,6 +6,12 @@ This is a Brazilian lottery analysis application called "Shark Loto 💵" that u
 
 Preferred communication style: Simple, everyday language.
 
+## Interface Preferences
+- All number generation strategy checkboxes (hot, cold, mixed) should be unchecked by default
+- Users should have full control over which strategies to use
+- No "Random Mode Activated" messages should be shown when no strategies are selected
+- Interface should remain clean and minimal without unnecessary notifications
+
 # System Architecture
 
 ## Frontend Architecture

@@ -284,12 +284,7 @@ export default function NumberGenerator({
               </div>
             </div>
             
-            {!preferences.useHot && !preferences.useCold && !preferences.useMixed && (
-              <div className="text-sm text-amber-600 bg-amber-50/50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="font-medium mb-1">🎲 Modo Aleatório Ativado</p>
-                <p>Como nenhuma estratégia foi selecionada, a IA gerará números de forma totalmente aleatória.</p>
-              </div>
-            )}
+
           </div>
 
           <Button
