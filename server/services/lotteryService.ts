@@ -26,6 +26,8 @@ export class LotteryService {
           drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
           description: 'A loteria mais fácil de ganhar',
           gameType: 'standard',
+          betValue: '3.00',
+          specialNumbers: false,
         },
         {
           name: 'Mega-Sena',
@@ -36,6 +38,8 @@ export class LotteryService {
           drawDays: JSON.stringify(['Quarta', 'Sábado']),
           description: 'A maior premiação do Brasil',
           gameType: 'standard',
+          betValue: '5.00',
+          specialNumbers: false,
         },
         {
           name: 'Quina',
@@ -46,6 +50,8 @@ export class LotteryService {
           drawDays: JSON.stringify(['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']),
           description: 'Cinco números para a sorte',
           gameType: 'standard',
+          betValue: '2.50',
+          specialNumbers: false,
         },
       ];
 
@@ -140,9 +146,9 @@ export class LotteryService {
     });
 
     // Update frequency data in database
-    for (const [number, frequency] of frequencyMap) {
+    frequencyMap.forEach(async (frequency, number) => {
       await storage.updateNumberFrequency(lotteryId, number, frequency);
-    }
+    });
   }
 
   async getNumberAnalysis(lotteryId: number): Promise<{

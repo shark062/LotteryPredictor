@@ -113,7 +113,7 @@ export default function Home() {
                   <LotteryCard
                     key={lottery.id}
                     lottery={lottery}
-                    upcomingDraw={upcomingDraws?.[lottery.name] || undefined}
+                    upcomingDraw={(upcomingDraws as any)?.[lottery.name] || undefined}
                     onSelect={() => setSelectedLottery(lottery.id)}
                     index={index}
                   />
