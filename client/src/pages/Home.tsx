@@ -16,6 +16,7 @@ import CommunityInsights from '@/components/CommunityInsights';
 import { useToast } from "@/hooks/use-toast";
 import ContestWinners from "@/components/ContestWinners";
 import NotificationSystem from "@/components/NotificationSystem";
+import PixDonationButton from "@/components/PixDonationButton";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -175,6 +176,11 @@ export default function Home() {
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+            {/* Botão PIX de Doação */}
+            <div className="animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
+              <PixDonationButton />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {lotteriesLoading || upcomingLoading ? (
                 <div className="col-span-full flex items-center justify-center py-12">
