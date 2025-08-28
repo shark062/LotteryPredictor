@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { lotteryService } from "./services/lotteryService";
@@ -7,6 +8,7 @@ import { aiService } from "./services/aiService";
 import { webScrapingService } from "./services/webScrapingService";
 import { lotteryDataService } from "./services/lotteryDataService";
 import { caixaLotteryService } from "./services/caixaLotteryService";
+import { notificationService } from "./services/notificationService";
 import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -689,5 +691,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Setup WebSocket server for real-time notifications
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('🔌 Nova conexão WebSocket estabelecida');
+
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'register') {
+          // Registrar usuário no sistema de notificações
+          notificationService.registerUser(data.userId || 'guest', ws);
+        }
+      } catch (error) {
+        console.error('Erro ao processar mensagem WebSocket:', error);
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('Erro WebSocket:', error);
+    });
+
+    ws.on('close', () => {
+      console.log('❌ Conexão WebSocket fechada');
+    });
+  });
+
+  // Iniciar sistema de notificações
+  notificationService.startPeriodicChecks();
+
+  // Endpoint para testar notificações
+  app.post('/api/notifications/test/:type', async (req, res) => {
+    try {
+      const { type } = req.params;
+      const { lottery = 'Mega-Sena', prize = 'R$ 100.000,00' } = req.body;
+
+      switch (type) {
+        case 'winner':
+          notificationService.simulateWinner(lottery);
+          break;
+        case 'draw':
+          notificationService.notifyDrawStarting(lottery, new Date(Date.now() + 5 * 60 * 1000), 2500);
+          break;
+        case 'prize':
+          notificationService.notifyPrizeUpdate(lottery, prize);
+          break;
+        default:
+          return res.status(400).json({ message: 'Tipo de notificação inválido' });
+      }
+
+      res.json({ success: true, message: `Notificação ${type} enviada para ${lottery}` });
+    } catch (error) {
+      console.error('Erro ao enviar notificação de teste:', error);
+      res.status(500).json({ message: 'Erro ao enviar notificação' });
+    }
+  });
+
+  // Status do sistema de notificações
+  app.get('/api/notifications/status', (req, res) => {
+    const status = notificationService.getStatus();
+    res.json(status);
+  });
+
   return httpServer;
 }

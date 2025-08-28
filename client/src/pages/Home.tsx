@@ -14,7 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, RefreshCw } from "lucide-react";
 import CommunityInsights from '@/components/CommunityInsights';
 import { useToast } from "@/hooks/use-toast";
-import ContestWinners from "@/components/ContestWinners"; // Import the new component
+import ContestWinners from "@/components/ContestWinners";
+import NotificationSystem from "@/components/NotificationSystem";
+import NotificationTestPanel from "@/components/NotificationTestPanel";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -222,6 +224,13 @@ export default function Home() {
                 />
               ))}
             </div>
+            
+            {/* Notification Test Panel - Only in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-6">
+                <NotificationTestPanel />
+              </div>
+            )}
           </TabsContent>
 
           {/* Generator */}
@@ -293,6 +302,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      
+      {/* Notification System - Real-time notifications and celebrations */}
+      <NotificationSystem userId={user?.id || 'guest'} />
     </div>
   );
 }
