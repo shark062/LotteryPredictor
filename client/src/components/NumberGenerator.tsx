@@ -90,8 +90,12 @@ export default function NumberGenerator({
 
   const saveGameMutation = useMutation({
     mutationFn: async () => {
-      if (generatedNumbers.length === 0) {
+      if (!generatedNumbers || generatedNumbers.length === 0) {
         throw new Error("Nenhum jogo para salvar");
+      }
+
+      if (!selectedLotteryData) {
+        throw new Error("Modalidade de loteria não selecionada");
       }
 
       const savedGames = [];
@@ -100,38 +104,67 @@ export default function NumberGenerator({
       for (let i = 0; i < generatedNumbers.length; i++) {
         const game = generatedNumbers[i];
         
-        if (!Array.isArray(game) || game.length === 0) {
-          throw new Error(`Jogo ${i + 1} inválido: números não encontrados`);
+        // Validações mais robustas
+        if (!game || !Array.isArray(game) || game.length === 0) {
+          throw new Error(`Jogo ${i + 1} inválido: números não encontrados ou formato incorreto`);
         }
 
-        // Validar números do jogo
-        const invalidNumbers = game.filter(num => 
-          typeof num !== 'number' || 
-          num < 1 || 
-          (selectedLotteryData && num > selectedLotteryData.maxNumber)
+        // Validar se todos os elementos são números válidos
+        const validNumbers = game.filter(num => 
+          typeof num === 'number' && 
+          !isNaN(num) && 
+          num >= 1 && 
+          num <= selectedLotteryData.maxNumber
         );
 
-        if (invalidNumbers.length > 0) {
+        if (validNumbers.length !== game.length) {
+          const invalidNumbers = game.filter(num => 
+            typeof num !== 'number' || 
+            isNaN(num) || 
+            num < 1 || 
+            num > selectedLotteryData.maxNumber
+          );
           throw new Error(`Jogo ${i + 1} contém números inválidos: ${invalidNumbers.join(', ')}`);
         }
 
+        // Verificar se a quantidade de números está correta
+        if (validNumbers.length < selectedLotteryData.minNumbers || validNumbers.length > selectedLotteryData.maxNumbers) {
+          throw new Error(`Jogo ${i + 1} deve ter entre ${selectedLotteryData.minNumbers} e ${selectedLotteryData.maxNumbers} números`);
+        }
+
         try {
-          const response = await apiRequest('POST', '/api/games', {
+          // Garantir que os números estão ordenados e únicos
+          const uniqueSortedNumbers = [...new Set(validNumbers)].sort((a, b) => a - b);
+          
+          const gameData = {
             lotteryId: selectedLottery,
-            numbers: JSON.stringify(game),
+            numbers: JSON.stringify(uniqueSortedNumbers),
             isPlayed: false,
-          });
+            contestNumber: null
+          };
+
+          console.log(`Salvando jogo ${i + 1}:`, gameData);
+
+          const response = await apiRequest('POST', '/api/games', gameData);
 
           if (!response.ok) {
-            const errorData = await response.json();
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { message: errorText || `Erro HTTP ${response.status}` };
+            }
             throw new Error(errorData.message || `Erro ao salvar jogo ${i + 1}`);
           }
 
           const savedGame = await response.json();
           savedGames.push(savedGame);
           
+          console.log(`✅ Jogo ${i + 1} salvo com sucesso:`, savedGame);
+          
         } catch (saveError) {
-          console.error(`Erro ao salvar jogo ${i + 1}:`, saveError);
+          console.error(`❌ Erro ao salvar jogo ${i + 1}:`, saveError);
           throw new Error(`Falha ao salvar jogo ${i + 1}: ${saveError instanceof Error ? saveError.message : 'Erro desconhecido'}`);
         }
       }
@@ -145,9 +178,14 @@ export default function NumberGenerator({
         description: `Jogos de ${selectedLotteryData?.name} salvos com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      
+      // Limpar números gerados após salvar com sucesso
+      setTimeout(() => {
+        setShowConfetti(false);
+      }, 3000);
     },
     onError: (error: any) => {
-      console.error("Erro detalhado ao salvar:", error);
+      console.error("❌ Erro detalhado ao salvar:", error);
       toast({
         title: "Erro ao salvar jogos",
         description: error.message || "Ocorreu um erro desconhecido ao salvar os jogos",

@@ -496,12 +496,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const user = await authenticate(req, res);
-      if (!user) return;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
       const { lotteryId, numbers, isPlayed, contestNumber } = req.body;
 
+      console.log('📥 Recebendo dados do jogo:', { lotteryId, numbers, isPlayed, contestNumber });
+
       // Validação mais robusta
-      if (!lotteryId || !numbers) {
+      if (!lotteryId || numbers === undefined || numbers === null) {
+        console.log('❌ Campos obrigatórios ausentes');
         return res.status(400).json({ message: "Missing required fields: lotteryId and numbers are required" });
       }
 
@@ -509,21 +514,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let parsedNumbers;
       try {
         parsedNumbers = typeof numbers === 'string' ? JSON.parse(numbers) : numbers;
-        if (!Array.isArray(parsedNumbers) || parsedNumbers.length === 0) {
-          throw new Error('Numbers must be a non-empty array');
+        
+        if (!Array.isArray(parsedNumbers)) {
+          throw new Error('Numbers must be an array');
         }
+        
+        if (parsedNumbers.length === 0) {
+          throw new Error('Numbers array cannot be empty');
+        }
+
+        // Validar se todos os elementos são números
+        const nonNumbers = parsedNumbers.filter(num => typeof num !== 'number' || isNaN(num));
+        if (nonNumbers.length > 0) {
+          throw new Error(`Invalid number types found: ${nonNumbers.join(', ')}`);
+        }
+
       } catch (parseError) {
-        return res.status(400).json({ message: "Invalid numbers format. Must be a valid JSON array." });
+        console.log('❌ Erro ao processar números:', parseError);
+        return res.status(400).json({ 
+          message: `Invalid numbers format: ${parseError instanceof Error ? parseError.message : 'Must be a valid JSON array of numbers'}` 
+        });
       }
 
       // Validar se a loteria existe
-      const lottery = await storage.getLotteryById(parseInt(lotteryId));
+      const parsedLotteryId = parseInt(String(lotteryId));
+      if (isNaN(parsedLotteryId)) {
+        return res.status(400).json({ message: "Invalid lottery ID format" });
+      }
+
+      const lottery = await storage.getLotteryById(parsedLotteryId);
       if (!lottery) {
+        console.log('❌ Loteria não encontrada:', parsedLotteryId);
         return res.status(404).json({ message: "Lottery not found" });
       }
 
       // Validar quantidade de números
       if (parsedNumbers.length < lottery.minNumbers || parsedNumbers.length > lottery.maxNumbers) {
+        console.log('❌ Quantidade de números inválida:', parsedNumbers.length);
         return res.status(400).json({ 
           message: `Invalid number count. Must be between ${lottery.minNumbers} and ${lottery.maxNumbers} for ${lottery.name}` 
         });
@@ -532,30 +559,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validar se todos os números estão no range válido
       const invalidNumbers = parsedNumbers.filter((num: number) => num < 1 || num > lottery.maxNumber);
       if (invalidNumbers.length > 0) {
+        console.log('❌ Números fora do range:', invalidNumbers);
         return res.status(400).json({ 
           message: `Invalid numbers: ${invalidNumbers.join(', ')}. Numbers must be between 1 and ${lottery.maxNumber}` 
         });
       }
 
-      const game = await storage.createUserGame({
+      // Verificar duplicatas
+      const uniqueNumbers = [...new Set(parsedNumbers)];
+      if (uniqueNumbers.length !== parsedNumbers.length) {
+        return res.status(400).json({ 
+          message: "Duplicate numbers are not allowed" 
+        });
+      }
+
+      // Ordenar números antes de salvar
+      const sortedNumbers = uniqueNumbers.sort((a, b) => a - b);
+
+      const gameData = {
         userId: user.id,
-        lotteryId: parseInt(lotteryId),
-        numbers: JSON.stringify(parsedNumbers), // Garantir que é string JSON válida
+        lotteryId: parsedLotteryId,
+        numbers: JSON.stringify(sortedNumbers),
         isPlayed: Boolean(isPlayed),
         contestNumber: contestNumber || null,
-      });
+      };
 
-      console.log(`✅ Jogo salvo: ${lottery.name} - ${parsedNumbers.length} números - Usuário: ${user.id}`);
+      console.log('💾 Salvando jogo:', gameData);
+
+      const game = await storage.createUserGame(gameData);
+
+      console.log(`✅ Jogo salvo com sucesso: ID ${game.id} - ${lottery.name} - ${sortedNumbers.length} números - Usuário: ${user.id}`);
 
       res.json({
         ...game,
-        message: `Jogo de ${lottery.name} salvo com sucesso!`
+        message: `Jogo de ${lottery.name} salvo com sucesso!`,
+        parsedNumbers: sortedNumbers
       });
+      
     } catch (error) {
-      console.error("Error creating game:", error);
+      console.error("❌ Erro ao criar jogo:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ 
         message: "Failed to create game", 
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   });
