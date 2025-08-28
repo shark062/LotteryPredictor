@@ -84,6 +84,51 @@ export class LotteryDataService {
         drawDays: JSON.stringify(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']),
         description: 'Escolha de 5 a 15 números entre 1 e 80.',
         gameType: 'standard'
+      },
+      'Lotomania': {
+        slug: 'lotomania',
+        maxNumber: 100,
+        minNumbers: 50,
+        maxNumbers: 50,
+        drawDays: JSON.stringify(['terca', 'sexta']),
+        description: 'Escolha 50 números entre 1 e 100. Pode apostar com 50 ou 60 números.',
+        gameType: 'standard'
+      },
+      'Timemania': {
+        slug: 'timemania',
+        maxNumber: 80,
+        minNumbers: 10,
+        maxNumbers: 10,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha 10 números entre 1 e 80 + seu time do coração.',
+        gameType: 'standard'
+      },
+      'Dupla-Sena': {
+        slug: 'dupla-sena',
+        maxNumber: 50,
+        minNumbers: 6,
+        maxNumbers: 15,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha de 6 a 15 números entre 1 e 50. Dois sorteios por concurso!',
+        gameType: 'standard'
+      },
+      'Dia de Sorte': {
+        slug: 'dia-de-sorte',
+        maxNumber: 31,
+        minNumbers: 7,
+        maxNumbers: 15,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha de 7 a 15 números entre 1 e 31 + mês da sorte.',
+        gameType: 'standard'
+      },
+      'Super Sete': {
+        slug: 'super-sete',
+        maxNumber: 10,
+        minNumbers: 7,
+        maxNumbers: 21,
+        drawDays: JSON.stringify(['segunda', 'quarta', 'sexta']),
+        description: 'Escolha 7 colunas com números de 0 a 9 em cada uma.',
+        gameType: 'standard'
       }
     };
 
@@ -135,11 +180,73 @@ export class LotteryDataService {
         gameType: 'standard',
         betValue: '2.50',
         specialNumbers: false
+      },
+      {
+        name: 'Lotomania',
+        slug: 'lotomania',
+        maxNumber: 100,
+        minNumbers: 50,
+        maxNumbers: 50,
+        drawDays: JSON.stringify(['terca', 'sexta']),
+        description: 'Escolha 50 números entre 1 e 100. Pode apostar com 50 ou 60 números.',
+        gameType: 'standard',
+        betValue: '3.00',
+        specialNumbers: false
+      },
+      {
+        name: 'Timemania',
+        slug: 'timemania',
+        maxNumber: 80,
+        minNumbers: 10,
+        maxNumbers: 10,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha 10 números entre 1 e 80 + seu time do coração.',
+        gameType: 'standard',
+        betValue: '3.50',
+        specialNumbers: true
+      },
+      {
+        name: 'Dupla-Sena',
+        slug: 'dupla-sena',
+        maxNumber: 50,
+        minNumbers: 6,
+        maxNumbers: 15,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha de 6 a 15 números entre 1 e 50. Dois sorteios por concurso!',
+        gameType: 'standard',
+        betValue: '2.50',
+        specialNumbers: false
+      },
+      {
+        name: 'Dia de Sorte',
+        slug: 'dia-de-sorte',
+        maxNumber: 31,
+        minNumbers: 7,
+        maxNumbers: 15,
+        drawDays: JSON.stringify(['terca', 'quinta', 'sabado']),
+        description: 'Escolha de 7 a 15 números entre 1 e 31 + mês da sorte.',
+        gameType: 'standard',
+        betValue: '2.00',
+        specialNumbers: true
+      },
+      {
+        name: 'Super Sete',
+        slug: 'super-sete',
+        maxNumber: 10,
+        minNumbers: 7,
+        maxNumbers: 21,
+        drawDays: JSON.stringify(['segunda', 'quarta', 'sexta']),
+        description: 'Escolha 7 colunas com números de 0 a 9 em cada uma.',
+        gameType: 'standard',
+        betValue: '2.50',
+        specialNumbers: false
       }
     ];
 
+    console.log('Criando todas as 8 loterias brasileiras...');
     for (const lottery of allLotteries) {
       await storage.createLottery(lottery);
+      console.log(`✅ ${lottery.name} criada no banco de dados`);
     }
   }
 

@@ -241,17 +241,37 @@ export default function LotteryCard({ lottery, onSelect, index = 0 }: LotteryCar
             </span>
           </div>
 
-          {/* Estimated prize */}
+          {/* Estimated prize - DESTACADO */}
           <div
             className={`
-              text-sm text-muted-foreground transition-all duration-300
-              ${isHovered ? 'text-cyan-200/70' : ''}
+              p-3 rounded-lg bg-gradient-to-r from-green-500/20 to-yellow-500/20 
+              border border-green-500/30 mb-3
+              transition-all duration-500 ease-out
+              ${isHovered ? 'scale-105 shadow-lg shadow-green-500/25 bg-gradient-to-r from-green-500/30 to-yellow-500/30' : 'scale-100'}
             `}
           >
-            {lotteryData?.prize || formatPrize(lottery.estimatedPrize)}
-            {lotteryData?.accumulated && (
-              <span className="text-orange-500 font-semibold ml-2">💰 Acumulado</span>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-green-300 uppercase tracking-wider">
+                Prêmio Estimado
+              </span>
+              {lotteryData?.accumulated && (
+                <span className="text-orange-400 font-bold text-xs px-2 py-1 bg-orange-500/20 rounded-full animate-pulse">
+                  💰 ACUMULOU
+                </span>
+              )}
+            </div>
+            <div 
+              className={`
+                text-2xl font-bold text-white mt-1 tracking-tight
+                transition-all duration-300
+                ${isHovered ? 'text-green-300 scale-105' : 'text-green-200'}
+              `}
+            >
+              {lotteryData?.prize || formatPrize(lottery.estimatedPrize)}
+            </div>
+            <div className="text-xs text-green-400/80 mt-1">
+              Próximo sorteio • {lotteryData?.nextDrawDate ? formatDate(lotteryData.nextDrawDate) : formatDate(lottery.nextDrawDate)}
+            </div>
           </div>
 
           {/* Last result */}
