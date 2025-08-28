@@ -1,5 +1,5 @@
 
-import axios from 'axios';
+import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 import * as cheerio from 'cheerio';
 
 interface LotteryDrawInfo {
@@ -12,10 +12,16 @@ interface LotteryDrawInfo {
 
 export class WebScrapingService {
   private static instance: WebScrapingService;
-  private baseUrl = 'https://loterica-nova.com.br';
-  private requestTimeout = 10000; // 10 segundos
-  private maxRetries = 3;
-  private retryDelay = 2000; // 2 segundos
+  private readonly baseUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
+  private readonly fallbackUrl = 'https://loterias.caixa.gov.br/api';
+  private readonly requestTimeout = 15000; // 15 segundos
+  private readonly maxRetries = 3;
+  private readonly retryDelay = 2000; // 2 segundos
+  private readonly userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+  private constructor() {
+    // Singleton pattern - construtor privado
+  }
 
   public static getInstance(): WebScrapingService {
     if (!WebScrapingService.instance) {
@@ -25,89 +31,112 @@ export class WebScrapingService {
   }
 
   async getLotteryInfo(): Promise<{ [key: string]: LotteryDrawInfo }> {
-    const results: { [key: string]: LotteryDrawInfo } = {};
-    
     try {
-      console.log('Tentando buscar dados da Lotérica Nova...');
+      console.log('Iniciando busca de dados das loterias...');
       
-      const response = await this.makeRequestWithRetry();
-      
-      if (!response || response.status !== 200) {
-        console.log('Falha na requisição, usando dados fallback');
-        return this.getAllFallbackData();
-      }
-
-      const $ = cheerio.load(response.data);
-      
-      // Extrair dados das loterias principais
+      const results: { [key: string]: LotteryDrawInfo } = {};
       const lotteryMappings = {
         'Lotofácil': 'lotofacil',
-        'Mega-Sena': 'mega-sena', 
+        'Mega-Sena': 'megasena', 
         'Quina': 'quina'
       };
 
       let successCount = 0;
 
-      for (const [displayName, slug] of Object.entries(lotteryMappings)) {
+      for (const [displayName, apiName] of Object.entries(lotteryMappings)) {
         try {
-          const data = await this.extractLotteryData($, displayName);
+          const data = await this.fetchLotteryData(apiName, displayName);
           if (data) {
             results[displayName] = data;
             successCount++;
+            console.log(`✓ ${displayName}: dados obtidos com sucesso`);
           } else {
             results[displayName] = this.getFallbackData(displayName);
+            console.log(`⚠ ${displayName}: usando dados fallback`);
           }
         } catch (error) {
-          console.error(`Erro ao extrair dados da ${displayName}:`, error);
+          console.error(`Erro ao buscar ${displayName}:`, this.sanitizeError(error));
           results[displayName] = this.getFallbackData(displayName);
         }
       }
 
       if (successCount === 0) {
-        console.log('Nenhum dado real foi extraído, usando fallback completo');
+        console.log('Nenhum dado real obtido, retornando fallback completo');
         return this.getAllFallbackData();
       }
 
-      console.log(`Dados extraídos com sucesso: ${successCount}/${Object.keys(lotteryMappings).length} loterias`);
+      console.log(`Busca concluída: ${successCount}/${Object.keys(lotteryMappings).length} loterias atualizadas`);
       return results;
 
     } catch (error: any) {
-      console.error('Erro no web scraping:', this.sanitizeError(error));
+      console.error('Erro geral no serviço de web scraping:', this.sanitizeError(error));
       return this.getAllFallbackData();
     }
   }
 
-  private async makeRequestWithRetry(): Promise<any> {
+  private async fetchLotteryData(apiName: string, displayName: string): Promise<LotteryDrawInfo | null> {
+    try {
+      // Tentar API oficial da Caixa primeiro
+      let response = await this.makeApiRequest(`${this.baseUrl}/${apiName}`);
+      
+      // Se falhar, tentar URL alternativa
+      if (!response || !this.isValidResponse(response)) {
+        response = await this.makeApiRequest(`${this.fallbackUrl}/${apiName}`);
+      }
+
+      if (!response || !this.isValidResponse(response)) {
+        console.log(`API indisponível para ${displayName}`);
+        return null;
+      }
+
+      return this.parseApiResponse(response.data, displayName);
+
+    } catch (error) {
+      console.error(`Erro ao buscar dados da API para ${displayName}:`, this.sanitizeError(error));
+      return null;
+    }
+  }
+
+  private async makeApiRequest(url: string): Promise<AxiosResponse | null> {
     let lastError: any;
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await axios.get(this.baseUrl, {
+        const config: AxiosRequestConfig = {
           timeout: this.requestTimeout,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'User-Agent': this.userAgent,
+            'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'DNT': '1',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site'
           },
           validateStatus: (status) => status >= 200 && status < 500,
-          maxRedirects: 5
-        });
+          maxRedirects: 3,
+          // Configurações de segurança
+          maxContentLength: 10 * 1024 * 1024, // 10MB max
+          maxBodyLength: 10 * 1024 * 1024, // 10MB max
+          decompress: true
+        };
 
-        if (response.status === 200) {
-          console.log(`Requisição bem-sucedida na tentativa ${attempt}`);
+        const response = await axios.get(url, config);
+
+        if (response.status === 200 && response.data) {
+          console.log(`✓ Requisição bem-sucedida na tentativa ${attempt} para: ${this.sanitizeUrl(url)}`);
           return response;
         }
         
-        throw new Error(`Status HTTP: ${response.status}`);
+        throw new Error(`Status HTTP inválido: ${response.status}`);
 
       } catch (error: any) {
         lastError = error;
-        console.error(`Tentativa ${attempt}/${this.maxRetries} falhou:`, this.sanitizeError(error));
+        console.error(`Tentativa ${attempt}/${this.maxRetries} falhou para ${this.sanitizeUrl(url)}:`, this.sanitizeError(error));
 
         if (attempt < this.maxRetries) {
           const delay = this.retryDelay * attempt;
@@ -120,210 +149,129 @@ export class WebScrapingService {
     throw lastError;
   }
 
-  private async extractLotteryData($: cheerio.CheerioAPI, lotteryName: string): Promise<LotteryDrawInfo | null> {
-    try {
-      // Normalizar nome da loteria para busca
-      const normalizedName = this.normalizeLotteryName(lotteryName);
-      
-      // Múltiplos seletores para encontrar dados
-      const selectors = [
-        `h3:contains("${lotteryName}")`,
-        `h2:contains("${lotteryName}")`,
-        `*:contains("${normalizedName}")`,
-        `.lottery-name:contains("${lotteryName}")`,
-        `[data-lottery="${lotteryName.toLowerCase()}"]`
-      ];
+  private isValidResponse(response: AxiosResponse): boolean {
+    return response && 
+           response.status === 200 && 
+           response.data && 
+           typeof response.data === 'object' &&
+           !Array.isArray(response.data);
+  }
 
-      let lotterySection: cheerio.Cheerio<any> = $();
-      
-      for (const selector of selectors) {
-        lotterySection = $(selector).first();
-        if (lotterySection.length > 0) break;
-      }
-      
-      if (lotterySection.length === 0) {
-        console.log(`Seção da ${lotteryName} não encontrada`);
+  private parseApiResponse(data: any, displayName: string): LotteryDrawInfo | null {
+    try {
+      if (!data || typeof data !== 'object') {
         return null;
       }
 
-      const container = lotterySection.closest('div, section, article, .card, .lottery-item');
-      
-      // Extrair dados com validação
-      const contestNumber = this.extractContestNumber(container);
-      const prize = this.extractPrize(container);
-      const nextDrawDate = this.extractNextDrawDate(container);
+      // Estrutura comum das APIs da Caixa
+      const contestNumber = this.extractNumber(data.numero || data.concurso || data.contest, 1000, 99999);
+      const prize = this.formatPrize(data.valorEstimadoProximoConcurso || data.estimatedPrize || 'R$ 1.000.000,00');
+      const drawDate = this.formatDate(data.dataProximoConcurso || data.nextDrawDate);
 
-      const result = {
-        name: lotteryName,
-        contestNumber: contestNumber || this.getDefaultContestNumber(lotteryName),
-        prize: prize || this.getDefaultPrize(lotteryName),
+      if (!contestNumber) {
+        console.log(`Número do concurso inválido para ${displayName}`);
+        return null;
+      }
+
+      return {
+        name: displayName,
+        contestNumber,
+        prize,
         date: new Date().toLocaleDateString('pt-BR'),
-        nextDrawDate: nextDrawDate || this.getDefaultNextDrawDate(lotteryName)
+        nextDrawDate: drawDate || this.getDefaultNextDrawDate(displayName)
       };
 
-      console.log(`Dados extraídos para ${lotteryName}:`, result);
-      return result;
-
     } catch (error) {
-      console.error(`Erro ao processar ${lotteryName}:`, this.sanitizeError(error));
+      console.error(`Erro ao processar resposta da API para ${displayName}:`, this.sanitizeError(error));
       return null;
     }
   }
 
-  private extractContestNumber(container: cheerio.Cheerio<any>): number | null {
+  private extractNumber(value: any, min: number = 0, max: number = Number.MAX_SAFE_INTEGER): number | null {
     try {
-      if (!container.length) return null;
-
-      const patterns = [
-        /concurso[:\s#]*(\d+)/i,
-        /contest[:\s#]*(\d+)/i,
-        /n[°º]?[:\s]*(\d+)/i,
-        /sorteio[:\s#]*(\d+)/i,
-        /(\d{4,5})/g // Números de 4-5 dígitos
-      ];
-
-      const text = container.text().replace(/\s+/g, ' ').trim();
+      if (typeof value === 'number' && !isNaN(value) && value >= min && value <= max) {
+        return Math.floor(value);
+      }
       
-      for (const pattern of patterns) {
-        const matches = text.match(pattern);
-        if (matches) {
-          for (const match of matches) {
-            const numberMatch = match.match(/(\d+)/);
-            if (numberMatch) {
-              const num = parseInt(numberMatch[1]);
-              if (num >= 1000 && num <= 99999) { // Validação mais rigorosa
-                return num;
-              }
-            }
-          }
+      if (typeof value === 'string') {
+        const parsed = parseInt(value, 10);
+        if (!isNaN(parsed) && parsed >= min && parsed <= max) {
+          return parsed;
         }
       }
       
       return null;
-    } catch (error) {
-      console.error('Erro ao extrair número do concurso:', error);
+    } catch {
       return null;
     }
   }
 
-  private extractPrize(container: cheerio.Cheerio<any>): string | null {
+  private formatPrize(prizeValue: any): string {
     try {
-      if (!container.length) return null;
-
-      const text = container.text().replace(/\s+/g, ' ').trim();
+      if (!prizeValue) return 'R$ 1.000.000,00';
       
-      // Padrões mais específicos para valores monetários
-      const patterns = [
-        /R\$\s*[\d.,]+(?:\s*(?:milhão|milhões|mil|bilhão|bilhões))?/gi,
-        /[\d.,]+\s*(?:milhão|milhões|mil|bilhão|bilhões)\s*(?:de\s*)?(?:reais)?/gi,
-        /prêmio[:\s]*R\$\s*[\d.,]+/gi,
-        /valor[:\s]*R\$\s*[\d.,]+/gi
-      ];
-
-      for (const pattern of patterns) {
-        const matches = text.match(pattern);
-        if (matches && matches.length > 0) {
-          // Pegar o primeiro match válido
-          const prizeText = matches[0].trim();
-          if (this.isValidPrize(prizeText)) {
-            return this.formatPrize(prizeText);
-          }
-        }
+      const prizeStr = String(prizeValue);
+      
+      // Se já está formatado corretamente
+      if (/^R\$\s*[\d.,]+$/.test(prizeStr)) {
+        return prizeStr;
       }
       
-      return null;
-    } catch (error) {
-      console.error('Erro ao extrair prêmio:', error);
-      return null;
+      // Extrair apenas números
+      const numbers = prizeStr.replace(/[^\d]/g, '');
+      if (!numbers) return 'R$ 1.000.000,00';
+      
+      const value = parseInt(numbers, 10);
+      if (isNaN(value) || value <= 0) return 'R$ 1.000.000,00';
+      
+      // Formatar como moeda brasileira
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2
+      }).format(value);
+      
+    } catch {
+      return 'R$ 1.000.000,00';
     }
   }
 
-  private extractNextDrawDate(container: cheerio.Cheerio<any>): string | null {
+  private formatDate(dateValue: any): string | null {
     try {
-      if (!container.length) return null;
-
-      const text = container.text().replace(/\s+/g, ' ').trim();
+      if (!dateValue) return null;
       
-      // Padrões para datas
-      const patterns = [
-        /(\d{1,2}\/\d{1,2}\/\d{4})/g,
-        /(\d{1,2}-\d{1,2}-\d{4})/g,
-        /(segunda|terça|quarta|quinta|sexta|sábado|domingo)[\s\-,]*(\d{1,2}\/\d{1,2}(?:\/\d{4})?)/gi,
-        /próximo[:\s]*(segunda|terça|quarta|quinta|sexta|sábado|domingo)/gi
-      ];
-
-      for (const pattern of patterns) {
-        const matches = text.match(pattern);
-        if (matches && matches.length > 0) {
-          const dateStr = matches[0].trim();
-          if (this.isValidDate(dateStr)) {
-            return this.formatDate(dateStr);
-          }
-        }
-      }
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return null;
       
-      return null;
-    } catch (error) {
-      console.error('Erro ao extrair data do sorteio:', error);
+      return date.toLocaleDateString('pt-BR') + ' - 20:00h';
+    } catch {
       return null;
     }
-  }
-
-  private normalizeLotteryName(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9\s]/g, '') // Remove caracteres especiais
-      .trim();
-  }
-
-  private isValidPrize(prizeText: string): boolean {
-    // Verificar se contém números e moeda
-    return /R\$.*\d/.test(prizeText) && !/0+$/.test(prizeText.replace(/[^0-9]/g, ''));
-  }
-
-  private isValidDate(dateStr: string): boolean {
-    // Verificações básicas de formato de data
-    return /\d{1,2}[\/\-]\d{1,2}/.test(dateStr) || 
-           /(segunda|terça|quarta|quinta|sexta|sábado|domingo)/i.test(dateStr);
-  }
-
-  private formatPrize(prizeText: string): string {
-    // Limpar e formatar valor do prêmio
-    return prizeText.replace(/\s+/g, ' ').trim();
-  }
-
-  private formatDate(dateStr: string): string {
-    // Adicionar horário padrão se não houver
-    if (!dateStr.includes('20:00')) {
-      return `${dateStr.trim()} - 20:00h`;
-    }
-    return dateStr.trim();
   }
 
   private getFallbackData(name: string): LotteryDrawInfo {
+    const currentDate = new Date();
     const defaults: { [key: string]: Partial<LotteryDrawInfo> } = {
       'Lotofácil': {
-        contestNumber: 3018,
-        prize: 'R$ 5.500.000',
+        contestNumber: 3018 + Math.floor((currentDate.getTime() - new Date('2024-01-01').getTime()) / (1000 * 60 * 60 * 24)),
+        prize: 'R$ 5.500.000,00',
         nextDrawDate: this.getNextWeekday('segunda')
       },
       'Mega-Sena': {
-        contestNumber: 2788,
-        prize: 'R$ 65.000.000',
+        contestNumber: 2788 + Math.floor((currentDate.getTime() - new Date('2024-01-01').getTime()) / (1000 * 60 * 60 * 24 * 3)),
+        prize: 'R$ 65.000.000,00',
         nextDrawDate: this.getNextWeekday('sábado')
       },
       'Quina': {
-        contestNumber: 6588,
-        prize: 'R$ 3.200.000',
+        contestNumber: 6588 + Math.floor((currentDate.getTime() - new Date('2024-01-01').getTime()) / (1000 * 60 * 60 * 24)),
+        prize: 'R$ 3.200.000,00',
         nextDrawDate: this.getNextWeekday('segunda')
       }
     };
 
     const defaultData = defaults[name] || {
       contestNumber: 1000,
-      prize: 'R$ 1.000.000',
+      prize: 'R$ 1.000.000,00',
       nextDrawDate: this.getNextWeekday('segunda')
     };
 
@@ -331,7 +279,7 @@ export class WebScrapingService {
       name,
       contestNumber: defaultData.contestNumber!,
       prize: defaultData.prize!,
-      date: new Date().toLocaleDateString('pt-BR'),
+      date: currentDate.toLocaleDateString('pt-BR'),
       nextDrawDate: defaultData.nextDrawDate!
     };
   }
@@ -342,24 +290,6 @@ export class WebScrapingService {
       'Mega-Sena': this.getFallbackData('Mega-Sena'),
       'Quina': this.getFallbackData('Quina')
     };
-  }
-
-  private getDefaultContestNumber(name: string): number {
-    const defaults: { [key: string]: number } = {
-      'Lotofácil': 3018,
-      'Mega-Sena': 2788,
-      'Quina': 6588
-    };
-    return defaults[name] || 1000;
-  }
-
-  private getDefaultPrize(name: string): string {
-    const defaults: { [key: string]: string } = {
-      'Lotofácil': 'R$ 5.500.000',
-      'Mega-Sena': 'R$ 65.000.000',
-      'Quina': 'R$ 3.200.000'
-    };
-    return defaults[name] || 'R$ 1.000.000';
   }
 
   private getDefaultNextDrawDate(name: string): string {
@@ -392,21 +322,51 @@ export class WebScrapingService {
       targetDate.setDate(today.getDate() + daysUntilTarget);
       
       return targetDate.toLocaleDateString('pt-BR') + ' - 20:00h';
-    } catch (error) {
+    } catch {
       return new Date().toLocaleDateString('pt-BR') + ' - 20:00h';
     }
   }
 
   private sanitizeError(error: any): string {
-    if (error?.message) {
-      // Remover informações sensíveis dos erros
-      return error.message.replace(/https?:\/\/[^\s]+/g, '[URL]');
+    try {
+      if (!error) return 'Erro desconhecido';
+      
+      if (typeof error === 'string') {
+        return this.sanitizeUrl(error);
+      }
+      
+      if (error.message) {
+        return this.sanitizeUrl(String(error.message));
+      }
+      
+      if (error.code) {
+        return `Código do erro: ${error.code}`;
+      }
+      
+      return 'Erro no processamento';
+    } catch {
+      return 'Erro na sanitização';
     }
-    return String(error);
+  }
+
+  private sanitizeUrl(text: string): string {
+    try {
+      return text.replace(/https?:\/\/[^\s]+/g, '[URL]')
+                 .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+                 .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]');
+    } catch {
+      return '[DADOS_SANITIZADOS]';
+    }
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => {
+      if (ms > 0 && ms < 60000) { // Máximo 1 minuto
+        setTimeout(resolve, ms);
+      } else {
+        resolve();
+      }
+    });
   }
 }
 
