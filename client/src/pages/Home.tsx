@@ -147,13 +147,12 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
         <Tabs defaultValue="dashboard" className="space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-5 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
+          <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
             {[
               { value: 'dashboard', icon: '📊', label: 'Dashboard' },
               { value: 'generator', icon: '🎲', label: 'Gerador' },
               { value: 'heatmap', icon: '🗺️', label: 'Mapa' },
-              { value: 'results', icon: '🏆', label: 'Resultados' },
-              { value: 'history', icon: '📈', label: 'Meus Jogos' }
+              { value: 'results', icon: '🏆', label: 'Resultados' }
             ].map((tab, index) => (
               <TabsTrigger
                 key={tab.value}
@@ -257,11 +256,6 @@ export default function Home() {
           {/* Results */}
           <TabsContent value="results">
             <GameResults />
-          </TabsContent>
-
-          {/* History */}
-          <TabsContent value="history">
-            <GameResults showDetailedAnalysis={true} />
           </TabsContent>
         </Tabs>
       </main>
