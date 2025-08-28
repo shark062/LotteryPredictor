@@ -128,7 +128,7 @@ const ContestWinners: React.FC = () => {
   }, []);
 
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-cyan-500/30">
         <CardHeader className="pb-4">
@@ -166,7 +166,7 @@ const ContestWinners: React.FC = () => {
     );
   }
 
-  if (error || Object.keys(contestData).length === 0) {
+  if (Object.keys(contestData).length === 0) {
     return (
       <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-red-500/30">
         <CardHeader className="pb-4">
