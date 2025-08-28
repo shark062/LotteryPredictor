@@ -129,15 +129,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Timeout para evitar requisições muito longas
       const updatePromise = Promise.race([
         (async () => {
-          // Usar novo sistema inteligente de múltiplas fontes
-          await lotteryDataService.updateAllData();
-          const enrichedData = await lotteryDataService.fetchLotteryDataFromMultipleSources();
+          // Forçar atualização completa dos dados
+          await lotteryDataService.initializeLotteries();
+          const caixaData = await caixaLotteryService.getLatestResults();
           const scrapeData = await webScrapingService.getLotteryInfo();
 
           return {
-            enrichedData,
+            caixaData: Object.keys(caixaData || {}).length,
             webScrapingData: scrapeData,
-            sources: enrichedData.length + Object.keys(scrapeData).length
+            sources: Object.keys(scrapeData || {}).length
           };
         })(),
         new Promise((_, reject) => 

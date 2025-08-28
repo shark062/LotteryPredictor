@@ -176,11 +176,6 @@ export default function Home() {
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
-            {/* Botão PIX de Doação */}
-            <div className="animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
-              <PixDonationButton />
-            </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {lotteriesLoading || upcomingLoading ? (
                 <div className="col-span-full flex items-center justify-center py-12">
@@ -237,6 +232,11 @@ export default function Home() {
                   lotteryEmoji={getLotteryEmoji(lottery.name)}
                 />
               ))}
+            </div>
+
+            {/* Botão PIX de Doação - Final da Dashboard */}
+            <div className="animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
+              <PixDonationButton />
             </div>
           </TabsContent>
 
