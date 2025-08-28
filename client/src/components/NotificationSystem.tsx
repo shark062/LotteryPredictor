@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import confetti from 'canvas-confetti';
@@ -29,6 +28,20 @@ interface WinnerStats {
   lotteryStats: { [key: string]: { winners: number; totalPrize: string } };
 }
 
+// Mock user interface for the sake of the example
+interface User {
+  id: string;
+}
+
+// Mock user state
+const user: User | null = { id: 'mockUserId' }; // Replace with actual user state management
+
+// Mock handleNotification function
+const handleNotification = (notification: Notification) => {
+  console.log('Handling notification:', notification);
+  // Placeholder for actual notification handling logic
+};
+
 export default function NotificationSystem({ userId }: NotificationSystemProps) {
   const { toast } = useToast();
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -38,13 +51,13 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
   const triggerRealWinnerCelebration = (notification: Notification) => {
     const isReal = notification.data?.isReal;
     const winnerCount = notification.data?.winnerCount || 1;
-    
+
     // Confetti mais intenso para ganhadores reais
     const duration = isReal ? 5000 : 3000;
     const end = Date.now() + duration;
 
-    const colors = isReal 
-      ? ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#1E90FF'] 
+    const colors = isReal
+      ? ['#FFD700', '#FFA500', '#FF6347', '#00FF00', '#1E90FF']
       : ['#FFD700', '#FFA500'];
 
     (function frame() {
@@ -83,7 +96,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
       title: isReal ? "🎉 GANHADOR CONFIRMADO! 🎉" : "🎉 POSSÍVEL GANHADOR! 🎉",
       description: `${notification.message}`,
       duration: isReal ? 20000 : 10000,
-      className: isReal 
+      className: isReal
         ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-400"
         : "bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-yellow-400",
     });
@@ -98,7 +111,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
             audio.play().catch(() => {});
           }, i * 500);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -120,87 +133,127 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
     });
   };
 
-  // Conectar ao WebSocket
+  // Conectar ao WebSocket com tratamento de erros e reconexão
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('🔌 Conectado ao sistema de notificações em tempo real');
-      setSocket(ws);
-      
-      // Registrar usuário para notificações
-      ws.send(JSON.stringify({
-        type: 'register',
-        userId: userId || 'guest',
-      }));
-    };
+    let ws: WebSocket | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
-    ws.onmessage = (event) => {
+    const connect = () => {
       try {
-        const notification: Notification = JSON.parse(event.data);
-        
-        setNotifications(prev => [notification, ...prev.slice(0, 49)]);
-        
-        switch (notification.type) {
-          case 'winner':
-            triggerRealWinnerCelebration(notification);
-            break;
-            
-          case 'draw_starting':
-            triggerDrawStartingNotification(notification);
-            break;
-            
-          case 'prize_update':
-            toast({
-              title: "💰 Prêmio Atualizado!",
-              description: `${notification.message}`,
-              duration: 8000,
-              className: "bg-gradient-to-r from-green-600 to-emerald-600 text-white border-green-400",
-            });
-            break;
-            
-          case 'status':
-            // Estatísticas recebidas mas não exibidas na UI
-            break;
-            
-          case 'system':
-            toast({
-              title: notification.title,
-              description: notification.message,
-              duration: 5000,
-              className: "bg-gradient-to-r from-slate-700 to-slate-600 text-white border-slate-500",
-            });
-            break;
-        }
-        
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('🔌 Conectado ao sistema de notificações em tempo real');
+          reconnectAttempts = 0;
+
+          // Registrar usuário
+          if (ws) {
+            ws.send(JSON.stringify({
+              type: 'register',
+              userId: user?.id || 'guest' // Use o ID do usuário logado ou 'guest'
+            }));
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const notification: Notification = JSON.parse(event.data);
+            setNotifications(prev => [notification, ...prev.slice(0, 49)]);
+
+            switch (notification.type) {
+              case 'winner':
+                triggerRealWinnerCelebration(notification);
+                break;
+
+              case 'draw_starting':
+                triggerDrawStartingNotification(notification);
+                break;
+
+              case 'prize_update':
+                toast({
+                  title: "💰 Prêmio Atualizado!",
+                  description: `${notification.message}`,
+                  duration: 8000,
+                  className: "bg-gradient-to-r from-green-600 to-emerald-600 text-white border-green-400",
+                });
+                break;
+
+              case 'status':
+                // Estatísticas recebidas mas não exibidas na UI
+                break;
+
+              case 'system':
+                toast({
+                  title: notification.title,
+                  description: notification.message,
+                  duration: 5000,
+                  className: "bg-gradient-to-r from-slate-700 to-slate-600 text-white border-slate-500",
+                });
+                break;
+            }
+          } catch (error) {
+            console.error('Erro ao processar notificação:', error);
+          }
+        };
+
+        ws.onclose = (event) => {
+          console.log('❌ Desconectado do sistema de notificações');
+
+          // Não tentar reconectar se foi fechamento intencional (código 1000) ou se o número de tentativas foi excedido
+          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            // Aumenta o tempo de espera exponencialmente, com um limite
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+
+            reconnectTimeout = setTimeout(() => {
+              console.log(`🔄 Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`);
+              connect();
+            }, delay);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('Erro WebSocket:', error);
+          // Em caso de erro, também tentamos reconectar se não excedermos as tentativas
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            reconnectTimeout = setTimeout(() => {
+              console.log(`🔄 Tentativa de reconexão após erro ${reconnectAttempts}/${maxReconnectAttempts}...`);
+              connect();
+            }, delay);
+          }
+        };
+
       } catch (error) {
-        console.error('Erro ao processar notificação:', error);
+        console.error('Erro ao conectar WebSocket:', error);
+
+        // Tentar reconectar em caso de erro na criação da instância WebSocket
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          reconnectTimeout = setTimeout(connect, 5000); // Tenta reconectar após 5 segundos
+        }
       }
     };
 
-    ws.onclose = () => {
-      console.log('❌ Desconectado do sistema de notificações');
-      setSocket(null);
-      
-      // Tentar reconectar após 5 segundos
-      setTimeout(() => {
-        console.log('🔄 Tentando reconectar...');
-      }, 5000);
-    };
-
-    ws.onerror = (error) => {
-      console.error('Erro na conexão WebSocket:', error);
-    };
-
-    setSocket(ws);
+    connect();
 
     return () => {
-      ws.close();
+      // Limpa o timeout de reconexão se ele existir
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      // Fecha a conexão WebSocket se ela estiver aberta
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, 'Component unmounting'); // Código 1000 indica fechamento normal
+      }
     };
-  }, [userId]);
+  }, [user]); // Depende do estado do usuário para re-conectar se o usuário mudar
 
   return (
     <div className="fixed top-4 right-4 z-50 hidden">

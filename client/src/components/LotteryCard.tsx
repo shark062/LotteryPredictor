@@ -9,22 +9,52 @@ interface LotteryCardProps {
     minNumbers: number;
     maxNumbers: number;
     maxNumber: number;
-  };
-  upcomingDraw?: {
-    prize: string;
-    date: string;
-    contestNumber: number;
+    slug: string;
+    description?: string;
+    nextDrawDate?: string;
+    estimatedPrize?: string;
+    lastResult?: number[];
   };
   onSelect: () => void;
   index?: number;
 }
 
-export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0 }: LotteryCardProps) {
+export default function LotteryCard({ lottery, onSelect, index = 0 }: LotteryCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
+  // Fetch data for upcoming draws
+  const [upcomingData, setUpcomingData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Buscar dados dos próximos concursos
   useEffect(() => {
-    // Animação de entrada escalonada
+    const fetchUpcomingData = async () => {
+      try {
+        const response = await fetch('/api/lotteries/upcoming', {
+          headers: { 'Cache-Control': 'max-age=30' }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUpcomingData(data);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados dos próximos concursos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUpcomingData();
+
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(fetchUpcomingData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Animation for scaled entry
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, index * 150);
@@ -47,19 +77,50 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
     }
   };
 
-  const getLotteryGradient = (name: string) => {
-    switch (name.toLowerCase()) {
-      case 'mega-sena': return 'from-green-500/20 via-green-600/20 to-emerald-500/20';
-      case 'lotofácil': return 'from-purple-500/20 via-purple-600/20 to-violet-500/20';
-      case 'quina': return 'from-blue-500/20 via-blue-600/20 to-cyan-500/20';
-      case 'lotomania': return 'from-red-500/20 via-red-600/20 to-pink-500/20';
-      case 'timemania': return 'from-orange-500/20 via-orange-600/20 to-amber-500/20';
-      case 'dupla-sena': return 'from-indigo-500/20 via-indigo-600/20 to-purple-500/20';
-      case 'dia de sorte': return 'from-yellow-500/20 via-yellow-600/20 to-orange-500/20';
-      case 'super sete': return 'from-teal-500/20 via-teal-600/20 to-cyan-500/20';
-      default: return 'from-gray-500/20 via-gray-600/20 to-slate-500/20';
+  const formatPrize = (prize: string | undefined) => {
+    if (!prize) return "A definir";
+    return prize;
+  };
+
+  const formatDate = (date: string | undefined) => {
+    if (!date) return "Data a definir";
+    try {
+      // Melhor formatação de data
+      const dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) return date;
+
+      return dateObj.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return date;
     }
   };
+
+  // Get specific data for the current lottery
+  const getCurrentLotteryData = () => {
+    if (!upcomingData) return null;
+
+    // Map lottery names
+    const nameMapping: { [key: string]: string } = {
+      'mega-sena': 'Mega-Sena',
+      'lotofacil': 'Lotofácil',
+      'quina': 'Quina',
+      'lotomania': 'Lotomania',
+      'timemania': 'Timemania',
+      'dupla-sena': 'Dupla-Sena',
+      'dia-de-sorte': 'Dia de Sorte',
+      'super-sete': 'Super Sete'
+    };
+
+    const mappedName = nameMapping[lottery.slug] || lottery.name;
+    return upcomingData[mappedName] || null;
+  };
+
+  const lotteryData = getCurrentLotteryData();
+
 
   return (
     <Card
@@ -77,10 +138,10 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
       onMouseLeave={() => setIsHovered(false)}
       data-testid={`lottery-card-${lottery.name.toLowerCase()}`}
     >
-      {/* Efeito de brilho animado */}
+      {/* Animated glow effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-      {/* Partículas flutuantes */}
+      {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(6)].map((_, i) => (
           <div
@@ -100,8 +161,17 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         ))}
       </div>
 
-      <CardContent className="relative p-6 z-10">
-        {/* Header com ícone animado */}
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="absolute top-2 right-2 z-20">
+          <svg className="w-4 h-4 animate-spin text-cyan-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 8.015v-4.704z"></path>
+          </svg>
+        </div>
+      )}
+
+      <CardContent className="relative z-10 p-6">
+        {/* Header with animated icon */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div
@@ -131,18 +201,19 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
           </Badge>
         </div>
 
-        {/* Descrição com animação */}
+        {/* Description with animation */}
         <p
           className={`
             text-muted-foreground mb-4 transition-all duration-300
             ${isHovered ? 'text-cyan-200/80' : ''}
           `}
         >
-          {lottery.minNumbers}-{lottery.maxNumbers} números de 1 a {lottery.maxNumber}
+          {lottery.description || "Concorra aos maiores prêmios!"}
         </p>
 
-        {/* Informações do sorteio */}
+        {/* Draw information */}
         <div className="space-y-3">
+          {/* Next draw date and contest number */}
           <div className="flex items-center justify-between">
             <span
               className={`
@@ -150,13 +221,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
                 ${isHovered ? 'scale-105 text-cyan-300' : 'scale-100'}
               `}
             >
-              {upcomingDraw?.prize ? (
-                upcomingDraw.prize
-              ) : (
-                <span className="text-lg text-cyan-400/60 animate-pulse">
-                  Atualizando...
-                </span>
-              )}
+              {lotteryData?.nextDrawDate ? formatDate(lotteryData.nextDrawDate) : formatDate(lottery.nextDrawDate)}
             </span>
             <span
               className={`
@@ -164,30 +229,58 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
                 ${isHovered ? 'text-cyan-300' : ''}
               `}
             >
-              {upcomingDraw?.contestNumber ? (
-                `Concurso: ${upcomingDraw.contestNumber}`
+              {lotteryData?.contest ? (
+                `Concurso: ${lotteryData.contest}`
               ) : (
-                <span className="text-cyan-400/60">---</span>
+                lottery.nextDrawDate ? (
+                  `Concurso: ---`
+                ) : (
+                  <span className="text-cyan-400/60">---</span>
+                )
               )}
             </span>
           </div>
 
+          {/* Estimated prize */}
           <div
             className={`
               text-sm text-muted-foreground transition-all duration-300
               ${isHovered ? 'text-cyan-200/70' : ''}
             `}
           >
-            {upcomingDraw?.date ? (
-              `Próximo sorteio: ${upcomingDraw.date}`
-            ) : (
-              <span className="text-cyan-400/60 animate-pulse">
-                Buscando data...
-              </span>
+            {lotteryData?.prize || formatPrize(lottery.estimatedPrize)}
+            {lotteryData?.accumulated && (
+              <span className="text-orange-500 font-semibold ml-2">💰 Acumulado</span>
             )}
           </div>
 
-          {/* Barra de progresso animada */}
+          {/* Last result */}
+          {(lotteryData?.lastResult || lottery.lastResult) && (
+            <div className="mt-4">
+              <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+                <svg className="w-4 h-4 mr-1 text-purple-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="8" r="5"></circle><path d="M22 20c0-1.1.9-2 2-2v0a2 2 0 0 0 0-4 2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"></path></svg>
+                Último Resultado
+                {lotteryData?.lastContest && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    #{lotteryData.lastContest}
+                  </Badge>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {(lotteryData?.lastResult || lottery.lastResult || []).map((number: number, index: number) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 rounded-full text-sm font-medium"
+                  >
+                    {number.toString().padStart(2, '0')}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+
+          {/* Animated progress bar */}
           <div className="mt-4">
             <div className="w-full bg-muted/30 rounded-full h-1 overflow-hidden">
               <div
@@ -201,7 +294,7 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
           </div>
         </div>
 
-        {/* Indicador de Aprendizado Colaborativo */}
+        {/* Collaborative Learning Indicator */}
         <div className="mt-4 pt-3 border-t border-cyan-800/30">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1 text-cyan-400">
@@ -215,9 +308,17 @@ export default function LotteryCard({ lottery, upcomingDraw, onSelect, index = 0
         </div>
       </CardContent>
 
-      {/* Efeito de canto cyberpunk */}
+      {/* Cyberpunk corner effect */}
       <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-400/30 transition-all duration-300 group-hover:border-cyan-400" />
       <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-cyan-400/30 transition-all duration-300 group-hover:border-cyan-400" />
+
+      {/* Connectivity Status */}
+      <div className="absolute bottom-2 right-2 text-xs text-gray-500 flex items-center gap-1">
+        <svg className="w-3 h-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"></path><path d="M12 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path><path d="M12 14h.01"></path></svg>
+        <span>Dados oficiais CEF</span>
+        <div className={`w-2 h-2 rounded-full ${!isLoading ? 'bg-green-500' : 'bg-orange-500'} animate-pulse`} />
+        <span>{!isLoading ? 'Conectado' : 'Atualizando...'}</span>
+      </div>
     </Card>
   );
 }

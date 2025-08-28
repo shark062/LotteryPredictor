@@ -289,9 +289,9 @@ export default function Home() {
             </p>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-4xl mx-auto">
               <p className="text-sm text-yellow-200 text-center">
-                ⚠️ <strong>IMPORTANTE:</strong> O Shark Loto é uma ferramenta educacional baseada em estudos estatísticos dos números que mais saem e menos saem com frequência nas loterias. 
-                Desenvolvemos estratégias para maximizar o número de acertos e aumentar as chances de êxito nos jogos. 
-                <strong> Não garantimos premiação</strong> - os jogos de loteria são baseados em sorte e probabilidade. 
+                ⚠️ <strong>IMPORTANTE:</strong> O Shark Loto é uma ferramenta educacional baseada em estudos estatísticos dos números que mais saem e menos saem com frequência nas loterias.
+                Desenvolvemos estratégias para maximizar o número de acertos e aumentar as chances de êxito nos jogos.
+                <strong> Não garantimos premiação</strong> - os jogos de loteria são baseados em sorte e probabilidade.
                 Jogue com responsabilidade e apenas o que pode permitir-se perder.
               </p>
             </div>
@@ -303,7 +303,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      
+
       {/* Notification System - Real-time notifications and celebrations */}
       <NotificationSystem userId={user?.id || 'guest'} />
     </div>
