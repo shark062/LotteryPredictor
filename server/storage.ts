@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
     let whereCondition = eq(userGames.userId, userId);
 
     if (lotteryId) {
-      whereCondition = and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId));
+      whereCondition = and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId)) as any;
     }
 
     return await db
@@ -151,19 +151,6 @@ export class DatabaseStorage implements IStorage {
       .from(userGames)
       .where(eq(userGames.lotteryId, lotteryId))
       .orderBy(desc(userGames.createdAt));
-  }
-
-  // Criar resultado de jogo para análise
-  async createGameResult(result: {
-    userGameId: number;
-    contestId: number | null;
-    hits: number;
-    prizeValue: string;
-  }): Promise<void> {
-    await db
-      .insert(gameResults)
-      .values(result)
-      .onConflictDoNothing(); // Evitar duplicatas
   }
 
   // Game results
