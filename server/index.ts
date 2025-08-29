@@ -2,15 +2,15 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { DataCache } from "./db.js";
-import { config, platform, getSystemInfo } from "../config/environment.js";
+import { config as envConfig, platform, getSystemInfo as getEnvSystemInfo } from "../config/environment.js";
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
 // Sistema de inicialização rápida e recuperação de falhas
 const app = express();
-const PORT = config.getPort();
-const HOST = config.getHost();
+const PORT = envConfig.getPort();
+const HOST = envConfig.getHost();
 
 // Middleware básico
 app.use(express.json({ limit: '10mb' }));
@@ -22,9 +22,9 @@ const cache = new DataCache();
 // Middleware de log otimizado
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  
+
   // Reduzir logs para evitar spam
-  const skipLogging = req.path.includes('/health') || 
+  const skipLogging = req.path.includes('/health') ||
                      req.path.includes('/api/ai/status') ||
                      req.path.includes('/static') ||
                      req.path.includes('.js') ||
@@ -139,7 +139,7 @@ async function startServer() {
         try {
           res.status(status).json({
             message,
-            error: config.isDev ? err.stack : undefined
+            error: envConfig.isDev ? err.stack : undefined
           });
         } catch (responseError) {
           console.error("❌ Falha ao enviar resposta de erro:", responseError);
@@ -148,7 +148,7 @@ async function startServer() {
     });
 
     // Setup Vite em desenvolvimento ou produção
-    if (config.isDev) {
+    if (envConfig.isDev) {
       console.log('⚡ Configurando Vite para desenvolvimento...');
       const server = require('http').createServer(app);
       await setupVite(app, server);
@@ -168,11 +168,12 @@ async function startServer() {
       const uptime = StartupManager.getStatus().uptime;
       console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
       console.log(`📊 Plataforma: ${platform}`);
-      console.log(`🔧 Ambiente: ${config.isDev ? 'desenvolvimento' : 'produção'}`);
+      console.log(`🔧 Ambiente: ${envConfig.isDev ? 'desenvolvimento' : 'produção'}`);
       console.log(`⚡ Startup: ${uptime}ms`);
 
       if (platform !== 'local') {
-        console.log(`🌐 URL pública: ${getSystemInfo().publicUrl}`);
+        const systemInfo = getEnvSystemInfo();
+        console.log(`🌐 URL pública: ${systemInfo.publicUrl}`);
       }
     });
 
