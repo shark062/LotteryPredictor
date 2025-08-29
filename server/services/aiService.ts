@@ -48,10 +48,58 @@ export class AIService {
       throw new Error(`Invalid count: must be between 1 and ${lottery.maxNumbers}`);
     }
 
-    // Obter TODOS os resultados históricos para evitar repetições completas
+    // Obter TODOS os resultados históricos para análise completa
     const historicalResults = await storage.getAllResults(lotteryId);
     const drawnCombinations = new Set<string>();
-    const partialCombinations = new Map<string, number>(); // Para detectar padrões parciais
+    const partialCombinations = new Map<string, number>();
+    const numberFrequencyMap = new Map<number, number>();
+
+    // Analisar histórico completo desde o primeiro concurso
+    historicalResults.forEach(result => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      
+      // Armazenar combinações completas
+      const sortedCombo = numbers.sort((a: number, b: number) => a - b);
+      drawnCombinations.add(JSON.stringify(sortedCombo));
+      
+      // Analisar frequência de cada número
+      numbers.forEach((num: number) => {
+        numberFrequencyMap.set(num, (numberFrequencyMap.get(num) || 0) + 1);
+      });
+
+      // Analisar padrões parciais
+      for (let i = 0; i < numbers.length - 1; i++) {
+        for (let j = i + 1; j < numbers.length; j++) {
+          const pair = [numbers[i], numbers[j]].sort().join('-');
+          partialCombinations.set(pair, (partialCombinations.get(pair) || 0) + 1);
+        }
+      }
+    });
+
+    console.log(`📊 Análise histórica completa: ${historicalResults.length} concursos analisados`);
+    console.log(`🚫 ${drawnCombinations.size} combinações únicas identificadas para evitar repetição`);
+
+    // Gerar números com análise preditiva avançada
+    const generatedNumbers = await this.generateAdvancedNumbers(
+      lotteryId, 
+      count, 
+      preferences, 
+      numberFrequencyMap,
+      partialCombinations,
+      drawnCombinations
+    );
+
+    // Gerar trevos automaticamente para +Milionária
+    let clovers: number[] | undefined;
+    if (lottery.slug === 'mais-milionaria') {
+      clovers = this.generateClovers();
+      console.log(`🍀 Trevos da sorte gerados automaticamente: ${clovers.join(', ')}`);
+    }
+
+    return { 
+      numbers: generatedNumbers,
+      clovers 
+    };iais
 
     historicalResults.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers);
@@ -1403,8 +1451,266 @@ export class AIService {
     }
   }
 
-  // Métodos avançados para integração com n8n
-  async generateAdvancedStrategy(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
+  // Gerar trevos da sorte automaticamente (1 a 6)
+  private generateClovers(): number[] {
+    const clovers: number[] = [];
+    while (clovers.length < 2) {
+      const clover = Math.floor(Math.random() * 6) + 1; // 1 a 6
+      if (!clovers.includes(clover)) {
+        clovers.push(clover);
+      }
+    }
+    return clovers.sort((a, b) => a - b);
+  }
+
+  // Geração avançada com análise histórica completa
+  private async generateAdvancedNumbers(
+    lotteryId: number,
+    count: number,
+    preferences: any,
+    frequencyMap: Map<number, number>,
+    partialCombinations: Map<string, number>,
+    drawnCombinations: Set<string>
+  ): Promise<number[]> {
+    const lottery = await storage.getLotteryById(lotteryId);
+    if (!lottery) throw new Error('Lottery not found');
+
+    // Criar pool de números com scoring avançado
+    const scoredNumbers = [];
+    for (let i = 1; i <= lottery.maxNumber; i++) {
+      const frequency = frequencyMap.get(i) || 0;
+      const recentAppearances = await this.getRecentAppearances(lotteryId, i);
+      
+      // Calcular score baseado em múltiplos fatores
+      let score = 0;
+      
+      // Fator de frequência histórica (peso 30%)
+      const avgFrequency = Array.from(frequencyMap.values()).reduce((a, b) => a + b, 0) / frequencyMap.size;
+      if (preferences.useHot && frequency > avgFrequency) score += 30;
+      if (preferences.useCold && frequency < avgFrequency * 0.7) score += 25;
+      if (preferences.useMixed) score += 20;
+      
+      // Fator de ausência (peso 25%)
+      const absenceDays = await this.calculateAbsenceDays(lotteryId, i);
+      if (absenceDays > 30) score += 25;
+      else if (absenceDays < 5) score -= 10;
+      
+      // Fator de tendência matemática (peso 20%)
+      score += this.calculateMathematicalTrend(i, lottery.maxNumber);
+      
+      // Fator de distribuição equilibrada (peso 15%)
+      score += this.calculateDistributionScore(i, lottery.maxNumber, count);
+      
+      // Fator anti-padrão comum (peso 10%)
+      score -= this.calculateCommonPatternPenalty(i, partialCombinations);
+      
+      scoredNumbers.push({ number: i, score, frequency });
+    }
+
+    // Ordenar por score e aplicar diversificação
+    scoredNumbers.sort((a, b) => b.score - a.score);
+    
+    // Seleção inteligente evitando repetições
+    const selectedNumbers = await this.intelligentSelection(
+      scoredNumbers,
+      count,
+      drawnCombinations,
+      lottery.maxNumber
+    );
+
+    return selectedNumbers.sort((a, b) => a - b);
+  }
+
+  // Seleção inteligente com verificação de repetições
+  private async intelligentSelection(
+    scoredNumbers: any[],
+    count: number,
+    drawnCombinations: Set<string>,
+    maxNumber: number
+  ): Promise<number[]> {
+    const selected: number[] = [];
+    let attempts = 0;
+    const maxAttempts = 1000;
+
+    while (selected.length < count && attempts < maxAttempts) {
+      attempts++;
+      
+      // Selecionar próximo número com base no score e diversidade
+      const candidate = this.selectNextCandidate(scoredNumbers, selected);
+      if (candidate && !selected.includes(candidate)) {
+        selected.push(candidate);
+        
+        // Verificar se a combinação atual não é repetida
+        if (selected.length === count) {
+          const sortedCombo = [...selected].sort((a, b) => a - b);
+          if (drawnCombinations.has(JSON.stringify(sortedCombo))) {
+            // Combinação já sorteada, remover último número e tentar outro
+            selected.pop();
+            continue;
+          }
+        }
+      }
+    }
+
+    // Se não conseguiu gerar combinação única, aplicar variação aleatória
+    if (selected.length < count) {
+      while (selected.length < count) {
+        const randomNum = Math.floor(Math.random() * maxNumber) + 1;
+        if (!selected.includes(randomNum)) {
+          selected.push(randomNum);
+        }
+      }
+    }
+
+    return selected;
+  }
+
+  private selectNextCandidate(scoredNumbers: any[], selected: number[]): number {
+    // Filtrar números já selecionados
+    const available = scoredNumbers.filter(s => !selected.includes(s.number));
+    if (available.length === 0) return 0;
+
+    // Aplicar randomização ponderada pelos scores
+    const totalScore = available.reduce((sum, item) => sum + Math.max(0, item.score), 0);
+    let randomValue = Math.random() * totalScore;
+
+    for (const item of available) {
+      randomValue -= Math.max(0, item.score);
+      if (randomValue <= 0) {
+        return item.number;
+      }
+    }
+
+    return available[0].number;
+  }
+
+  private async getRecentAppearances(lotteryId: number, number: number): Promise<number> {
+    const recentResults = await storage.getLatestResults(lotteryId, 10);
+    return recentResults.filter(result => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      return numbers.includes(number);
+    }).length;
+  }
+
+  private async calculateAbsenceDays(lotteryId: number, number: number): Promise<number> {
+    const recentResults = await storage.getLatestResults(lotteryId, 50);
+    
+    for (let i = 0; i < recentResults.length; i++) {
+      const numbers = JSON.parse(recentResults[i].drawnNumbers);
+      if (numbers.includes(number)) {
+        return i; // Retorna quantos concursos desde a última aparição
+      }
+    }
+    
+    return 50; // Não apareceu nos últimos 50 concursos
+  }
+
+  private calculateMathematicalTrend(number: number, maxNumber: number): number {
+    let score = 0;
+    
+    // Preferência por números primos
+    if (this.isPrime(number)) score += 5;
+    
+    // Preferência por números com distribuição equilibrada
+    const position = number / maxNumber;
+    if (position > 0.2 && position < 0.8) score += 3;
+    
+    // Penalizar números muito baixos ou muito altos
+    if (number <= 3 || number >= maxNumber - 2) score -= 2;
+    
+    return score;
+  }
+
+  private calculateDistributionScore(number: number, maxNumber: number, count: number): number {
+    // Dividir em faixas e premiar distribuição equilibrada
+    const range = Math.ceil(maxNumber / 3);
+    const numberRange = Math.floor((number - 1) / range);
+    
+    // Premiar números de diferentes faixas
+    return numberRange * 2;
+  }
+
+  private calculateCommonPatternPenalty(number: number, partialCombinations: Map<string, number>): number {
+    // Penalizar números que formam pares muito frequentes
+    let penalty = 0;
+    
+    partialCombinations.forEach((frequency, pair) => {
+      const [num1, num2] = pair.split('-').map(n => parseInt(n));
+      if ((num1 === number || num2 === number) && frequency > 10) {
+        penalty += frequency * 0.1;
+      }
+    });
+    
+    return penalty;
+  }
+
+  private isPrime(num: number): boolean {
+    if (num < 2) return false;
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+      if (num % i === 0) return false;
+    }
+    return true;
+  }
+
+  // Método avançado para integração com n8n
+  async generateAdvancedStrategy(lotteryId: number, data: any, patterns: any): Promise<any> {
+    try {
+      const lottery = await storage.getLotteryById(lotteryId);
+      if (!lottery) throw new Error('Lottery not found');
+
+      // Aplicar análise de padrões avançada
+      const strategy = {
+        recommendedNumbers: await this.analyzePatterns(lotteryId, patterns),
+        confidence: this.calculateConfidence(data, patterns),
+        strategy: 'advanced_pattern_analysis',
+        factors: {
+          historicalAnalysis: true,
+          patternRecognition: true,
+          antiRepetition: true,
+          mathematicalDistribution: true
+        }
+      };
+
+      return strategy;
+    } catch (error) {
+      console.error('Erro na estratégia avançada:', error);
+      return {
+        recommendedNumbers: [],
+        confidence: 0.5,
+        strategy: 'fallback',
+        error: error.message
+      };
+    }
+  }
+
+  private async analyzePatterns(lotteryId: number, patterns: any): Promise<number[]> {
+    // Implementar análise de padrões complexa
+    const results = await storage.getLatestResults(lotteryId, 100);
+    const patternAnalysis = new Map<number, number>();
+
+    results.forEach(result => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      numbers.forEach((num: number) => {
+        patternAnalysis.set(num, (patternAnalysis.get(num) || 0) + 1);
+      });
+    });
+
+    // Retornar números com base na análise
+    return Array.from(patternAnalysis.entries())
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([num]) => num);
+  }
+
+  private calculateConfidence(data: any, patterns: any): number {
+    // Calcular confiança baseada na qualidade dos dados
+    let confidence = 0.75; // Base
+
+    if (data && Object.keys(data).length > 0) confidence += 0.1;
+    if (patterns && Object.keys(patterns).length > 0) confidence += 0.15;
+
+    return Math.min(0.98, confidence);
+  }ateAdvancedStrategy(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
     console.log(`🔮 Gerando estratégia avançada n8n para loteria ${lotteryId}`);
     
     try {

@@ -138,7 +138,16 @@ export class CaixaLotteryService {
     const isValidContest = result.contest > 0 && result.contest < 99999;
     const isValidDate = result.date && result.date.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
     const hasValidNumbers = result.drawnNumbers && result.drawnNumbers.length > 0;
-    const numbersAreValid = result.drawnNumbers.every(n => n > 0 && n <= 100);
+    
+    // Validação específica por loteria para números
+    let numbersAreValid = false;
+    if (lotteryName === 'Super Sete') {
+      // Super Sete aceita números de 0 a 9
+      numbersAreValid = result.drawnNumbers.every(n => n >= 0 && n <= 9);
+    } else {
+      // Outras loterias aceitam números de 1 a 100
+      numbersAreValid = result.drawnNumbers.every(n => n > 0 && n <= 100);
+    }
 
     // Verificar se os números fazem sentido para a loteria específica
     const expectedNumberCount = this.getExpectedNumberCount(lotteryName);
@@ -151,7 +160,9 @@ export class CaixaLotteryService {
         contest: result.contest,
         date: result.date,
         numbersCount: result.drawnNumbers?.length,
-        expectedCount: expectedNumberCount
+        expectedCount: expectedNumberCount,
+        numbersRange: lotteryName === 'Super Sete' ? '0-9' : '1-100',
+        actualNumbers: result.drawnNumbers
       });
     }
 

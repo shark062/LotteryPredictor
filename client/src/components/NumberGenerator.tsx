@@ -47,9 +47,22 @@ export default function NumberGenerator({
     queryKey: ["/api/lotteries"],
   });
 
+  // Query para análise básica
   const { data: analysisData } = useQuery({
     queryKey: ["/api/lotteries", selectedLottery, "analysis"],
     enabled: !!selectedLottery,
+  });
+
+  // Query para análise integrada completa
+  const { data: integratedAnalysis } = useQuery({
+    queryKey: ["/api/lotteries", selectedLottery, "integrated-analysis"],
+    queryFn: async () => {
+      if (!selectedLottery) return null;
+      const response = await apiRequest('GET', `/api/lotteries/${selectedLottery}/integrated-analysis`);
+      return response.json();
+    },
+    enabled: !!selectedLottery,
+    refetchInterval: 5 * 60 * 1000, // Atualizar a cada 5 minutos
   });
 
   // Atualiza o estado de análise com os dados do query

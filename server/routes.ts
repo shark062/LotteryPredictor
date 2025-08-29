@@ -318,6 +318,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Nova rota para análise integrada completa
+  app.get("/api/lotteries/:id/integrated-analysis", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.id);
+      
+      console.log(`🔄 Iniciando análise integrada para loteria ${lotteryId}...`);
+      
+      // Atualizar análise de frequência
+      await lotteryService.updateFrequencyAnalysis(lotteryId);
+      
+      // Obter análise integrada completa
+      const integratedAnalysis = await lotteryService.getIntegratedAnalysis(lotteryId);
+      
+      res.json({
+        success: true,
+        data: integratedAnalysis,
+        timestamp: new Date().toISOString(),
+        message: 'Análise integrada completa obtida com sucesso'
+      });
+      
+    } catch (error) {
+      console.error("Error fetching integrated analysis:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to fetch integrated analysis",
+        error: error.message 
+      });
+    }
+  });
+
   app.get("/api/lotteries/:id/frequencies", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);

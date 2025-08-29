@@ -733,7 +733,7 @@ export default function Home() {
                       </ul>
                     </div>
                   </div>
-                  
+
                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                     <h4 className="font-semibold text-yellow-300 mb-2 flex items-center gap-2">
                       <span>⚠️</span> Aviso Importante
