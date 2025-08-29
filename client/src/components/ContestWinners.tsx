@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -29,23 +29,11 @@ const ContestWinners: React.FC = () => {
   const [dataSource, setDataSource] = useState<string>('');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Throttle para evitar muitas requisições
-  const fetchOfficialData = useCallback(throttle(async (showUpdating = false) => {
+  // Função para buscar dados oficiais
+  const fetchOfficialData = useCallback(async (showUpdating = false) => {
     if (showUpdating) setIsUpdating(true);
 
     try {
-      const cacheKey = 'official-results';
-      const cached = memoryCache.get(cacheKey);
-      
-      if (cached) {
-        setContestData(cached);
-        setLastUpdate(new Date().toLocaleTimeString());
-        setDataSource('Cache (Tempo Real)');
-        setLoading(false);
-        setIsUpdating(false);
-        return;
-      }
-
       // Primeiro tentar buscar dados oficiais em tempo real
       const response = await fetch('/api/lotteries/official-results');
 
@@ -63,9 +51,6 @@ const ContestWinners: React.FC = () => {
               accumulated: lotteryData.accumulated
             };
           });
-          
-          // Cache por 30 segundos
-          memoryCache.set(cacheKey, formattedData, 30 * 1000);
 
           setContestData(formattedData);
           setDataSource(result.source || 'Caixa Econômica Federal');
@@ -107,7 +92,7 @@ const ContestWinners: React.FC = () => {
       setLoading(false);
       setIsUpdating(false);
     }
-  };
+  }, []);
 
   const forceUpdate = async () => {
     try {

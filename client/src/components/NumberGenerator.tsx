@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import NumberBall from "./NumberBall";
 import { Confetti } from "@/components/ui/confetti";
-import { memoryCache, debounce, throttle } from '@/lib/cdnUtils';
+// CDN utils removidos para corrigir travamento
 
 interface NumberGeneratorProps {
   selectedLottery: number;
@@ -252,89 +252,34 @@ export default function NumberGenerator({
   }, [numberCount, gameCount, selectedLotteryData, generateMutation, toast]);
 
 
-  // Memoizar função de geração com debounce
-  const memoizedGenerateNumbers = useCallback(debounce(async () => {
+  // Função de geração simplificada sem CDN
+  const regenerateNumbers = useCallback(async () => {
     if (!selectedLotteryData) return;
 
-    setIsGenerating(true);
-    setProgress(0);
-
     try {
-      const cacheKey = `generate-${selectedLotteryData.slug}-${JSON.stringify(preferences)}`;
-      const cached = memoryCache.get(cacheKey);
-
-      if (cached) {
-        setGeneratedNumbers(cached.numbers);
-        setConfidenceScore(cached.confidence);
-        setAnalysis(cached.analysis);
-        setProgress(100);
-
-        toast({
-          title: "Números Carregados do Cache! ⚡",
-          description: `Confiança: ${Math.round(cached.confidence * 100)}%`,
-        });
-
-        setTimeout(() => setProgress(0), 1000);
-        setIsGenerating(false);
-        return;
-      }
-
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 100);
-
-      // Usando apiRequest para consistência
-      const response = await apiRequest('POST', '/api/ai/generate', {
-        lotteryId: selectedLottery, // Assumindo que o backend espera lotteryId
-        preferences: {
-          ...preferences,
-          // A conversão de confiança para porcentagem pode estar no backend ou frontend, dependendo da API
-          // Se a API espera um valor de 0 a 1, mantenha como está. Se espera porcentagem, ajuste aqui ou no backend.
-          // confidence: preferences.confidence / 100
-        }
+      const response = await apiRequest('POST', '/api/ai/predict', {
+        lotteryId: selectedLottery,
+        count: parseInt(numberCount) || 0,
+        preferences,
       });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      // Verificando se a resposta é OK antes de tentar ler o JSON
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Falha na geração: ${errorText || response.statusText}`);
-      }
-
+      
       const result = await response.json();
-
-      // Cache do resultado por 2 minutos
-      memoryCache.set(cacheKey, result, 2 * 60 * 1000);
-
-      setGeneratedNumbers(result.numbers);
-      setConfidenceScore(result.confidence);
-      setAnalysis(result.analysis);
-
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-
+      setGeneratedNumbers([result.numbers]);
+      
       toast({
         title: "Números Gerados! 🎯",
-        description: `Confiança: ${Math.round(result.confidence * 100)}%`,
+        description: "Novos números gerados com sucesso",
       });
 
-    } catch (error: any) { // Adicionando tipo 'any' para o erro
+    } catch (error: any) {
       console.error('Erro ao gerar números:', error);
       toast({
         variant: "destructive",
         title: "Erro na Geração",
         description: error.message || "Falha ao gerar números. Tente novamente.",
       });
-    } finally {
-      setIsGenerating(false);
-      setTimeout(() => setProgress(0), 1000);
     }
-  }, 300), [selectedLotteryData, preferences, selectedLottery]); // Adicionado selectedLottery nas dependências
+  }, [selectedLotteryData, preferences, selectedLottery, numberCount]);
 
 
   return (
@@ -510,7 +455,7 @@ export default function NumberGenerator({
                 {saveGameMutation.isPending ? "Salvando..." : `Salvar ${generatedNumbers.length} Jogo${generatedNumbers.length > 1 ? 's' : ''}`}
               </Button>
               <Button
-                onClick={memoizedGenerateNumbers} // Chamando a função memoizada
+                onClick={regenerateNumbers}
                 variant="secondary"
                 className="hover:scale-105 transition-transform"
                 data-testid="button-regenerate"
