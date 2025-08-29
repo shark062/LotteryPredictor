@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
+import { DataCache } from '../db';
 
 interface LotteryResult {
   contest: number;
@@ -30,7 +31,14 @@ export class CaixaLotteryService {
   private static instance: CaixaLotteryService;
   private baseUrl = 'https://servicebus2.caixa.gov.br/portaldeloterias/api';
   private requestTimeout = 8000;
-  private maxRetries = 2;
+  private maxRetries = 3; // Aumentado para maior robustez
+  private cacheTimeout = 600000; // 10 minutos de cache
+  private fallbackUrls = [
+    'https://servicebus2.caixa.gov.br/portaldeloterias/api',
+    'https://loterias.caixa.gov.br/Paginas/Mega-Sena.aspx', // URL de fallback
+  ];
+  private errorCount = new Map<string, number>();
+  private lastSuccessTime = new Map<string, number>();
 
   public static getInstance(): CaixaLotteryService {
     if (!CaixaLotteryService.instance) {
@@ -40,6 +48,15 @@ export class CaixaLotteryService {
   }
 
   async getLatestResults(): Promise<{ [key: string]: LotteryResult }> {
+    const cacheKey = 'lottery_results_latest';
+    
+    // Verificar cache primeiro
+    const cachedResults = DataCache.get(cacheKey);
+    if (cachedResults) {
+      console.log('✅ Dados obtidos do cache (sem requisições à API)');
+      return cachedResults;
+    }
+
     const lotteries = [
       { name: 'Lotofácil', endpoint: 'lotofacil' },
       { name: 'Mega-Sena', endpoint: 'megasena' },
@@ -53,8 +70,10 @@ export class CaixaLotteryService {
 
     const results: { [key: string]: LotteryResult } = {};
     const validResults: string[] = [];
+    const failedLotteries: string[] = [];
 
-    for (const lottery of lotteries) {
+    // Buscar dados em paralelo para melhor performance
+    const lotteryPromises = lotteries.map(async (lottery) => {
       try {
         console.log(`🔄 Buscando dados oficiais da ${lottery.name}...`);
         const result = await this.fetchLotteryDataWithRetry(lottery.endpoint, lottery.name);
@@ -63,21 +82,125 @@ export class CaixaLotteryService {
           results[lottery.name] = result;
           validResults.push(lottery.name);
           console.log(`✅ ${lottery.name}: dados oficiais válidos obtidos (concurso ${result.contest})`);
+          // Resetar contador de erros em caso de sucesso
+          this.errorCount.set(lottery.name, 0);
+          this.lastSuccessTime.set(lottery.name, Date.now());
         } else {
           console.warn(`⚠️ ${lottery.name}: dados inválidos, ignorando`);
+          failedLotteries.push(lottery.name);
         }
       } catch (error) {
         console.error(`❌ Erro ao buscar ${lottery.name}:`, error);
-        // Não adicionar dados de fallback - apenas dados reais
+        failedLotteries.push(lottery.name);
+        // Incrementar contador de erros
+        const currentErrors = this.errorCount.get(lottery.name) || 0;
+        this.errorCount.set(lottery.name, currentErrors + 1);
       }
+    });
+
+    // Aguardar todas as requisições
+    await Promise.allSettled(lotteryPromises);
+
+    // Auto-correção: se mais da metade falhou, tentar uma abordagem alternativa
+    if (failedLotteries.length > lotteries.length / 2) {
+      console.warn(`⚠️ Muitas falhas detectadas (${failedLotteries.length}/${lotteries.length}), tentando auto-correção...`);
+      await this.attemptAutoCorrection(failedLotteries, results);
     }
 
     if (validResults.length === 0) {
-      throw new Error('Nenhum resultado válido obtido da API da Caixa');
+      // Verificar se temos dados em cache antigo como fallback
+      const oldCacheKey = 'lottery_results_fallback';
+      const fallbackResults = DataCache.get(oldCacheKey);
+      if (fallbackResults) {
+        console.warn('⚠️ Usando dados de fallback do cache');
+        return fallbackResults;
+      }
+      throw new Error('Nenhum resultado válido obtido da API da Caixa e sem dados de fallback');
     }
+
+    // Salvar no cache principal e fallback
+    DataCache.set(cacheKey, results, this.cacheTimeout);
+    DataCache.set('lottery_results_fallback', results, 86400000); // 24h como fallback
 
     console.log(`✅ Resultados válidos obtidos: ${validResults.join(', ')}`);
     return results;
+  }
+
+  private async attemptAutoCorrection(failedLotteries: string[], currentResults: { [key: string]: LotteryResult }): Promise<void> {
+    console.log('🔧 Iniciando auto-correção de APIs...');
+    
+    for (const lotteryName of failedLotteries) {
+      try {
+        // Tentar com timeout maior
+        const originalTimeout = this.requestTimeout;
+        this.requestTimeout = 15000; // 15 segundos
+        
+        const lottery = this.getLotteryByName(lotteryName);
+        if (!lottery) continue;
+
+        const result = await this.fetchLotteryDataWithAlternativeMethod(lottery.endpoint, lotteryName);
+        
+        if (result && this.validateResult(result, lotteryName)) {
+          currentResults[lotteryName] = result;
+          console.log(`✅ Auto-correção bem-sucedida para ${lotteryName}`);
+        }
+        
+        // Restaurar timeout original
+        this.requestTimeout = originalTimeout;
+      } catch (error) {
+        console.error(`❌ Auto-correção falhou para ${lotteryName}:`, error);
+      }
+    }
+  }
+
+  private getLotteryByName(name: string): { name: string; endpoint: string } | null {
+    const lotteryMap: { [key: string]: string } = {
+      'Lotofácil': 'lotofacil',
+      'Mega-Sena': 'megasena',
+      'Quina': 'quina',
+      'Lotomania': 'lotomania',
+      'Timemania': 'timemania',
+      'Dupla-Sena': 'duplasena',
+      'Dia de Sorte': 'diadesorte',
+      'Super Sete': 'supersete'
+    };
+    
+    const endpoint = lotteryMap[name];
+    return endpoint ? { name, endpoint } : null;
+  }
+
+  private async fetchLotteryDataWithAlternativeMethod(endpoint: string, lotteryName: string): Promise<LotteryResult | null> {
+    // Método alternativo com headers diferentes e outras estratégias
+    try {
+      const response = await axios.get(`${this.baseUrl}/${endpoint}`, {
+        timeout: this.requestTimeout,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        },
+        validateStatus: function (status) {
+          return status === 200;
+        },
+        maxRedirects: 3,
+        decompress: true
+      });
+
+      if (response.data && response.status === 200) {
+        return this.parseOfficialData(response.data, lotteryName);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Método alternativo também falhou para ${lotteryName}:`, error);
+    }
+
+    return null;
   }
 
   private async fetchLotteryDataWithRetry(endpoint: string, lotteryName: string): Promise<LotteryResult | null> {

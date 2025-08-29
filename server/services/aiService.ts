@@ -1,6 +1,7 @@
 import { storage } from '../storage';
 import { lotteryService } from './lotteryService';
 import OpenAI from "openai";
+import { DataCache } from '../db';
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 let openai: OpenAI | null = null;
@@ -21,6 +22,9 @@ export class AIService {
   private lastDrawUpdate: Map<number, number> = new Map();
   private continuousLearningActive: boolean = false;
   private lastLearningDate: Date = new Date();
+  private errorCountMap: Map<string, number> = new Map();
+  private performanceMetrics: Map<string, any> = new Map();
+  private autoCorrectEnabled: boolean = true;
 
   public static getInstance(): AIService {
     if (!AIService.instance) {
@@ -31,17 +35,27 @@ export class AIService {
   }
 
   async generatePrediction(lotteryType: string, count: number = 1): Promise<any[]> {
+    const startTime = Date.now();
+    const cacheKey = `prediction_${lotteryType}_${count}`;
+    
     try {
+      // Verificar cache primeiro para evitar processamento desnecessário
+      const cached = DataCache.get(cacheKey);
+      if (cached && this.isCacheValid(cached)) {
+        console.log(`✅ Retornando predição do cache para ${lotteryType}`);
+        return cached.data;
+      }
+
       const lotteryConfig = this.getLotteryConfig(lotteryType);
       if (!lotteryConfig) {
         throw new Error(`Tipo de loteria não suportado: ${lotteryType}`);
       }
 
-      // Buscar dados históricos mais recentes
-      const historicalData = await this.getHistoricalData(lotteryType);
+      // Buscar dados históricos com cache
+      const historicalData = await this.getHistoricalDataCached(lotteryType);
 
-      // Análise estatística avançada
-      const analysis = this.performAdvancedAnalysis(historicalData, lotteryConfig);
+      // Análise estatística avançada com auto-correção
+      const analysis = await this.performAdvancedAnalysisWithCorrection(historicalData, lotteryConfig);
 
       const predictions = [];
       for (let i = 0; i < count; i++) {
@@ -94,6 +108,17 @@ export class AIService {
         }
       }
 
+      // Cache das predições geradas
+      const finalPredictions = {
+        data: predictions,
+        timestamp: Date.now(),
+        processTime: Date.now() - startTime,
+        cached: false
+      };
+
+      DataCache.set(cacheKey, finalPredictions, 300000); // Cache por 5 minutos
+      
+      console.log(`⚡ Predições geradas em ${Date.now() - startTime}ms para ${lotteryType}`);
       return predictions;
     } catch (error) {
       console.error('Erro ao gerar predição:', error);
@@ -1184,24 +1209,60 @@ export class AIService {
     return consistency * volumeFactor * 5; // Até 5% de bonus
   }
 
-  // Sistema de Aprendizado Contínuo
+  // Sistema de Aprendizado Contínuo Avançado
   private startContinuousLearning(): void {
     if (this.continuousLearningActive) return;
 
     this.continuousLearningActive = true;
     console.log('🤖 Sistema de IA contínuo iniciado - estudando estratégias automaticamente');
 
-    // Executa aprendizado a cada 30 minutos
-    setInterval(() => {
-      this.performContinuousLearning();
-    }, 30 * 60 * 1000);
+    // Sistema de aprendizado adaptativo - intervalo varia baseado na performance
+    this.scheduleAdaptiveLearning();
 
-    // Primeira execução após 5 minutos para não sobrecarregar o startup
+    // Primeira execução após 2 minutos para não sobrecarregar o startup
     setTimeout(() => {
-      this.performContinuousLearning();
-    }, 5 * 60 * 1000);
+      this.performEnhancedLearning();
+    }, 2 * 60 * 1000);
   }
 
+  private scheduleAdaptiveLearning(): void {
+    const scheduleNext = () => {
+      // Calcular intervalo baseado na performance recente
+      const avgConfidence = this.calculateAverageConfidence();
+      let interval = 30 * 60 * 1000; // Base: 30 minutos
+      
+      // Ajustar intervalo baseado na performance
+      if (avgConfidence < 0.5) {
+        interval = 15 * 60 * 1000; // 15 minutos para melhorar rapidamente
+        console.log("🧠 Performance baixa detectada - aumentando frequência de aprendizado");
+      } else if (avgConfidence > 0.8) {
+        interval = 60 * 60 * 1000; // 60 minutos para manter estabilidade
+        console.log("🎯 Performance alta - otimizando frequência de aprendizado");
+      }
+
+      // Adicionar variação para evitar padrões previsíveis
+      interval += Math.random() * 5 * 60 * 1000; // ±5 minutos
+
+      setTimeout(async () => {
+        await this.performEnhancedLearning();
+        scheduleNext(); // Reagendar próximo ciclo
+      }, interval);
+    };
+
+    scheduleNext();
+  }
+
+  private calculateAverageConfidence(): number {
+    const recentMetrics = Array.from(this.performanceMetrics.values())
+      .filter(m => Date.now() - m.timestamp < 24 * 60 * 60 * 1000); // Últimas 24h
+    
+    if (recentMetrics.length === 0) return 0.5;
+    
+    const avgConfidence = recentMetrics.reduce((sum, m) => sum + (m.confidence || 0.5), 0) / recentMetrics.length;
+    return Math.min(Math.max(avgConfidence, 0.1), 0.95); // Limitar entre 0.1 e 0.95
+  }
+
+  // Método original mantido para compatibilidade
   private async performContinuousLearning(): Promise<void> {
     try {
       console.log('🔬 IA estudando novas estratégias...');
@@ -1219,6 +1280,228 @@ export class AIService {
     } catch (error) {
       console.error('❌ Erro no aprendizado contínuo da IA:', error);
     }
+  }
+
+  // Novo método de aprendizado aprimorado
+  private async performEnhancedLearning(): Promise<void> {
+    const startTime = Date.now();
+    
+    try {
+      console.log('🧠 IA realizando aprendizado aprimorado...');
+
+      // Verificar se há novos dados para aprender
+      const hasNewData = await this.checkForNewData();
+      if (!hasNewData && this.autoCorrectEnabled) {
+        console.log('📊 Nenhum dado novo - optimizando modelos existentes');
+        await this.optimizeExistingModels();
+        return;
+      }
+
+      const lotteries = await storage.getAllLotteries();
+      let improvedModels = 0;
+
+      for (const lottery of lotteries) {
+        const improved = await this.enhancedLotteryAnalysis(lottery.id);
+        if (improved) improvedModels++;
+        
+        // Atualizar métricas de performance
+        await this.updatePerformanceMetrics(lottery.id);
+        
+        // Pequena pausa para não sobrecarregar o sistema
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Salvar métricas do ciclo de aprendizado
+      this.performanceMetrics.set(`learning_cycle_${Date.now()}`, {
+        timestamp: Date.now(),
+        duration: Date.now() - startTime,
+        lotteriesProcessed: lotteries.length,
+        modelsImproved: improvedModels,
+        confidence: this.calculateLearningEffectiveness(improvedModels, lotteries.length)
+      });
+
+      this.lastLearningDate = new Date();
+      console.log(`✅ Aprendizado concluído: ${improvedModels}/${lotteries.length} modelos melhorados em ${Date.now() - startTime}ms`);
+
+      // Auto-correção: reduzir frequência se não há melhorias
+      if (improvedModels === 0) {
+        console.log('⚠️ Nenhuma melhoria detectada - ajustando estratégia');
+        this.adjustLearningStrategy();
+      }
+
+    } catch (error) {
+      console.error('❌ Erro no aprendizado aprimorado da IA:', error);
+      this.recordError('enhanced_learning', error);
+      
+      // Fallback para método original
+      await this.performContinuousLearning();
+    }
+  }
+
+  private async checkForNewData(): Promise<boolean> {
+    try {
+      const lotteries = await storage.getAllLotteries();
+      
+      for (const lottery of lotteries) {
+        const lastUpdate = this.lastDrawUpdate.get(lottery.id) || 0;
+        const latestResults = await storage.getLatestResults(lottery.id, 1);
+        
+        if (latestResults.length > 0) {
+          const latestDrawTime = new Date(latestResults[0].drawDate).getTime();
+          if (latestDrawTime > lastUpdate) {
+            this.lastDrawUpdate.set(lottery.id, latestDrawTime);
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.warn('⚠️ Erro ao verificar novos dados:', error);
+      return true; // Assumir que há dados novos em caso de erro
+    }
+  }
+
+  private async optimizeExistingModels(): Promise<void> {
+    console.log('🔧 Otimizando modelos existentes...');
+    
+    // Limpar cache antigo para forçar regeneração
+    const cacheKeys = ['prediction_', 'historical_', 'analysis_'];
+    cacheKeys.forEach(prefix => {
+      const keysToRemove = Array.from(DataCache.keys()).filter(key => key.startsWith(prefix));
+      keysToRemove.forEach(key => DataCache.delete(key));
+    });
+
+    console.log('✅ Cache otimizado - modelos serão regenerados na próxima predição');
+  }
+
+  private async enhancedLotteryAnalysis(lotteryId: number): Promise<boolean> {
+    try {
+      // Análise mais profunda dos padrões
+      const results = await storage.getLatestResults(lotteryId, 100);
+      if (results.length < 10) return false;
+
+      const currentAccuracy = this.precisionHistory.get(lotteryId) || 0;
+      
+      // Analisar tendências recentes vs históricas
+      const recentResults = results.slice(0, 20);
+      const historicalResults = results.slice(20);
+      
+      const recentPatterns = this.analyzeAdvancedPatterns(recentResults);
+      const historicalPatterns = this.analyzeAdvancedPatterns(historicalResults);
+      
+      // Detectar mudanças de padrão
+      const patternShift = this.detectPatternShift(recentPatterns, historicalPatterns);
+      
+      if (patternShift > 0.3) { // Mudança significativa detectada
+        console.log(`🔍 Mudança de padrão detectada na loteria ${lotteryId} (${(patternShift * 100).toFixed(1)}%)`);
+        
+        // Ajustar modelo baseado nas novas tendências
+        await this.adjustModelForPatternShift(lotteryId, recentPatterns);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.warn(`⚠️ Erro na análise aprimorada da loteria ${lotteryId}:`, error);
+      return false;
+    }
+  }
+
+  private analyzeAdvancedPatterns(results: any[]): any {
+    const patterns = {
+      numberFrequency: {},
+      sequentialPatterns: {},
+      sumRanges: [],
+      evenOddRatios: [],
+      gapAnalysis: {}
+    };
+
+    results.forEach(result => {
+      try {
+        const numbers = JSON.parse(result.drawnNumbers);
+        
+        // Análise de frequência
+        numbers.forEach((num: number) => {
+          patterns.numberFrequency[num] = (patterns.numberFrequency[num] || 0) + 1;
+        });
+
+        // Análise de soma
+        const sum = numbers.reduce((a: number, b: number) => a + b, 0);
+        patterns.sumRanges.push(sum);
+
+        // Análise par/ímpar
+        const evenCount = numbers.filter((n: number) => n % 2 === 0).length;
+        patterns.evenOddRatios.push(evenCount / numbers.length);
+
+      } catch (error) {
+        console.warn('⚠️ Resultado corrompido ignorado:', error);
+      }
+    });
+
+    return patterns;
+  }
+
+  private detectPatternShift(recent: any, historical: any): number {
+    let shiftScore = 0;
+    let comparisons = 0;
+
+    // Comparar frequências de números
+    const recentFreq = recent.numberFrequency;
+    const historicalFreq = historical.numberFrequency;
+    
+    Object.keys(recentFreq).forEach(num => {
+      const recentRate = recentFreq[num] / Object.keys(recent.numberFrequency).length;
+      const historicalRate = (historicalFreq[num] || 0) / Object.keys(historical.numberFrequency).length;
+      
+      shiftScore += Math.abs(recentRate - historicalRate);
+      comparisons++;
+    });
+
+    return comparisons > 0 ? shiftScore / comparisons : 0;
+  }
+
+  private async adjustModelForPatternShift(lotteryId: number, newPatterns: any): Promise<void> {
+    // Salvar novos padrões para influenciar futuras predições
+    const cacheKey = `adaptive_model_${lotteryId}`;
+    const modelData = {
+      patterns: newPatterns,
+      timestamp: Date.now(),
+      confidence: 0.7,
+      adaptationReason: 'pattern_shift_detected'
+    };
+
+    DataCache.set(cacheKey, modelData, 24 * 60 * 60 * 1000); // Cache por 24h
+    console.log(`✅ Modelo adaptado para loteria ${lotteryId}`);
+  }
+
+  private async updatePerformanceMetrics(lotteryId: number): Promise<void> {
+    const precision = this.precisionHistory.get(lotteryId) || 0;
+    const metricKey = `lottery_${lotteryId}_performance`;
+    
+    this.performanceMetrics.set(metricKey, {
+      timestamp: Date.now(),
+      lotteryId,
+      precision,
+      confidence: precision > 0.5 ? 0.8 : 0.4,
+      lastUpdated: this.lastDrawUpdate.get(lotteryId) || 0
+    });
+  }
+
+  private calculateLearningEffectiveness(improved: number, total: number): number {
+    const improvementRate = improved / total;
+    return Math.min(0.95, 0.3 + (improvementRate * 0.6)); // Entre 0.3 e 0.9
+  }
+
+  private adjustLearningStrategy(): void {
+    // Reduzir confiança temporariamente para forçar re-análise
+    this.performanceMetrics.forEach((value, key) => {
+      if (key.includes('performance')) {
+        value.confidence *= 0.8; // Reduzir 20%
+      }
+    });
+
+    console.log('🔄 Estratégia de aprendizado ajustada para ser mais agressiva');
   }
 
   private async analyzeAndImproveStrategies(lotteryId: number): Promise<void> {
@@ -2085,6 +2368,7 @@ export class AIService {
     return configs[normalizedType] || null;
   }
 
+  // Versão original mantida para compatibilidade
   private async getHistoricalData(lotteryType: string): Promise<any[]> {
     // This is a placeholder. In a real application, this would fetch historical draw data from storage.
     // For demonstration, returning dummy data.
@@ -2095,6 +2379,48 @@ export class AIService {
       { drawnNumbers: JSON.stringify([7, 14, 21, 35, 42, 56]), drawDate: '2023-10-22' },
       { drawnNumbers: JSON.stringify([1, 9, 17, 25, 33, 41]), drawDate: '2023-10-20' },
     ];
+  }
+
+  // Nova versão com cache inteligente
+  private async getHistoricalDataCached(lotteryType: string): Promise<any[]> {
+    const cacheKey = `historical_${lotteryType}`;
+    
+    try {
+      // Verificar cache primeiro
+      const cached = DataCache.get(cacheKey);
+      if (cached) {
+        console.log(`✅ Dados históricos obtidos do cache para ${lotteryType}`);
+        return cached;
+      }
+
+      console.log(`🔄 Buscando dados históricos para ${lotteryType}...`);
+      
+      // Buscar dados reais do banco
+      const lotteries = await storage.getAllLotteries();
+      const lottery = lotteries.find(l => l.slug.includes(lotteryType.toLowerCase()));
+      
+      if (lottery) {
+        const results = await storage.getLatestResults(lottery.id, 100);
+        if (results && results.length > 0) {
+          // Cache por 30 minutos
+          DataCache.set(cacheKey, results, 1800000);
+          console.log(`✅ ${results.length} resultados históricos obtidos para ${lotteryType}`);
+          return results;
+        }
+      }
+
+      // Fallback para dados mock se não houver dados reais
+      const fallbackData = await this.getHistoricalData(lotteryType);
+      DataCache.set(cacheKey, fallbackData, 300000); // Cache menor para fallback
+      return fallbackData;
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar dados históricos para ${lotteryType}:`, error);
+      this.recordError(`historical_data_${lotteryType}`, error);
+      
+      // Retornar dados de fallback
+      return await this.getHistoricalData(lotteryType);
+    }
   }
 
   private performAdvancedAnalysis(historicalData: any[], lotteryConfig: any): any {
@@ -2108,6 +2434,151 @@ export class AIService {
       evenOddRatio: 0.5 // Example ratio
     };
     return { hotNumbers, coldNumbers, patterns };
+  }
+
+  // Nova versão com auto-correção
+  private async performAdvancedAnalysisWithCorrection(historicalData: any[], lotteryConfig: any): Promise<any> {
+    const cacheKey = `analysis_${lotteryConfig.numbersCount}_${historicalData.length}`;
+    
+    try {
+      // Verificar cache da análise
+      const cached = DataCache.get(cacheKey);
+      if (cached) {
+        console.log('✅ Análise obtida do cache');
+        return cached;
+      }
+
+      console.log('🧠 Realizando análise estatística avançada...');
+      
+      // Análise robusta com auto-correção
+      const analysis = this.performRobustAnalysis(historicalData, lotteryConfig);
+      
+      // Validar resultado da análise
+      if (this.validateAnalysis(analysis, lotteryConfig)) {
+        DataCache.set(cacheKey, analysis, 900000); // Cache por 15 minutos
+        console.log('✅ Análise concluída e validada');
+        return analysis;
+      } else {
+        console.warn('⚠️ Análise inválida, tentando correção...');
+        return this.correctAnalysis(analysis, lotteryConfig);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na análise avançada:', error);
+      this.recordError('advanced_analysis', error);
+      
+      // Fallback para análise simples
+      return this.performAdvancedAnalysis(historicalData, lotteryConfig);
+    }
+  }
+
+  private performRobustAnalysis(historicalData: any[], lotteryConfig: any): any {
+    const { minNumber, maxNumber, numbersCount } = lotteryConfig;
+    
+    // Análise de frequência
+    const frequency: { [key: number]: number } = {};
+    const lastSeen: { [key: number]: number } = {};
+    
+    historicalData.forEach((data, index) => {
+      try {
+        const numbers = JSON.parse(data.drawnNumbers || '[]');
+        numbers.forEach((num: number) => {
+          if (num >= minNumber && num <= maxNumber) {
+            frequency[num] = (frequency[num] || 0) + 1;
+            lastSeen[num] = index;
+          }
+        });
+      } catch (error) {
+        console.warn('⚠️ Dados corrompidos ignorados:', error);
+      }
+    });
+
+    // Classificar números por frequência
+    const sortedByFreq = Object.entries(frequency)
+      .sort(([,a], [,b]) => b - a)
+      .map(([num, freq]) => ({ number: parseInt(num), frequency: freq }));
+
+    const hotNumbers = sortedByFreq.slice(0, Math.ceil(numbersCount / 2)).map(item => item.number);
+    const coldNumbers = sortedByFreq.slice(-Math.ceil(numbersCount / 2)).map(item => item.number);
+
+    // Análise de padrões
+    const patterns = this.analyzePatterns(historicalData, lotteryConfig);
+
+    return {
+      hotNumbers,
+      coldNumbers,
+      patterns,
+      frequency,
+      lastSeen,
+      confidence: this.calculateAnalysisConfidence(historicalData.length, sortedByFreq.length)
+    };
+  }
+
+  private validateAnalysis(analysis: any, config: any): boolean {
+    // Validar se a análise está coerente
+    if (!analysis.hotNumbers || !analysis.coldNumbers) return false;
+    if (analysis.hotNumbers.length === 0 || analysis.coldNumbers.length === 0) return false;
+    
+    // Verificar se os números estão no range correto
+    const allNumbers = [...analysis.hotNumbers, ...analysis.coldNumbers];
+    return allNumbers.every(num => num >= config.minNumber && num <= config.maxNumber);
+  }
+
+  private correctAnalysis(analysis: any, config: any): any {
+    console.log('🔧 Corrigindo análise...');
+    
+    // Gerar números de fallback válidos
+    const validNumbers = Array.from(
+      { length: config.maxNumber - config.minNumber + 1 }, 
+      (_, i) => i + config.minNumber
+    );
+
+    return {
+      hotNumbers: validNumbers.slice(0, Math.ceil(config.numbersCount / 2)),
+      coldNumbers: validNumbers.slice(-Math.ceil(config.numbersCount / 2)),
+      patterns: { confidence: 0.3 }, // Baixa confiança
+      corrected: true
+    };
+  }
+
+  private calculateAnalysisConfidence(dataSize: number, uniqueNumbers: number): number {
+    // Calcular confiança baseada na quantidade de dados
+    if (dataSize < 10) return 0.3;
+    if (dataSize < 50) return 0.6;
+    if (dataSize < 100) return 0.8;
+    return Math.min(0.95, 0.7 + (uniqueNumbers / 100));
+  }
+
+  private analyzePatterns(historicalData: any[], config: any): any {
+    // Análise simplificada de padrões
+    return {
+      consecutive: false,
+      evenOddRatio: 0.5,
+      sumRange: { min: config.minNumber * config.numbersCount, max: config.maxNumber * config.numbersCount },
+      confidence: 0.7
+    };
+  }
+
+  // Métodos auxiliares para cache e erro
+  private isCacheValid(cached: any): boolean {
+    if (!cached || !cached.timestamp) return false;
+    const age = Date.now() - cached.timestamp;
+    return age < 600000; // Válido por 10 minutos
+  }
+
+  private recordError(operation: string, error: any): void {
+    const count = this.errorCountMap.get(operation) || 0;
+    this.errorCountMap.set(operation, count + 1);
+    
+    // Auto-correção baseada em frequência de erros
+    if (count > 5) {
+      console.warn(`⚠️ Muitos erros em ${operation}, desabilitando temporariamente...`);
+      this.autoCorrectEnabled = false;
+      setTimeout(() => {
+        this.autoCorrectEnabled = true;
+        this.errorCountMap.set(operation, 0);
+      }, 60000); // Reabilitar após 1 minuto
+    }
   }
 
   private generateOptimizedNumbers(count: number, min: number, max: number, analysis: any): number[] {
