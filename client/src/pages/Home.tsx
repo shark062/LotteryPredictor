@@ -201,7 +201,7 @@ export default function Home() {
       <main className="responsive-container py-4 sm:py-6 lg:py-8 dashboard-content">
         <Tabs defaultValue="dashboard" className="space-y-6 sm:space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1">
+          <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1">
             {[
               { value: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Aqui você vê todas as loterias com dados atualizados em tempo real' },
               { value: 'generator', icon: '🎲', label: 'Gerador', description: 'Aqui a IA gera os números com as melhores probabilidades' },
