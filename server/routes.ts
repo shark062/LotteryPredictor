@@ -525,6 +525,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const user = await authenticate(req, res);
+
+      // Garantir que o usuário demo existe no banco de dados
+      const existingUser = await storage.getUser('demo-user');
+      if (!existingUser) {
+        await storage.upsertUser({
+          id: 'demo-user',
+          email: 'usuario@demo.com',
+          firstName: 'Usuário',
+          lastName: 'Demo'
+        });
+      }
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
       }
