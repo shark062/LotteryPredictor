@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { memo } from 'react';
 
 interface NumberBallProps {
   number: number;
@@ -8,13 +9,13 @@ interface NumberBallProps {
   className?: string;
 }
 
-export default function NumberBall({ 
-  number, 
-  type = 'default', 
+const NumberBall: React.FC<NumberBallProps> = memo(({
+  number,
+  type = 'default',
   size = 'md',
   isHighlighted = false,
-  className 
-}: NumberBallProps) {
+  className
+}: NumberBallProps) => {
   const sizeClasses = {
     sm: 'w-8 h-8 text-xs',
     md: 'w-10 h-10 text-sm',
@@ -24,14 +25,14 @@ export default function NumberBall({
   const typeClasses = {
     default: 'lottery-ball',
     hot: 'hot-number',
-    cold: 'cold-number', 
+    cold: 'cold-number',
     mixed: 'mixed-number',
     winning: 'bg-green-500 text-white shadow-lg shadow-green-500/50',
     user: 'bg-blue-500 text-white shadow-lg shadow-blue-500/50'
   };
 
   return (
-    <div 
+    <div
       className={cn(
         'rounded-full flex items-center justify-center font-bold transition-all duration-300 hover:scale-110',
         sizeClasses[size],
@@ -44,4 +45,8 @@ export default function NumberBall({
       {number.toString().padStart(2, '0')}
     </div>
   );
-}
+});
+
+NumberBall.displayName = 'NumberBall';
+
+export default NumberBall;

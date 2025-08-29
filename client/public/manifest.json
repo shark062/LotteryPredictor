@@ -1,0 +1,25 @@
+
+{
+  "name": "Lottery AI - Análise Inteligente",
+  "short_name": "LotteryAI",
+  "description": "Análise inteligente de loterias com IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["entertainment", "utilities"],
+  "lang": "pt-BR"
+}

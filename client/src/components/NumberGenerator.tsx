@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import NumberBall from "./NumberBall";
 import { Confetti } from "@/components/ui/confetti";
+import { memoryCache, debounce, throttle } from '@/lib/cdnUtils';
 
 interface NumberGeneratorProps {
   selectedLottery: number;
@@ -33,6 +34,10 @@ export default function NumberGenerator({
   const [generatedNumbers, setGeneratedNumbers] = useState<number[][]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0); // Estado para a barra de progresso
+  const [confidenceScore, setConfidenceScore] = useState(0); // Estado para o score de confiança
+  const [analysis, setAnalysis] = useState<any>(null); // Estado para a análise
+
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -41,10 +46,16 @@ export default function NumberGenerator({
     queryKey: ["/api/lotteries"],
   });
 
-  const { data: analysis } = useQuery({
+  const { data: analysisData } = useQuery({
     queryKey: ["/api/lotteries", selectedLottery, "analysis"],
     enabled: !!selectedLottery,
   });
+
+  // Atualiza o estado de análise com os dados do query
+  useEffect(() => {
+    setAnalysis(analysisData);
+  }, [analysisData]);
+
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -99,29 +110,29 @@ export default function NumberGenerator({
       }
 
       const savedGames = [];
-      
+
       // Salvar cada jogo individualmente com melhor tratamento de erro
       for (let i = 0; i < generatedNumbers.length; i++) {
         const game = generatedNumbers[i];
-        
+
         // Validações mais robustas
         if (!game || !Array.isArray(game) || game.length === 0) {
           throw new Error(`Jogo ${i + 1} inválido: números não encontrados ou formato incorreto`);
         }
 
         // Validar se todos os elementos são números válidos
-        const validNumbers = game.filter(num => 
-          typeof num === 'number' && 
-          !isNaN(num) && 
-          num >= 1 && 
+        const validNumbers = game.filter(num =>
+          typeof num === 'number' &&
+          !isNaN(num) &&
+          num >= 1 &&
           num <= selectedLotteryData.maxNumber
         );
 
         if (validNumbers.length !== game.length) {
-          const invalidNumbers = game.filter(num => 
-            typeof num !== 'number' || 
-            isNaN(num) || 
-            num < 1 || 
+          const invalidNumbers = game.filter(num =>
+            typeof num !== 'number' ||
+            isNaN(num) ||
+            num < 1 ||
             num > selectedLotteryData.maxNumber
           );
           throw new Error(`Jogo ${i + 1} contém números inválidos: ${invalidNumbers.join(', ')}`);
@@ -135,7 +146,7 @@ export default function NumberGenerator({
         try {
           // Garantir que os números estão ordenados e únicos
           const uniqueSortedNumbers = [...new Set(validNumbers)].sort((a, b) => a - b);
-          
+
           const gameData = {
             lotteryId: selectedLottery,
             numbers: JSON.stringify(uniqueSortedNumbers),
@@ -160,9 +171,9 @@ export default function NumberGenerator({
 
           const savedGame = await response.json();
           savedGames.push(savedGame);
-          
+
           console.log(`✅ Jogo ${i + 1} salvo com sucesso:`, savedGame);
-          
+
         } catch (saveError) {
           console.error(`❌ Erro ao salvar jogo ${i + 1}:`, saveError);
           throw new Error(`Falha ao salvar jogo ${i + 1}: ${saveError instanceof Error ? saveError.message : 'Erro desconhecido'}`);
@@ -178,7 +189,7 @@ export default function NumberGenerator({
         description: `Jogos de ${selectedLotteryData?.name} salvos com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/games"] });
-      
+
       // Limpar números gerados após salvar com sucesso
       setTimeout(() => {
         setShowConfetti(false);
@@ -196,7 +207,7 @@ export default function NumberGenerator({
 
   const selectedLotteryData = lotteries?.find((l: any) => l.id === selectedLottery);
 
-  const handleGenerate = () => {
+  const handleGenerate = useCallback(() => {
     const count = parseInt(numberCount) || 0;
     const games = parseInt(gameCount) || 1;
 
@@ -238,7 +249,93 @@ export default function NumberGenerator({
     }
 
     generateMutation.mutate();
-  };
+  }, [numberCount, gameCount, selectedLotteryData, generateMutation, toast]);
+
+
+  // Memoizar função de geração com debounce
+  const memoizedGenerateNumbers = useCallback(debounce(async () => {
+    if (!selectedLotteryData) return;
+
+    setIsGenerating(true);
+    setProgress(0);
+
+    try {
+      const cacheKey = `generate-${selectedLotteryData.slug}-${JSON.stringify(preferences)}`;
+      const cached = memoryCache.get(cacheKey);
+
+      if (cached) {
+        setGeneratedNumbers(cached.numbers);
+        setConfidenceScore(cached.confidence);
+        setAnalysis(cached.analysis);
+        setProgress(100);
+
+        toast({
+          title: "Números Carregados do Cache! ⚡",
+          description: `Confiança: ${Math.round(cached.confidence * 100)}%`,
+        });
+
+        setTimeout(() => setProgress(0), 1000);
+        setIsGenerating(false);
+        return;
+      }
+
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+
+      // Usando apiRequest para consistência
+      const response = await apiRequest('POST', '/api/ai/generate', {
+        lotteryId: selectedLottery, // Assumindo que o backend espera lotteryId
+        preferences: {
+          ...preferences,
+          // A conversão de confiança para porcentagem pode estar no backend ou frontend, dependendo da API
+          // Se a API espera um valor de 0 a 1, mantenha como está. Se espera porcentagem, ajuste aqui ou no backend.
+          // confidence: preferences.confidence / 100
+        }
+      });
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      // Verificando se a resposta é OK antes de tentar ler o JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Falha na geração: ${errorText || response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Cache do resultado por 2 minutos
+      memoryCache.set(cacheKey, result, 2 * 60 * 1000);
+
+      setGeneratedNumbers(result.numbers);
+      setConfidenceScore(result.confidence);
+      setAnalysis(result.analysis);
+
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
+      toast({
+        title: "Números Gerados! 🎯",
+        description: `Confiança: ${Math.round(result.confidence * 100)}%`,
+      });
+
+    } catch (error: any) { // Adicionando tipo 'any' para o erro
+      console.error('Erro ao gerar números:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro na Geração",
+        description: error.message || "Falha ao gerar números. Tente novamente.",
+      });
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  }, 300), [selectedLotteryData, preferences, selectedLottery]); // Adicionado selectedLottery nas dependências
+
 
   return (
     <div className="space-y-6">
@@ -306,7 +403,7 @@ export default function NumberGenerator({
               <p className="mb-2 font-medium">Estratégias de Seleção:</p>
               <p>Escolha como a IA deve selecionar seus números baseado em análise estatística dos concursos passados.</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-start space-x-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
                 <Checkbox
@@ -324,7 +421,7 @@ export default function NumberGenerator({
                   <p className="text-xs text-muted-foreground mt-1">Prioriza números que saíram com mais frequência recentemente</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
                 <Checkbox
                   id="use-cold"
@@ -341,7 +438,7 @@ export default function NumberGenerator({
                   <p className="text-xs text-muted-foreground mt-1">Foca em números que não saem há muito tempo</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
                 <Checkbox
                   id="use-mixed"
@@ -359,12 +456,12 @@ export default function NumberGenerator({
                 </div>
               </div>
             </div>
-            
+
 
           </div>
 
           <Button
-            onClick={handleGenerate}
+            onClick={handleGenerate} // Usando a função handleGenerate original
             disabled={generateMutation.isPending || !selectedLotteryData || numberCount === ''}
             className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground py-3 rounded-lg font-semibold glow-effect hover:scale-105 transition-transform"
             data-testid="button-generate"
@@ -413,7 +510,7 @@ export default function NumberGenerator({
                 {saveGameMutation.isPending ? "Salvando..." : `Salvar ${generatedNumbers.length} Jogo${generatedNumbers.length > 1 ? 's' : ''}`}
               </Button>
               <Button
-                onClick={handleGenerate}
+                onClick={memoizedGenerateNumbers} // Chamando a função memoizada
                 variant="secondary"
                 className="hover:scale-105 transition-transform"
                 data-testid="button-regenerate"
