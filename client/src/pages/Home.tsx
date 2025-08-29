@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import logoUrl from '@/assets/cyberpunk-shark.png';
+import logoUrl from '../assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import FuturisticHeader from "@/components/FuturisticHeader";
@@ -25,8 +25,7 @@ export default function Home() {
   const [selectedLottery, setSelectedLottery] = useState<number>(1);
   const { toast } = useToast();
 
-
-  const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries } = useQuery<Array<{
+  const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries, error } = useQuery<Array<{
     id: number;
     name: string;
     minNumbers: number;
@@ -36,9 +35,13 @@ export default function Home() {
   }>>({
     queryKey: ["/api/lotteries"],
     staleTime: 5 * 60 * 1000, // 5 minutos
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    retry: 2,
+    retryDelay: 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
+
 
   const { data: upcomingDraws, refetch: refetchUpcomingDraws, isLoading: upcomingLoading } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
@@ -300,7 +303,6 @@ export default function Home() {
                 <CommunityInsights
                   key={lottery.id}
                   lotterySlug={lottery.slug}
-                  lotteryEmoji={getLotteryEmoji(lottery.name)}
                 />
               ))}
             </div>
