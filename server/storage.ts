@@ -32,6 +32,7 @@ export interface IStorage {
 
   // Lottery results
   getLatestResults(lotteryId: number, limit?: number): Promise<LotteryResult[]>;
+  getAllResults(lotteryId: number): Promise<LotteryResult[]>;
   createLotteryResult(result: Omit<LotteryResult, 'id' | 'createdAt'>): Promise<LotteryResult>;
 
   // User games
@@ -119,6 +120,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(lotteryResults.drawDate))
       .limit(limit);
   }
+
+  async getAllResults(lotteryId: number): Promise<LotteryResult[]> {
+    return await db
+      .select()
+      .from(lotteryResults)
+      .where(eq(lotteryResults.lotteryId, lotteryId))
+      .orderBy(desc(lotteryResults.drawDate));
+  }
+
 
   async createLotteryResult(result: Omit<LotteryResult, 'id' | 'createdAt'>): Promise<LotteryResult> {
     const [newResult] = await db
