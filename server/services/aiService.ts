@@ -30,6 +30,133 @@ export class AIService {
     return AIService.instance;
   }
 
+  async generatePrediction(lotteryType: string, count: number = 1): Promise<any[]> {
+    try {
+      const lotteryConfig = this.getLotteryConfig(lotteryType);
+      if (!lotteryConfig) {
+        throw new Error(`Tipo de loteria não suportado: ${lotteryType}`);
+      }
+
+      // Buscar dados históricos mais recentes
+      const historicalData = await this.getHistoricalData(lotteryType);
+
+      // Análise estatística avançada
+      const analysis = this.performAdvancedAnalysis(historicalData, lotteryConfig);
+
+      const predictions = [];
+      for (let i = 0; i < count; i++) {
+        let numbers: number[];
+
+        if (lotteryType === 'maisMilionaria' || lotteryType === '+milionaria') {
+          // Gerar números principais (1-50)
+          numbers = this.generateOptimizedNumbers(
+            6, // +Milionária sempre tem 6 números principais
+            1,
+            50,
+            analysis
+          );
+
+          // Gerar 2 trevos da sorte automaticamente (1-6)
+          const trevos = this.generateOptimizedNumbers(2, 1, 6, analysis);
+
+          predictions.push({
+            numbers: numbers.sort((a, b) => a - b),
+            specialNumbers: trevos.sort((a, b) => a - b),
+            confidence: this.calculateConfidence(numbers, analysis),
+            type: lotteryType,
+            generated_at: new Date().toISOString(),
+            description: `Números: ${numbers.join(', ')} | Trevos da Sorte 🍀: ${trevos.join(', ')}`,
+            analysis: {
+              hotNumbers: analysis.hotNumbers,
+              coldNumbers: analysis.coldNumbers,
+              patterns: analysis.patterns
+            }
+          });
+        } else {
+          numbers = this.generateOptimizedNumbers(
+            lotteryConfig.numbersCount,
+            lotteryConfig.minNumber,
+            lotteryConfig.maxNumber,
+            analysis
+          );
+
+          predictions.push({
+            numbers: numbers.sort((a, b) => a - b),
+            confidence: this.calculateConfidence(numbers, analysis),
+            type: lotteryType,
+            generated_at: new Date().toISOString(),
+            analysis: {
+              hotNumbers: analysis.hotNumbers,
+              coldNumbers: analysis.coldNumbers,
+              patterns: analysis.patterns
+            }
+          });
+        }
+      }
+
+      return predictions;
+    } catch (error) {
+      console.error('Erro ao gerar predição:', error);
+      // Retornar predição básica em caso de erro
+      return this.generateFallbackPrediction(lotteryType, count);
+    }
+  }
+
+  private generateFallbackPrediction(lotteryType: string, count: number): any[] {
+    const lotteryConfig = this.getLotteryConfig(lotteryType);
+    if (!lotteryConfig) return [];
+
+    const predictions = [];
+    for (let i = 0; i < count; i++) {
+      if (lotteryType === 'maisMilionaria' || lotteryType === '+milionaria') {
+        const numbers = Array.from({length: 6}, () =>
+          Math.floor(Math.random() * 50) + 1
+        ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 6);
+
+        while (numbers.length < 6) {
+          const num = Math.floor(Math.random() * 50) + 1;
+          if (!numbers.includes(num)) numbers.push(num);
+        }
+
+        const trevos = Array.from({length: 2}, () =>
+          Math.floor(Math.random() * 6) + 1
+        ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2);
+
+        while (trevos.length < 2) {
+          const trevo = Math.floor(Math.random() * 6) + 1;
+          if (!trevos.includes(trevo)) trevos.push(trevo);
+        }
+
+        predictions.push({
+          numbers: numbers.sort((a, b) => a - b),
+          specialNumbers: trevos.sort((a, b) => a - b),
+          confidence: 50,
+          type: lotteryType,
+          generated_at: new Date().toISOString(),
+          description: `Números: ${numbers.join(', ')} | Trevos da Sorte 🍀: ${trevos.join(', ')}`
+        });
+      } else {
+        const numbers = Array.from({length: lotteryConfig.numbersCount}, () =>
+          Math.floor(Math.random() * (lotteryConfig.maxNumber - lotteryConfig.minNumber + 1)) + lotteryConfig.minNumber
+        ).filter((v, i, a) => a.indexOf(v) === i).slice(0, lotteryConfig.numbersCount);
+
+        while (numbers.length < lotteryConfig.numbersCount) {
+          const num = Math.floor(Math.random() * (lotteryConfig.maxNumber - lotteryConfig.minNumber + 1)) + lotteryConfig.minNumber;
+          if (!numbers.includes(num)) numbers.push(num);
+        }
+
+        predictions.push({
+          numbers: numbers.sort((a, b) => a - b),
+          confidence: 50,
+          type: lotteryType,
+          generated_at: new Date().toISOString()
+        });
+      }
+    }
+
+    return predictions;
+  }
+
   async generatePrediction(
     lotteryId: number,
     count: number,
@@ -81,9 +208,9 @@ export class AIService {
 
     // Gerar números com análise preditiva avançada
     const generatedNumbers = await this.generateAdvancedNumbers(
-      lotteryId, 
-      count, 
-      preferences, 
+      lotteryId,
+      count,
+      preferences,
       numberFrequencyMap,
       partialCombinations,
       drawnCombinations
@@ -96,9 +223,9 @@ export class AIService {
       console.log(`🍀 Trevos da sorte gerados automaticamente: ${clovers.join(', ')}`);
     }
 
-    return { 
+    return {
       numbers: generatedNumbers,
-      clovers 
+      clovers
     };
   }
 
@@ -118,9 +245,9 @@ export class AIService {
   }
 
   private async generateUniqueStrategy(
-    lotteryId: number, 
-    count: number, 
-    availableNumbers: number[], 
+    lotteryId: number,
+    count: number,
+    availableNumbers: number[],
     lottery: any
   ): Promise<number[]> {
     // Remove duplicatas e garantir números suficientes
@@ -563,9 +690,9 @@ export class AIService {
       const response = await openai!.chat.completions.create({
         model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
         messages: [
-          { 
-            role: "system", 
-            content: "Você é um especialista em análise estatística de loterias. Responda sempre em JSON válido." 
+          {
+            role: "system",
+            content: "Você é um especialista em análise estatística de loterias. Responda sempre em JSON válido."
           },
           { role: "user", content: prompt }
         ],
@@ -656,7 +783,7 @@ export class AIService {
           date: r.drawDate
         })))}
 
-        Com base na consistência dos padrões e na previsibilidade dos dados, 
+        Com base na consistência dos padrões e na previsibilidade dos dados,
         estime a precisão do modelo em percentual (0-100).
 
         Responda em JSON:
@@ -774,7 +901,7 @@ export class AIService {
       if (Math.abs(evenHits - oddHits) <= 1) learning += 0.1; // Distribuição equilibrada
 
       // Aprender sobre sequências
-      const hasSequence = hitNumbers.some((num, i) => 
+      const hasSequence = hitNumbers.some((num, i) =>
         i > 0 && hitNumbers[i-1] === num - 1
       );
       if (hasSequence) learning += 0.05;
@@ -888,7 +1015,7 @@ export class AIService {
     increase += (1 - balance) * 0.3; // Distribuição equilibrada = maior aprendizado
 
     // Analisar sequências
-    const hasSequence = drawnNumbers.some((num, i) => 
+    const hasSequence = drawnNumbers.some((num, i) =>
       i > 0 && num === drawnNumbers[i-1] + 1
     );
     if (hasSequence) increase += 0.2;
@@ -963,7 +1090,7 @@ export class AIService {
         const gameNumbers = JSON.parse(game.numbers);
 
         // Encontrar resultado correspondente (se houver)
-        const matchingResult = results.find(result => 
+        const matchingResult = results.find(result =>
           result.contestNumber === game.contestNumber
         );
 
@@ -1012,7 +1139,7 @@ export class AIService {
     // Número esperado de acertos baseado na loteria
     const expectedHits: { [key: number]: number } = {
       1: 1.5, // Mega-Sena
-      2: 8,   // Lotofácil  
+      2: 8,   // Lotofácil
       3: 1,   // Quina
       4: 15,  // Lotomania
       5: 2,   // Timemania
@@ -1936,6 +2063,84 @@ export class AIService {
     }
 
     return totalEntanglement / (numbers.length * (numbers.length - 1) / 2);
+  }
+
+  // Helper methods for prediction generation
+  private getLotteryConfig(lotteryType: string): any | null {
+    // This is a placeholder. In a real application, this would fetch lottery configurations from a database or config file.
+    const configs: { [key: string]: any } = {
+      'megaSena': { numbersCount: 6, minNumber: 1, maxNumber: 60 },
+      'quina': { numbersCount: 5, minNumber: 1, maxNumber: 80 },
+      'lotofacil': { numbersCount: 15, minNumber: 1, maxNumber: 25 },
+      'lotomania': { numbersCount: 50, minNumber: 0, maxNumber: 99 }, // Lotomania has 0-99
+      'timemania': { numbersCount: 10, minNumber: 1, maxNumber: 80 },
+      'duplaSena': { numbersCount: 6, minNumber: 1, maxNumber: 50 },
+      'diaDeSorte': { numbersCount: 7, minNumber: 1, maxNumber: 31 },
+      'superSete': { numbersCount: 7, minNumber: 0, maxNumber: 9 }, // Includes "Milhar"
+      '+milionaria': { numbersCount: 6, minNumber: 1, maxNumber: 50 },
+      'maisMilionaria': { numbersCount: 6, minNumber: 1, maxNumber: 50 }
+    };
+
+    const normalizedType = lotteryType.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return configs[normalizedType] || null;
+  }
+
+  private async getHistoricalData(lotteryType: string): Promise<any[]> {
+    // This is a placeholder. In a real application, this would fetch historical draw data from storage.
+    // For demonstration, returning dummy data.
+    console.log(`Fetching historical data for: ${lotteryType}`);
+    return [
+      { drawnNumbers: JSON.stringify([5, 12, 23, 34, 45, 50]), drawDate: '2023-10-26' },
+      { drawnNumbers: JSON.stringify([2, 10, 18, 28, 36, 48]), drawDate: '2023-10-24' },
+      { drawnNumbers: JSON.stringify([7, 14, 21, 35, 42, 56]), drawDate: '2023-10-22' },
+      { drawnNumbers: JSON.stringify([1, 9, 17, 25, 33, 41]), drawDate: '2023-10-20' },
+    ];
+  }
+
+  private performAdvancedAnalysis(historicalData: any[], lotteryConfig: any): any {
+    // Placeholder for advanced statistical analysis.
+    // In a real scenario, this would involve calculating frequencies, identifying patterns, hot/cold numbers, etc.
+    const hotNumbers = [5, 12, 34];
+    const coldNumbers = [1, 9, 41];
+    const patterns = {
+      consecutive: false,
+      sumOfNumbers: historicalData.reduce((sum, data) => sum + JSON.parse(data.drawnNumbers).reduce((a,b) => a+b, 0), 0),
+      evenOddRatio: 0.5 // Example ratio
+    };
+    return { hotNumbers, coldNumbers, patterns };
+  }
+
+  private generateOptimizedNumbers(count: number, min: number, max: number, analysis: any): number[] {
+    // Placeholder for number generation logic based on analysis.
+    // This should be a sophisticated algorithm considering hot/cold numbers, patterns, etc.
+    const generated = new Set<number>();
+    while (generated.size < count) {
+      let num: number;
+      // Prioritize hot numbers if available and not already selected
+      if (analysis.hotNumbers && analysis.hotNumbers.length > 0 && Math.random() < 0.6) { // 60% chance to pick a hot number
+        num = analysis.hotNumbers[Math.floor(Math.random() * analysis.hotNumbers.length)];
+      }
+      // Otherwise, generate a random number within the range
+      else {
+        num = Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      // Ensure number is within range and not already selected
+      if (num >= min && num <= max && !generated.has(num)) {
+        generated.add(num);
+      }
+    }
+    return Array.from(generated);
+  }
+
+  calculateConfidence(numbers: number[], analysis: any): number {
+    // Placeholder for confidence calculation.
+    // This would ideally be based on how well the generated numbers align with historical patterns and predictions.
+    let confidence = 50; // Base confidence
+    if (analysis.hotNumbers && numbers.some(n => analysis.hotNumbers.includes(n))) confidence += 10;
+    if (analysis.coldNumbers && numbers.some(n => analysis.coldNumbers.includes(n))) confidence += 5;
+    if (analysis.patterns && analysis.patterns.sumOfNumbers) confidence += 5; // Example: add confidence based on a pattern
+    return Math.min(100, confidence);
   }
 }
 

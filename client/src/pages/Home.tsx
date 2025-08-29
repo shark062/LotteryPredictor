@@ -413,41 +413,29 @@ export default function Home() {
                 </Card>
 
                 {/* +Milionária */}
-                <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 backdrop-blur-md">
+                <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30 backdrop-blur-md">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-3 text-xl">
-                      <span className="text-3xl">💎</span>
-                      <span className="text-purple-300">+Milionária</span>
-                      <Badge className="bg-purple-500/20 text-purple-300 animate-pulse">NOVA!</Badge>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">💰</span>
+                      <span className="text-yellow-300">+Milionária</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-semibold text-cyan-300 mb-2">Como Jogar</h4>
-                        <p className="text-sm text-muted-foreground">6 números (1-50) + 2 trevos (1-6)</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-cyan-300 mb-2">Aposta Mínima</h4>
-                        <p className="text-sm font-bold text-purple-300">R$ 10,00</p>
-                      </div>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">6 números (1-50) + 2 trevos da sorte 🍀 (1-6)</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-cyan-300 mb-2">Prêmio Mínimo</h4>
-                      <p className="text-sm text-purple-300 font-bold">R$ 10 MILHÕES garantidos</p>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-yellow-300">R$ 10,00</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-cyan-300 mb-2">Faixas de Prêmios</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {['10 faixas', '6+2 acertos', '6+1 acertos', '6+0 acertos', '5+2 acertos'].map((faixa, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">{faixa}</Badge>
-                        ))}
-                      </div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmio Mínimo</h4>
+                      <p className="text-xs text-orange-300">R$ 10 milhões</p>
                     </div>
-                    <div className="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
-                      <p className="text-xs text-purple-300">
-                        <strong>Sorteios:</strong> Sábados às 20h
-                      </p>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Faixas</h4>
+                      <p className="text-xs text-muted-foreground">10 faixas de premiação</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -740,7 +728,7 @@ export default function Home() {
                     </h4>
                     <p className="text-sm text-yellow-200">
                       Todas as loterias são jogos de azar baseados em probabilidade e sorte. O Shark Loto oferece
-                      análises estatísticas para otimizar suas chances, mas não garantimos premiação. 
+                      análises estatísticas para otimizar suas chances, mas não garantimos premiação.
                       Jogue com responsabilidade e apenas o que pode permitir-se perder.
                     </p>
                   </div>

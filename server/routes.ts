@@ -321,22 +321,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lotteries/:id/integrated-analysis", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);
-      
+
       console.log(`🔄 Iniciando análise integrada para loteria ${lotteryId}...`);
-      
+
       // Atualizar análise de frequência
       await lotteryService.updateFrequencyAnalysis(lotteryId);
-      
+
       // Obter análise integrada completa
       const integratedAnalysis = await lotteryService.getIntegratedAnalysis(lotteryId);
-      
+
       res.json({
         success: true,
         data: integratedAnalysis,
         timestamp: new Date().toISOString(),
         message: 'Análise integrada completa obtida com sucesso'
       });
-      
+
     } catch (error) {
       console.error("Error fetching integrated analysis:", error);
       res.status(500).json({ 
@@ -553,7 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Validar se todos os elementos são números
-        const nonNumbers = parsedNumbers.filter(num => typeof num !== 'number' || isNaN(num));
+        const nonNumbers = parsedNumbers.filter((num: number) => typeof num !== 'number' || isNaN(num));
         if (nonNumbers.length > 0) {
           throw new Error(`Invalid number types found: ${nonNumbers.join(', ')}`);
         }
@@ -847,6 +847,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route for lottery generation
+  app.get("/api/lottery/generate/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const count = parseInt(req.query.count as string) || 1;
+
+      if (!type) {
+        return res.status(400).json({ error: "Tipo de loteria é obrigatório" });
+      }
+
+      if (count < 1 || count > 10) {
+        return res.status(400).json({ error: "Quantidade deve ser entre 1 e 10" });
+      }
+
+      const predictions = await aiService.generatePrediction(type, count);
+
+      if (!predictions || predictions.length === 0) {
+        return res.status(404).json({ error: "Não foi possível gerar predições" });
+      }
+
+      res.json(predictions);
+    } catch (error) {
+      console.error('Erro ao gerar números:', error);
+      res.status(500).json({ 
+        error: "Erro interno do servidor",
+        details: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
+  });
+
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time notifications
@@ -945,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/n8n/save-statistics', async (req, res) => {
     try {
       const { processedData } = req.body;
-      
+
       // Salvar estatísticas avançadas no banco
       for (const [lotteryName, data] of Object.entries(processedData)) {
         await storage.saveN8nStatistics(lotteryName, data);
@@ -1019,7 +1050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verificar se n8n está rodando
       const n8nStatus = n8nService.getStatus();
-      
+
       if (n8nStatus.running) {
         // Usar n8n para predição avançada
         console.log('🔮 Usando n8n para predição avançada...');
@@ -1028,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedCount, 
           preferences
         );
-        
+
         res.json({
           numbers: n8nResult.numbers,
           source: 'n8n_advanced_ai',

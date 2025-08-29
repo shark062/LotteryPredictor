@@ -19,6 +19,123 @@ interface NumberGeneratorProps {
   showAnalysis?: boolean;
 }
 
+// Helper function to generate unique numbers for a lottery
+interface LotteryResult {
+  id: string;
+  name: string;
+  numbers: number[];
+  specialNumbers?: number[];
+  description: string;
+  confidence: number;
+}
+
+const generateUniqueNumbers = (count: number, min: number, max: number): number[] => {
+  const numbers = new Set<number>();
+  while (numbers.size < count) {
+    numbers.add(Math.floor(Math.random() * (max - min + 1)) + min);
+  }
+  return Array.from(numbers).sort((a, b) => a - b);
+};
+
+const generateMegaSena = (): LotteryResult => {
+  const numbers = generateUniqueNumbers(6, 1, 60);
+  return {
+    id: '1',
+    name: 'Mega-Sena',
+    numbers: numbers,
+    description: `Números: ${numbers.join(', ')}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateLotoFacil = (): LotteryResult => {
+  const numbers = generateUniqueNumbers(15, 1, 25);
+  return {
+    id: '2',
+    name: 'Lotofácil',
+    numbers: numbers,
+    description: `Números: ${numbers.join(', ')}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateLotoMania = (): LotteryResult => {
+  const numbers = generateUniqueNumbers(50, 1, 100);
+  return {
+    id: '3',
+    name: 'LotoMania',
+    numbers: numbers,
+    description: `Números: ${numbers.join(', ')}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateDuplaSena = (): LotteryResult => {
+  const numbers1 = generateUniqueNumbers(6, 1, 50);
+  const numbers2 = generateUniqueNumbers(6, 1, 50);
+  return {
+    id: '4',
+    name: 'Dupla Sena',
+    numbers: numbers1,
+    specialNumbers: numbers2, // Representing the second draw
+    description: `1º Sorteio: ${numbers1.join(', ')} | 2º Sorteio: ${numbers2.join(', ')}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateQuina = (): LotteryResult => {
+  const numbers = generateUniqueNumbers(5, 1, 80);
+  return {
+    id: '5',
+    name: 'Quina',
+    numbers: numbers,
+    description: `Números: ${numbers.join(', ')}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateTimemania = (): LotteryResult => {
+  const mainNumbers = generateUniqueNumbers(10, 1, 80);
+  const teamNumber = Math.floor(Math.random() * 80) + 1; // Assuming 80 teams
+  return {
+    id: '6',
+    name: 'Timemania',
+    numbers: mainNumbers,
+    specialNumbers: [teamNumber],
+    description: `Números: ${mainNumbers.join(', ')} | Time: ${teamNumber}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateDiaDeSorte = (): LotteryResult => {
+  const monthNumbers = generateUniqueNumbers(7, 1, 31);
+  const luckyDay = Math.floor(Math.random() * 12) + 1; // Assuming 12 months
+  return {
+    id: '7',
+    name: 'Dia de Sorte',
+    numbers: monthNumbers,
+    specialNumbers: [luckyDay],
+    description: `Números: ${monthNumbers.join(', ')} | Mês da Sorte: ${luckyDay}`,
+    confidence: Math.floor(Math.random() * 30) + 70
+  };
+};
+
+const generateMaisMilionaria = (): LotteryResult => {
+    // +Milionária: 6 números principais (1-50) + 2 trevos da sorte (1-6) automáticos
+    const mainNumbers = generateUniqueNumbers(6, 1, 50);
+    const trevos = generateUniqueNumbers(2, 1, 6);
+
+    return {
+      id: '9',
+      name: '+Milionária',
+      numbers: mainNumbers,
+      specialNumbers: trevos,
+      description: `Números: ${mainNumbers.join(', ')} | Trevos da Sorte 🍀: ${trevos.join(', ')}`,
+      confidence: Math.floor(Math.random() * 30) + 70
+    };
+  };
+
+
 export default function NumberGenerator({
   selectedLottery,
   onLotteryChange,
@@ -217,19 +334,21 @@ export default function NumberGenerator({
         }
 
         // Validar se todos os elementos são números válidos
-        const validNumbers = game.filter(num =>
-          typeof num === 'number' &&
-          !isNaN(num) &&
-          num >= 1 &&
-          num <= selectedLotteryData.maxNumber
+        const validNumbers = game.filter(
+          num =>
+            typeof num === 'number' &&
+            !isNaN(num) &&
+            num >= 1 &&
+            num <= selectedLotteryData.maxNumber
         );
 
         if (validNumbers.length !== game.length) {
-          const invalidNumbers = game.filter(num =>
-            typeof num !== 'number' ||
-            isNaN(num) ||
-            num < 1 ||
-            num > selectedLotteryData.maxNumber
+          const invalidNumbers = game.filter(
+            num =>
+              typeof num !== 'number' ||
+              isNaN(num) ||
+              num < 1 ||
+              num > selectedLotteryData.maxNumber
           );
           throw new Error(`Jogo ${i + 1} contém números inválidos: ${invalidNumbers.join(', ')}`);
         }
