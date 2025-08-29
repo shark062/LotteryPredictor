@@ -96,7 +96,7 @@ export default function NumberGenerator({
           allClovers.push(gameData.clovers);
         }
       }
-      
+
       // Definir trevos se foram gerados
       if (allClovers.length > 0) {
         setGeneratedClovers(allClovers);
@@ -147,18 +147,18 @@ export default function NumberGenerator({
         });
         const gameData = await response.json();
         allGames.push(gameData.numbers);
-        
+
         // Capturar trevos se existirem (apenas para +Milionária)
         if (gameData.clovers) {
           allClovers.push(gameData.clovers);
         }
-        
+
         // Armazenar informações extras da predição avançada
         if (i === 0) {
           setConfidenceScore(gameData.confidence || 0.95);
         }
       }
-      
+
       // Definir trevos se foram gerados
       if (allClovers.length > 0) {
         setGeneratedClovers(allClovers);
@@ -166,9 +166,9 @@ export default function NumberGenerator({
         setGeneratedClovers([]);
       }
 
-      return { 
-        games: allGames, 
-        total: gamesCount, 
+      return {
+        games: allGames,
+        total: gamesCount,
         numbersPerGame,
         source: allGames[0]?.source || 'advanced_ai'
       };
@@ -189,7 +189,7 @@ export default function NumberGenerator({
         description: error.message || "Erro na IA avançada, tentando método padrão...",
         variant: "destructive",
       });
-      
+
       // Fallback para método padrão se avançado falhar
       generateMutation.mutate();
     },
@@ -390,7 +390,7 @@ export default function NumberGenerator({
 
     setIsGenerating(true);
     setProgress(0);
-    
+
     // Simular progresso durante geração avançada
     const progressInterval = setInterval(() => {
       setProgress(prev => {
@@ -416,17 +416,17 @@ export default function NumberGenerator({
         count: parseInt(numberCount) || 0,
         preferences,
       });
-      
+
       const result = await response.json();
       setGeneratedNumbers([result.numbers]);
-      
+
       // Capturar trevos se existirem (apenas para +Milionária)
       if (result.clovers) {
         setGeneratedClovers([result.clovers]);
       } else {
         setGeneratedClovers([]);
       }
-      
+
       toast({
         title: "Números Gerados! 🎯",
         description: "Novos números gerados com sucesso",
@@ -614,7 +614,7 @@ export default function NumberGenerator({
                       <NumberBall key={numberIndex} number={number} size="lg" />
                     ))}
                   </div>
-                  
+
                   {/* Trevos da Sorte para +Milionária */}
                   {selectedLotteryData?.slug === 'mais-milionaria' && generatedClovers[gameIndex] && (
                     <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
@@ -626,8 +626,8 @@ export default function NumberGenerator({
                       </div>
                       <div className="flex gap-2" data-testid={`generated-clovers-${gameIndex}`}>
                         {generatedClovers[gameIndex].map((clover: number, cloverIndex: number) => (
-                          <div 
-                            key={cloverIndex} 
+                          <div
+                            key={cloverIndex}
                             className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm flex items-center justify-center border-2 border-green-400 shadow-lg"
                           >
                             {clover}

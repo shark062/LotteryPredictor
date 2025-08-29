@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 
 interface LotteryResult {
   contest: number;
@@ -13,6 +14,17 @@ interface LotteryResult {
   };
   accumulated?: string;
 }
+
+interface CaixaAPIResponse {
+  acumulado: boolean;
+  dataApuracao: string;
+  dataProximoConcurso: string;
+  dezenasSorteadasOrdemSorteio: string[];
+  numeroDoConcurso: number;
+  valorEstimadoProximoConcurso: number;
+  valorPremio: number;
+}
+
 
 export class CaixaLotteryService {
   private static instance: CaixaLotteryService;
@@ -138,7 +150,7 @@ export class CaixaLotteryService {
     const isValidContest = result.contest > 0 && result.contest < 99999;
     const isValidDate = result.date && result.date.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
     const hasValidNumbers = result.drawnNumbers && result.drawnNumbers.length > 0;
-    
+
     // Validação específica por loteria para números
     let numbersAreValid = false;
     if (lotteryName === 'Super Sete') {
@@ -190,7 +202,7 @@ export class CaixaLotteryService {
     }
 
     // Mapear dados da API oficial da Caixa
-    const contest = parseInt(data.numero) || parseInt(data.concurso) || 0;
+    const contest = parseInt(data.numero || data.numeroDoConcurso) || 0;
     const date = data.dataApuracao || data.data || '';
     let drawnNumbers: number[] = [];
 
@@ -221,7 +233,7 @@ export class CaixaLotteryService {
       drawnNumbers = allGroupNumbers;
     } else {
       // Loterias com formato padrão
-      const numbersText = data.dezenas || data.listaDezenas || '';
+      const numbersText = data.dezenas || data.listaDezenas || data.dezenasSorteadasOrdemSorteio || '';
       if (typeof numbersText === 'string') {
         drawnNumbers = numbersText.split('-').map(n => {
           const num = parseInt(n.trim());
@@ -271,7 +283,7 @@ export class CaixaLotteryService {
 
     // Processar premiação baseado no tipo de loteria
     const winners = this.processWinnerData(data, lotteryName);
-    const accumulated = data.valorAcumuladoProximoConcurso;
+    const accumulated = data.valorAcumuladoProximoConcurso || data.valorEstimadoProximoConcurso;
 
     return {
       contest,

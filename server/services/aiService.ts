@@ -99,72 +99,7 @@ export class AIService {
     return { 
       numbers: generatedNumbers,
       clovers 
-    };iais
-
-    historicalResults.forEach(result => {
-      const numbers = JSON.parse(result.drawnNumbers);
-      const sortedNumbers = numbers.sort((a: number, b: number) => a - b);
-      
-      // Combinação completa
-      drawnCombinations.add(JSON.stringify(sortedNumbers));
-      
-      // Combinações parciais (pares, trios, etc.)
-      this.generatePartialCombinations(sortedNumbers).forEach(partial => {
-        partialCombinations.set(partial, (partialCombinations.get(partial) || 0) + 1);
-      });
-    });
-
-    const analysis = await lotteryService.getNumberAnalysis(lotteryId);
-    const availableNumbers: number[] = [];
-
-    // Build pool based on preferences
-    if (preferences.useHot) {
-      availableNumbers.push(...analysis.hot);
-    }
-    if (preferences.useCold) {
-      availableNumbers.push(...analysis.cold);
-    }
-    if (preferences.useMixed) {
-      availableNumbers.push(...analysis.mixed);
-    }
-
-    // Garantir que temos números suficientes
-    if (availableNumbers.length === 0) {
-      for (let i = 1; i <= lottery.maxNumber; i++) {
-        availableNumbers.push(i);
-      }
-    }
-
-    // Tentar gerar uma combinação única até 50 tentativas
-    let attempts = 0;
-    const maxAttempts = 50;
-    let selectedNumbers: number[] = [];
-
-    do {
-      selectedNumbers = await this.generateUniqueStrategy(lotteryId, count, availableNumbers, lottery);
-      const sortedSelection = selectedNumbers.sort((a, b) => a - b);
-      const combinationKey = JSON.stringify(sortedSelection);
-
-      // Se a combinação não foi sorteada antes, usar ela
-      if (!drawnCombinations.has(combinationKey)) {
-        break;
-      }
-
-      attempts++;
-    } while (attempts < maxAttempts);
-
-    if (attempts >= maxAttempts) {
-      console.log(`Aviso: Após ${maxAttempts} tentativas, usando combinação que pode ter sido sorteada antes`);
-    }
-
-    // Gerar trevos da sorte para +Milionária (slug: 'mais-milionaria')
-    let clovers: number[] | undefined = undefined;
-    if (lottery.slug === 'mais-milionaria') {
-      clovers = this.generateClovers();
-      console.log(`🍀 Trevos da sorte gerados para +Milionária: ${clovers.join(', ')}`);
-    }
-
-    return { numbers: selectedNumbers, clovers };
+    };
   }
 
   // Função exclusiva para gerar 2 trevos da sorte para +Milionária (1-6)
@@ -1710,7 +1645,7 @@ export class AIService {
     if (patterns && Object.keys(patterns).length > 0) confidence += 0.15;
 
     return Math.min(0.98, confidence);
-  }ateAdvancedStrategy(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
+  async generateN8nAdvancedStrategy(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
     console.log(`🔮 Gerando estratégia avançada n8n para loteria ${lotteryId}`);
     
     try {
