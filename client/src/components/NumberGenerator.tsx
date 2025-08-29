@@ -141,7 +141,7 @@ export default function NumberGenerator({
   showAnalysis = false
 }: NumberGeneratorProps) {
   const [numberCount, setNumberCount] = useState('');
-  const [gameCount, setGameCount] = useState('1');
+  const [gameCount, setGameCount] = useState('');
   const [preferences, setPreferences] = useState({
     useHot: false,
     useCold: false,
@@ -519,7 +519,7 @@ export default function NumberGenerator({
                 max="100"
                 value={gameCount}
                 onChange={(e) => setGameCount(e.target.value)}
-                placeholder="1-100"
+                placeholder="Digite a quantidade (1-100)"
                 data-testid="input-game-count"
                 disabled={!selectedLotteryData}
               />

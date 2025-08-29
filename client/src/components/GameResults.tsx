@@ -21,6 +21,10 @@ export default function GameResults({ showDetailedAnalysis = false }: GameResult
     queryKey: ["/api/games"],
   });
 
+  const { data: latestResults } = useQuery({
+    queryKey: ["/api/lotteries/results"],
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -51,31 +55,32 @@ export default function GameResults({ showDetailedAnalysis = false }: GameResult
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {!gameResults || gameResults.length === 0 ? (
+        {!userGames || userGames.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎲</div>
             <p className="text-muted-foreground">
-              Nenhum resultado encontrado. Comece gerando alguns jogos!
+              Nenhum jogo salvo encontrado. Comece gerando alguns jogos!
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {gameResults.map((result: any, index: number) => {
-              const userGame = userGames?.find((g: any) => g.id === result.userGameId);
-              const userNumbers = userGame ? JSON.parse(userGame.numbers) : [];
+            {userGames.map((game: any, index: number) => {
+              const userNumbers = JSON.parse(game.numbers);
               
-              // Simular números sorteados para demonstração
-              const drawnNumbers = [3, 7, 12, 18, 25, 31]; // Exemplo de números sorteados
+              // Buscar números sorteados mais recentes para esta loteria
+              const latestDraw = latestResults?.find((r: any) => r.lotteryId === game.lotteryId);
+              const drawnNumbers = latestDraw ? JSON.parse(latestDraw.numbers) : [];
               const matchingNumbers = userNumbers.filter((num: number) => drawnNumbers.includes(num));
+              const hits = matchingNumbers.length;
               
-              // Se acertou todos os números, mostrar confetti
-              if (result.hits === userNumbers.length && result.hits >= 5 && !showConfetti) {
+              // Se acertou muitos números, mostrar confetti
+              if (hits >= 5 && !showConfetti) {
                 setShowConfetti(true);
                 setTimeout(() => setShowConfetti(false), 5000);
               }
               
               return (
-                <Card key={result.id} className="bg-background/50 border border-border">
+                <Card key={game.id} className="bg-background/50 border border-border">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -83,28 +88,40 @@ export default function GameResults({ showDetailedAnalysis = false }: GameResult
                           Jogo #{index + 1}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(result.createdAt).toLocaleDateString('pt-BR')}
+                          {new Date(game.createdAt).toLocaleDateString('pt-BR')}
                         </p>
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {userNumbers.length} dezenas jogadas
+                        </Badge>
                       </div>
                       <div className="text-right">
-                        <Badge variant={result.hits >= 3 ? "default" : "secondary"}>
-                          {result.hits} acertos
-                        </Badge>
-                        {result.prizeValue > 0 && (
-                          <p className="text-sm text-accent font-semibold">
-                            Prêmio: R$ {parseFloat(result.prizeValue).toLocaleString('pt-BR', { 
-                              minimumFractionDigits: 2 
-                            })}
-                          </p>
+                        {drawnNumbers.length > 0 ? (
+                          <>
+                            <Badge variant={hits >= 3 ? "default" : "secondary"}>
+                              {hits} acertos
+                            </Badge>
+                            {hits >= 3 && (
+                              <p className="text-sm text-accent font-semibold mt-1">
+                                {hits === 3 && "Terno - R$ 25,00"}
+                                {hits === 4 && "Quadra - R$ 325,00"}
+                                {hits === 5 && "Quina - R$ 8.500,00"}
+                                {hits >= 6 && "🏆 SENA! 🏆"}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <Badge variant="outline">
+                            Aguardando sorteio
+                          </Badge>
                         )}
                       </div>
                     </div>
                     
                     <div className="mb-3">
                       <p className="text-sm font-medium mb-2">Seus números:</p>
-                      <div className="flex flex-wrap gap-2" data-testid={`user-numbers-${result.id}`}>
+                      <div className="flex flex-wrap gap-2" data-testid={`user-numbers-${game.id}`}>
                         {userNumbers.map((number: number) => {
-                          const isWinning = matchingNumbers.includes(number);
+                          const isWinning = drawnNumbers.length > 0 && matchingNumbers.includes(number);
                           return (
                             <NumberBall 
                               key={number} 
@@ -118,9 +135,14 @@ export default function GameResults({ showDetailedAnalysis = false }: GameResult
                       </div>
                     </div>
 
-                    {showDetailedAnalysis && (
+                    {drawnNumbers.length > 0 && (
                       <div className="mb-3">
-                        <p className="text-sm font-medium mb-2">Números sorteados:</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium">Números sorteados:</p>
+                          <Badge variant="outline" className="text-xs">
+                            {drawnNumbers.length} dezenas sorteadas
+                          </Badge>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {drawnNumbers.map((number: number) => (
                             <NumberBall 
@@ -134,26 +156,17 @@ export default function GameResults({ showDetailedAnalysis = false }: GameResult
                       </div>
                     )}
 
-                    {result.hits > 0 && (
+                    {hits > 0 && drawnNumbers.length > 0 && (
                       <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 mb-3">
                         <p className="text-sm font-semibold text-green-400">
                           🎯 Acertos: {matchingNumbers.join(', ')}
                         </p>
-                        <p className="text-xs text-green-300 mt-1">
-                          {result.hits === 3 && "Terno - R$ 25,00"}
-                          {result.hits === 4 && "Quadra - R$ 325,00"}
-                          {result.hits === 5 && "Quina - R$ 8.500,00"}
-                          {result.hits >= 6 && "🏆 SENA! - GRANDE PRÊMIO! 🏆"}
-                        </p>
-                      </div>
-                    )}
-
-                    {result.hits > 0 && (
-                      <div className="text-center mt-4">
-                        <div className="text-2xl mb-2">🎉</div>
-                        <p className="text-accent font-semibold">
-                          Parabéns! Você acertou {result.hits} números!
-                        </p>
+                        <div className="text-center mt-2">
+                          <div className="text-2xl mb-1">🎉</div>
+                          <p className="text-accent font-semibold text-sm">
+                            Parabéns! Você acertou {hits} números!
+                          </p>
+                        </div>
                       </div>
                     )}
                   </CardContent>
