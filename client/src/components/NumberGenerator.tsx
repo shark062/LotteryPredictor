@@ -135,7 +135,6 @@ const generateMaisMilionaria = (): LotteryResult => {
     };
   };
 
-
 export default function NumberGenerator({
   selectedLottery,
   onLotteryChange,

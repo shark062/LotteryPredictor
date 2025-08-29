@@ -55,7 +55,7 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     console.error("Express error handler:", err);
-    
+
     // Only send response if headers haven't been sent yet
     if (!res.headersSent) {
       try {
@@ -64,7 +64,7 @@ app.use((req, res, next) => {
         console.error("Error sending error response:", responseError);
       }
     }
-    
+
     // DO NOT throw err here - this crashes the server
     // Just log and continue serving
   });
