@@ -16,7 +16,7 @@ import {
   type NumberFrequency,
   type InsertUserGame,
   type InsertGameResult,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 

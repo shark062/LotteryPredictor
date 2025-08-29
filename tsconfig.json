@@ -17,7 +17,8 @@
     "lib": ["DOM", "DOM.Iterable", "ES6"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./client/src/*"]
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"]
     },
     "types": ["node", "ws"]
   },

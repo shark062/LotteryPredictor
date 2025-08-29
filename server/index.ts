@@ -2,10 +2,26 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { DataCache } from "./db.js";
-import { config, platform, getSystemInfo } from "../config/environment.js";
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
+
+// Configuração do ambiente
+const config = {
+  isDev: process.env.NODE_ENV !== 'production',
+  port: process.env.PORT || 5000,
+  host: '0.0.0.0'
+};
+
+const platform = process.platform;
+
+function getSystemInfo() {
+  return {
+    platform: process.platform,
+    nodeVersion: process.version,
+    memory: process.memoryUsage()
+  };
+}
 
 // Sistema de inicialização rápida e recuperação de falhas
 const app = express();
