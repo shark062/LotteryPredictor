@@ -641,10 +641,10 @@ export default function NumberGenerator({
                         {generatedClovers[gameIndex].map((clover: number, cloverIndex: number) => (
                           <div
                             key={cloverIndex}
-                            className="relative w-12 h-12 flex items-center justify-center"
+                            className="relative w-16 h-16 flex items-center justify-center"
                           >
-                            <span className="text-3xl text-green-500">🍀</span>
-                            <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm drop-shadow-lg">
+                            <span className="text-5xl text-green-500">🍀</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg drop-shadow-lg">
                               {clover}
                             </span>
                           </div>
