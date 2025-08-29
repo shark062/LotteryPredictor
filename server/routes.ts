@@ -11,6 +11,7 @@ import { caixaLotteryService } from "./services/caixaLotteryService";
 import { notificationService } from "./services/notificationService";
 import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
+import express from "express"; // Import express to use express.Router
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -524,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Validar se todos os elementos são números
-        const nonNumbers = parsedNumbers.filter(num => typeof num !== 'number' || isNaN(num));
+        const nonNumbers = parsedNumbers.filter((num: number) => typeof num !== 'number' || isNaN(num));
         if (nonNumbers.length > 0) {
           throw new Error(`Invalid number types found: ${nonNumbers.join(', ')}`);
         }
@@ -818,6 +819,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Register API routes
+  const apiRouter = express.Router();
+
+  // Health check endpoint
+  apiRouter.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Root route para verificar se o servidor está funcionando
+  app.get('/api', (req, res) => {
+    res.json({ 
+      message: 'Lottery AI API is running', 
+      version: '1.0.0',
+      status: 'active',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time notifications
@@ -916,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/n8n/save-statistics', async (req, res) => {
     try {
       const { processedData } = req.body;
-      
+
       // Salvar estatísticas avançadas no banco
       for (const [lotteryName, data] of Object.entries(processedData)) {
         await storage.saveN8nStatistics(lotteryName, data);
@@ -990,7 +1009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verificar se n8n está rodando
       const n8nStatus = n8nService.getStatus();
-      
+
       if (n8nStatus.running) {
         // Usar n8n para predição avançada
         console.log('🔮 Usando n8n para predição avançada...');
@@ -999,7 +1018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedCount, 
           preferences
         );
-        
+
         res.json({
           numbers: n8nResult.numbers,
           source: 'n8n_advanced_ai',
