@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/badge';
 
 interface ContestData {
   [key: string]: {
-    lottery: string;
-    contest: number;
-    date: string;
-    winners: number;
-    prize: string;
-    numbers: number[];
-    accumulated: boolean;
+    lottery?: string;
+    contest?: number;
+    date?: string;
+    winners?: number | string;
+    prize?: string;
+    numbers?: number[];
+    accumulated?: boolean | string;
+    drawnNumbers?: number[];
+    contestNumber?: number;
   };
 }
 
@@ -23,14 +25,22 @@ export default function ContestWinners() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Query para buscar dados dos últimos concursos
-  const { data: contestData = {}, isLoading: loading, error, refetch } = useQuery<ContestData>({
-    queryKey: ['/api/contest-winners'],
+  const { data: apiResponse, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['/api/lotteries/contest-winners'],
+    queryFn: async () => {
+      const response = await fetch('/api/lotteries/contest-winners');
+      if (!response.ok) {
+        throw new Error('Falha ao buscar dados dos concursos');
+      }
+      return response.json();
+    },
     staleTime: 10 * 60 * 1000, // 10 minutos
     retry: 2,
     retryDelay: 3000,
     refetchOnWindowFocus: false,
-    networkMode: 'online',
   });
+
+  const contestData = apiResponse?.data || {};
 
   // Função para forçar atualização
   const forceUpdate = async () => {
@@ -213,55 +223,73 @@ export default function ContestWinners() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(contestData).map(([key, contest]) => (
-            <div
-              key={key}
-              className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-lg p-4 border border-slate-600/50 hover:border-cyan-400/50 transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-cyan-300">{contest.lottery}</h3>
-                {contest.accumulated && (
-                  <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">
-                    Acumulou
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-300">Concurso {contest.contest}</span>
-                  <span className="text-slate-400">• {contest.date}</span>
+          {Object.entries(contestData).map(([key, contest]) => {
+            const lotteryName = contest.lottery || key;
+            const contestNumber = contest.contest || contest.contestNumber || 'N/A';
+            const contestDate = contest.date || 'Data não disponível';
+            const numbersToShow = contest.numbers || contest.drawnNumbers || [];
+            const isAccumulated = contest.accumulated === true || contest.accumulated === 'true';
+            
+            // Extrair informações dos ganhadores se disponível
+            let winnersInfo = 'Dados não disponíveis';
+            let prizeInfo = contest.prize || 'Prêmio não disponível';
+            
+            if (typeof contest.winners === 'number') {
+              winnersInfo = `${contest.winners} ganhador(es)`;
+            } else if (typeof contest.winners === 'string') {
+              winnersInfo = contest.winners;
+            }
+
+            return (
+              <div
+                key={key}
+                className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-lg p-4 border border-slate-600/50 hover:border-cyan-400/50 transition-all duration-300"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-cyan-300">{lotteryName}</h3>
+                  {isAccumulated && (
+                    <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+                      Acumulou
+                    </Badge>
+                  )}
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <span className="text-green-300">{contest.winners} ganhador(es)</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <Award className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-300 font-semibold">{contest.prize}</span>
-                </div>
-                
-                {contest.numbers && contest.numbers.length > 0 && (
-                  <div className="mt-3">
-                    <div className="text-xs text-slate-400 mb-2">Números sorteados:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {contest.numbers.map((number, index) => (
-                        <span
-                          key={index}
-                          className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg"
-                        >
-                          {number}
-                        </span>
-                      ))}
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-300">Concurso {contestNumber}</span>
+                    <span className="text-slate-400">• {contestDate}</span>
                   </div>
-                )}
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="w-4 h-4 text-green-400" />
+                    <span className="text-green-300">{winnersInfo}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Award className="w-4 h-4 text-yellow-400" />
+                    <span className="text-yellow-300 font-semibold">{prizeInfo}</span>
+                  </div>
+                  
+                  {numbersToShow && numbersToShow.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs text-slate-400 mb-2">Números sorteados:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {numbersToShow.map((number, index) => (
+                          <span
+                            key={index}
+                            className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg"
+                          >
+                            {String(number).padStart(2, '0')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
