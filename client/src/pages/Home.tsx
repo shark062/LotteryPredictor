@@ -34,6 +34,13 @@ export default function Home() {
     slug: string; // Assuming slug is added here for CommunityInsights
   }>>({
     queryKey: ["/api/lotteries"],
+    queryFn: async () => {
+      const response = await fetch('/api/lotteries');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
     retry: 2,
@@ -253,7 +260,7 @@ export default function Home() {
               </p>
             </div>
             <div className="responsive-grid-4">
-              {lotteriesLoading || upcomingLoading ? (
+              {lotteriesLoading ? (
                 <div className="col-span-full flex items-center justify-center py-12">
                   <div className="text-center space-y-4">
                     <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
@@ -262,7 +269,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-              ) : lotteries && lotteries.length > 0 ? (
+              ) : Array.isArray(lotteries) && lotteries.length > 0 ? (
                 lotteries.map((lottery: any, index: number) => (
                   <LotteryCard
                     key={lottery.id}
