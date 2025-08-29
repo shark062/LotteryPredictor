@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import logoUrl from '../assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import FuturisticHeader from "@/components/FuturisticHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LotteryCard from "@/components/LotteryCard";

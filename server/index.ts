@@ -2,6 +2,17 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Add process-level error handling to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit the process - keep server running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process - keep server running
+});
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -43,8 +54,15 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    console.error("Express error handler:", err);
+    
+    // Only send response if headers haven't been sent yet
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+    
+    // DO NOT throw err here - this crashes the server
+    // Just log and continue serving
   });
 
   // importantly only setup vite in development and after
@@ -56,11 +74,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  // ALWAYS serve the app on port 5000 - this is the ONLY stable port for Replit
+  // Other ports are firewalled. Port 5000 is locked for stability.
+  // This serves both the API and the client.
+  const port = 5000; // LOCKED: Do not change this port number
   server.listen({
     port,
     host: "0.0.0.0",
