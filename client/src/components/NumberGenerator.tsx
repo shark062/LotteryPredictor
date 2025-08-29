@@ -239,10 +239,10 @@ export default function NumberGenerator({
       return;
     }
 
-    if (games > 10) {
+    if (games > 100) {
       toast({
         title: "Muitos jogos",
-        description: "Máximo de 10 jogos por vez",
+        description: "Máximo de 100 jogos por vez para evitar sobrecarga",
         variant: "destructive",
       });
       return;
@@ -328,15 +328,15 @@ export default function NumberGenerator({
               />
             </div>
             <div>
-              <Label htmlFor="game-count">Quantidade de Jogos (1-10)</Label>
+              <Label htmlFor="game-count">Quantidade de Jogos (1-100)</Label>
               <Input
                 id="game-count"
                 type="number"
                 min="1"
-                max="10"
+                max="100"
                 value={gameCount}
                 onChange={(e) => setGameCount(e.target.value)}
-                placeholder="1-10"
+                placeholder="1-100"
                 data-testid="input-game-count"
                 disabled={!selectedLotteryData}
               />

@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -47,7 +46,7 @@ export class CaixaLotteryService {
       try {
         console.log(`🔄 Buscando dados oficiais da ${lottery.name}...`);
         const result = await this.fetchLotteryDataWithRetry(lottery.endpoint, lottery.name);
-        
+
         if (result && this.validateResult(result, lottery.name)) {
           results[lottery.name] = result;
           validResults.push(lottery.name);
@@ -75,16 +74,16 @@ export class CaixaLotteryService {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         console.log(`🔄 Tentativa ${attempt}/${this.maxRetries} para ${lotteryName}`);
-        
+
         const result = await this.fetchLotteryData(endpoint, lotteryName);
         if (result && this.validateResult(result, lotteryName)) {
           return result;
         }
-        
+
         throw new Error(`Dados inválidos na tentativa ${attempt}`);
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < this.maxRetries) {
           console.warn(`⚠️ Tentativa ${attempt} falhou, tentando novamente em 2s...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -135,18 +134,18 @@ export class CaixaLotteryService {
   private validateResult(result: LotteryResult, lotteryName: string): boolean {
     // Validar dados essenciais
     if (!result) return false;
-    
+
     const isValidContest = result.contest > 0 && result.contest < 99999;
     const isValidDate = result.date && result.date.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
     const hasValidNumbers = result.drawnNumbers && result.drawnNumbers.length > 0;
     const numbersAreValid = result.drawnNumbers.every(n => n > 0 && n <= 100);
-    
+
     // Verificar se os números fazem sentido para a loteria específica
     const expectedNumberCount = this.getExpectedNumberCount(lotteryName);
     const hasCorrectCount = result.drawnNumbers.length === expectedNumberCount;
-    
+
     const isValid = isValidContest && isValidDate && hasValidNumbers && numbersAreValid && hasCorrectCount;
-    
+
     if (!isValid) {
       console.warn(`❌ Dados inválidos para ${lotteryName}:`, {
         contest: result.contest,
@@ -155,7 +154,7 @@ export class CaixaLotteryService {
         expectedCount: expectedNumberCount
       });
     }
-    
+
     return isValid;
   }
 
@@ -170,7 +169,7 @@ export class CaixaLotteryService {
       'Dia de Sorte': 7,
       'Super Sete': 7
     };
-    
+
     return expectedCounts[lotteryName] || 6;
   }
 
@@ -182,17 +181,67 @@ export class CaixaLotteryService {
     // Mapear dados da API oficial da Caixa
     const contest = parseInt(data.numero) || parseInt(data.concurso) || 0;
     const date = data.dataApuracao || data.data || '';
-    const drawnNumbers = data.listaDezenas || data.dezenas || [];
-    
+    let drawnNumbers: number[] = [];
+
+    if (lotteryName === 'Super Sete' && data.grupos && Array.isArray(data.grupos)) {
+      // Super Sete tem um formato diferente, com sorteios por grupo
+      const allGroupNumbers: number[] = [];
+      data.grupos.forEach((group: any) => {
+        if (group.numeros && typeof group.numeros === 'string') {
+          const numbersText = group.numeros;
+          const numbers = numbersText.split('-').map(n => {
+            const num = parseInt(n.trim());
+            if (isNaN(num)) {
+              throw new Error(`Número inválido encontrado: ${n}`);
+            }
+            // Para Super Sete, aceitar números de 0 a 9
+            if (lotteryName === 'Super Sete' && (num < 0 || num > 9)) {
+              throw new Error(`Número fora do range para Super Sete: ${num}`);
+            }
+            // Para outras loterias, não aceitar números menores que 1
+            if (lotteryName !== 'Super Sete' && num < 1) {
+              throw new Error(`Número inválido encontrado: ${n}`);
+            }
+            return num;
+          });
+          allGroupNumbers.push(...numbers);
+        }
+      });
+      drawnNumbers = allGroupNumbers;
+    } else {
+      // Loterias com formato padrão
+      const numbersText = data.dezenas || data.listaDezenas || '';
+      if (typeof numbersText === 'string') {
+        drawnNumbers = numbersText.split('-').map(n => {
+          const num = parseInt(n.trim());
+          if (isNaN(num) || num <= 0) {
+            throw new Error(`Número inválido encontrado: ${n}`);
+          }
+          return num;
+        });
+      } else if (Array.isArray(numbersText)) {
+        drawnNumbers = numbersText.map((n: string) => {
+          const num = parseInt(n);
+          if (isNaN(num) || num <= 0) {
+            throw new Error(`Número inválido encontrado: ${n}`);
+          }
+          return num;
+        });
+      } else {
+        throw new Error(`Formato de dezenas inesperado para ${lotteryName}`);
+      }
+    }
+
+
     // Validar dados essenciais antes de processar
     if (contest <= 0) {
       throw new Error(`Número do concurso inválido: ${contest}`);
     }
-    
+
     if (!Array.isArray(drawnNumbers) || drawnNumbers.length === 0) {
       throw new Error(`Números sorteados inválidos para ${lotteryName}`);
     }
-    
+
     // Processar premiação baseado no tipo de loteria
     const winners = this.processWinnerData(data, lotteryName);
     const accumulated = data.valorAcumuladoProximoConcurso;
@@ -200,12 +249,8 @@ export class CaixaLotteryService {
     return {
       contest,
       date: date || new Date().toLocaleDateString('pt-BR'),
-      drawnNumbers: drawnNumbers.map((n: string) => {
-        const num = parseInt(n);
-        if (isNaN(num) || num <= 0) {
-          throw new Error(`Número inválido encontrado: ${n}`);
-        }
-        return num;
+      drawnNumbers: drawnNumbers.map((n: number) => {
+        return n;
       }),
       winners,
       accumulated: accumulated && accumulated > 0 ? `R$ ${this.formatMoney(accumulated)}` : undefined
@@ -214,14 +259,30 @@ export class CaixaLotteryService {
 
   private processWinnerData(data: any, lotteryName: string): { [key: string]: { count: number; prize: string } } {
     const winners: { [key: string]: { count: number; prize: string } } = {};
-    
+
     if (data.listaRateioPremio && Array.isArray(data.listaRateioPremio)) {
       data.listaRateioPremio.forEach((prize: any) => {
         if (prize && typeof prize === 'object') {
           const description = this.getPrizeDescription(prize.descricaoFaixa, lotteryName);
           const count = parseInt(prize.numeroDeGanhadores) || 0;
           const prizeValue = parseFloat(prize.valorPremio) || 0;
-          
+
+          if (description && !isNaN(count) && !isNaN(prizeValue)) {
+            winners[description] = {
+              count: count,
+              prize: `R$ ${this.formatMoney(prizeValue)}`
+            };
+          }
+        }
+      });
+    } else if (lotteryName === 'Super Sete' && data.premios && Array.isArray(data.premios)) {
+      // Tratamento específico para Super Sete, que pode ter o formato de premiação diferente
+      data.premios.forEach((prize: any) => {
+        if (prize && typeof prize === 'object') {
+          const description = prize.faixa; // Assumindo que 'faixa' contém a descrição dos acertos
+          const count = parseInt(prize.ganhadores) || 0;
+          const prizeValue = parseFloat(prize.valor) || 0;
+
           if (description && !isNaN(count) && !isNaN(prizeValue)) {
             winners[description] = {
               count: count,
@@ -237,12 +298,12 @@ export class CaixaLotteryService {
 
   private getPrizeDescription(originalDesc: string, lotteryName: string): string {
     if (!originalDesc) return '';
-    
+
     // Mapear descrições para formato padrão
     const descriptions: { [key: string]: { [key: string]: string } } = {
       'Lotofácil': {
         '15': '15 pontos',
-        '14': '14 pontos', 
+        '14': '14 pontos',
         '13': '13 pontos',
         '12': '12 pontos',
         '11': '11 pontos'
@@ -257,13 +318,20 @@ export class CaixaLotteryService {
         '4': 'Quadra (4 números)',
         '3': 'Terno (3 números)',
         '2': 'Duque (2 números)'
+      },
+      'Super Sete': {
+        '7': '7 acertos',
+        '6': '6 acertos',
+        '5': '5 acertos',
+        '4': '4 acertos',
+        '3': '3 acertos'
       }
     };
 
     // Extrair número de acertos da descrição original
     const match = originalDesc.match(/(\d+)/);
-    const lotteryKey = lotteryName.replace('-', '');
-    
+    const lotteryKey = lotteryName;
+
     if (match && descriptions[lotteryKey]) {
       return descriptions[lotteryKey][match[1]] || originalDesc;
     }

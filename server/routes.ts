@@ -494,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For this example, we'll return a dummy user.
         return { id: 'demo-user', email: 'usuario@demo.com', name: 'Usuário Demo' };
       };
-      
+
       const user = await authenticate(req, res);
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
@@ -514,11 +514,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let parsedNumbers;
       try {
         parsedNumbers = typeof numbers === 'string' ? JSON.parse(numbers) : numbers;
-        
+
         if (!Array.isArray(parsedNumbers)) {
           throw new Error('Numbers must be an array');
         }
-        
+
         if (parsedNumbers.length === 0) {
           throw new Error('Numbers array cannot be empty');
         }
@@ -576,6 +576,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ordenar números antes de salvar
       const sortedNumbers = uniqueNumbers.sort((a, b) => a - b);
 
+      // ----- INÍCIO DAS ALTERAÇÕES -----
+      const games = req.body.games ? parseInt(req.body.games) : 1; // Assume 1 jogo se não especificado
+      if (games > 100) {
+        return res.status(400).json({
+          message: "Máximo de 100 jogos por vez para evitar sobrecarga do servidor"
+        });
+      }
+      // ----- FIM DAS ALTERAÇÕES -----
+
+
       const gameData = {
         userId: user.id,
         lotteryId: parsedLotteryId,
@@ -595,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Jogo de ${lottery.name} salvo com sucesso!`,
         parsedNumbers: sortedNumbers
       });
-      
+
     } catch (error) {
       console.error("❌ Erro ao criar jogo:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
