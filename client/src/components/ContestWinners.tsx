@@ -27,10 +27,12 @@ const ContestWinners: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [dataSource, setDataSource] = useState<string>('');
+  const [errorCount, setErrorCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Função para buscar dados oficiais
+  // Função para buscar dados oficiais com debounce
   const fetchOfficialData = useCallback(async (showUpdating = false) => {
+    if (isUpdating && !showUpdating) return; // Evitar requests simultâneos
     if (showUpdating) setIsUpdating(true);
 
     try {
@@ -77,16 +79,32 @@ const ContestWinners: React.FC = () => {
 
     } catch (error) {
       console.error('Erro ao buscar dados oficiais:', error);
+      setErrorCount(prev => prev + 1);
 
-      // Em caso de erro total, usar dados de fallback
-      try {
-        const fallbackResponse = await fetch('/api/lotteries/contest-winners');
-        const fallbackData = await fallbackResponse.json();
-        setContestData(fallbackData.success ? fallbackData.data : fallbackData);
-        setDataSource('Dados Fallback');
-        setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
-      } catch (fallbackError) {
-        console.error('Erro também no fallback:', fallbackError);
+      // Circuit breaker: parar tentativas se muitos erros
+      if (errorCount < 3) {
+        try {
+          const fallbackResponse = await fetch('/api/lotteries/contest-winners');
+          const fallbackData = await fallbackResponse.json();
+          setContestData(fallbackData.success ? fallbackData.data : fallbackData);
+          setDataSource('Dados Fallback');
+          setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
+        } catch (fallbackError) {
+          console.error('Erro também no fallback:', fallbackError);
+        }
+      } else {
+        console.warn('Circuit breaker ativado - muitos erros consecutivos');
+        // Parar auto-update temporariamente
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          setTimeout(() => {
+            setErrorCount(0); // Reset após 2 minutos
+            // Restart auto-update
+            intervalRef.current = setInterval(() => {
+              fetchOfficialData(false);
+            }, 30000);
+          }, 120000);
+        }
       }
     } finally {
       setLoading(false);
@@ -116,10 +134,10 @@ const ContestWinners: React.FC = () => {
     // Buscar dados inicial
     fetchOfficialData(true);
 
-    // Configurar atualização automática a cada 10 segundos
+    // Configurar atualização automática a cada 30 segundos para reduzir carga
     intervalRef.current = setInterval(() => {
       fetchOfficialData(false);
-    }, 10000);
+    }, 30000);
 
     // Cleanup
     return () => {
@@ -203,9 +221,8 @@ const ContestWinners: React.FC = () => {
           <div className="text-red-300">Erro ao carregar dados dos concursos</div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
+    );
+  }
 
 export default ContestWinners;t>
       </Card>

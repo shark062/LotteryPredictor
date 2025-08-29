@@ -22,32 +22,22 @@ const cache = new DataCache();
 // Middleware de log otimizado
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  
+  // Reduzir logs para evitar spam
+  const skipLogging = req.path.includes('/health') || 
+                     req.path.includes('/api/ai/status') ||
+                     req.path.includes('/static') ||
+                     req.path.includes('.js') ||
+                     req.path.includes('.css');
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-
-    if (req.path.startsWith("/api")) {
-      let logLine = `${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+  if (!skipLogging) {
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      if (req.path.startsWith("/api") && duration > 100) { // Log apenas requests lentos
+        log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    } else if (config.getLogLevel() === 'debug') {
-      console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
-    }
-  });
+    });
+  }
   next();
 });
 
@@ -122,25 +112,12 @@ async function startServer() {
     console.log('📋 Registrando rotas da aplicação...');
     await registerRoutes(app);
 
-    // Sistema de health check avançado
+    // Sistema de health check otimizado
     app.get('/health', (req, res) => {
-      const status = StartupManager.getStatus();
-      const systemInfo = getSystemInfo();
-
       res.json({
         status: 'healthy',
-        platform,
-        environment: config.isDev ? 'development' : 'production',
-        uptime: status.uptime,
-        initialized: status.initialized,
-        cache_size: DataCache.size(),
+        uptime: Math.round(process.uptime()),
         memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        database: {
-          connected: true,
-          pool_size: config.getPoolSize(),
-          ssl_enabled: config.requiresSsl()
-        },
-        system: systemInfo,
         timestamp: new Date().toISOString()
       });
     });
@@ -261,20 +238,20 @@ process.on('unhandledRejection', (reason, promise) => {
   // Continuar rodando - não encerrar processo
 });
 
-// Sistema de monitoramento de memória
+// Sistema de monitoramento de memória - reduzido para 5 minutos
 setInterval(() => {
   const memUsage = process.memoryUsage();
   const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
 
-  if (memMB > 250) { // Alerta se usar mais de 250MB
+  if (memMB > 300) { // Alerta se usar mais de 300MB
     console.warn(`⚠️ Uso de memória alto: ${memMB}MB`);
     // Limpar cache se necessário
-    if (memMB > 400) {
+    if (memMB > 450) {
       console.log('🧹 Limpando cache para liberar memória...');
       DataCache.clear();
     }
   }
-}, 60000); // Verificar a cada minuto
+}, 300000); // Verificar a cada 5 minutos
 
 // Inicializar aplicação
 startServer().catch(console.error);
