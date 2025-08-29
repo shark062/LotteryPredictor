@@ -37,7 +37,7 @@ export class AIService {
   async generatePrediction(lotteryType: string, count: number = 1): Promise<any[]> {
     const startTime = Date.now();
     const cacheKey = `prediction_${lotteryType}_${count}`;
-    
+
     try {
       // Verificar cache primeiro para evitar processamento desnecessário
       const cached = DataCache.get(cacheKey);
@@ -117,7 +117,7 @@ export class AIService {
       };
 
       DataCache.set(cacheKey, finalPredictions, 300000); // Cache por 5 minutos
-      
+
       console.log(`⚡ Predições geradas em ${Date.now() - startTime}ms para ${lotteryType}`);
       return predictions;
     } catch (error) {
@@ -1230,7 +1230,7 @@ export class AIService {
       // Calcular intervalo baseado na performance recente
       const avgConfidence = this.calculateAverageConfidence();
       let interval = 30 * 60 * 1000; // Base: 30 minutos
-      
+
       // Ajustar intervalo baseado na performance
       if (avgConfidence < 0.5) {
         interval = 15 * 60 * 1000; // 15 minutos para melhorar rapidamente
@@ -1255,9 +1255,9 @@ export class AIService {
   private calculateAverageConfidence(): number {
     const recentMetrics = Array.from(this.performanceMetrics.values())
       .filter(m => Date.now() - m.timestamp < 24 * 60 * 60 * 1000); // Últimas 24h
-    
+
     if (recentMetrics.length === 0) return 0.5;
-    
+
     const avgConfidence = recentMetrics.reduce((sum, m) => sum + (m.confidence || 0.5), 0) / recentMetrics.length;
     return Math.min(Math.max(avgConfidence, 0.1), 0.95); // Limitar entre 0.1 e 0.95
   }
@@ -1285,7 +1285,7 @@ export class AIService {
   // Novo método de aprendizado aprimorado
   private async performEnhancedLearning(): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       console.log('🧠 IA realizando aprendizado aprimorado...');
 
@@ -1303,10 +1303,10 @@ export class AIService {
       for (const lottery of lotteries) {
         const improved = await this.enhancedLotteryAnalysis(lottery.id);
         if (improved) improvedModels++;
-        
+
         // Atualizar métricas de performance
         await this.updatePerformanceMetrics(lottery.id);
-        
+
         // Pequena pausa para não sobrecarregar o sistema
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -1332,7 +1332,7 @@ export class AIService {
     } catch (error) {
       console.error('❌ Erro no aprendizado aprimorado da IA:', error);
       this.recordError('enhanced_learning', error);
-      
+
       // Fallback para método original
       await this.performContinuousLearning();
     }
@@ -1341,11 +1341,11 @@ export class AIService {
   private async checkForNewData(): Promise<boolean> {
     try {
       const lotteries = await storage.getAllLotteries();
-      
+
       for (const lottery of lotteries) {
         const lastUpdate = this.lastDrawUpdate.get(lottery.id) || 0;
         const latestResults = await storage.getLatestResults(lottery.id, 1);
-        
+
         if (latestResults.length > 0) {
           const latestDrawTime = new Date(latestResults[0].drawDate).getTime();
           if (latestDrawTime > lastUpdate) {
@@ -1354,7 +1354,7 @@ export class AIService {
           }
         }
       }
-      
+
       return false;
     } catch (error) {
       console.warn('⚠️ Erro ao verificar novos dados:', error);
@@ -1364,7 +1364,7 @@ export class AIService {
 
   private async optimizeExistingModels(): Promise<void> {
     console.log('🔧 Otimizando modelos existentes...');
-    
+
     // Limpar cache antigo para forçar regeneração
     const cacheKeys = ['prediction_', 'historical_', 'analysis_'];
     cacheKeys.forEach(prefix => {
@@ -1391,20 +1391,20 @@ export class AIService {
       if (results.length < 10) return false;
 
       const currentAccuracy = this.precisionHistory.get(lotteryId) || 0;
-      
+
       // Analisar tendências recentes vs históricas
       const recentResults = results.slice(0, 20);
       const historicalResults = results.slice(20);
-      
+
       const recentPatterns = this.analyzeAdvancedPatterns(recentResults);
       const historicalPatterns = this.analyzeAdvancedPatterns(historicalResults);
-      
+
       // Detectar mudanças de padrão
       const patternShift = this.detectPatternShift(recentPatterns, historicalPatterns);
-      
+
       if (patternShift > 0.3) { // Mudança significativa detectada
         console.log(`🔍 Mudança de padrão detectada na loteria ${lotteryId} (${(patternShift * 100).toFixed(1)}%)`);
-        
+
         // Ajustar modelo baseado nas novas tendências
         await this.adjustModelForPatternShift(lotteryId, recentPatterns);
         return true;
@@ -1429,7 +1429,7 @@ export class AIService {
     results.forEach(result => {
       try {
         const numbers = JSON.parse(result.drawnNumbers);
-        
+
         // Análise de frequência
         numbers.forEach((num: number) => {
           patterns.numberFrequency[num] = (patterns.numberFrequency[num] || 0) + 1;
@@ -1458,11 +1458,11 @@ export class AIService {
     // Comparar frequências de números
     const recentFreq = recent.numberFrequency;
     const historicalFreq = historical.numberFrequency;
-    
+
     Object.keys(recentFreq).forEach(num => {
       const recentRate = recentFreq[num] / Object.keys(recent.numberFrequency).length;
       const historicalRate = (historicalFreq[num] || 0) / Object.keys(historical.numberFrequency).length;
-      
+
       shiftScore += Math.abs(recentRate - historicalRate);
       comparisons++;
     });
@@ -1487,7 +1487,7 @@ export class AIService {
   private async updatePerformanceMetrics(lotteryId: number): Promise<void> {
     const precision = this.precisionHistory.get(lotteryId) || 0;
     const metricKey = `lottery_${lotteryId}_performance`;
-    
+
     this.performanceMetrics.set(metricKey, {
       timestamp: Date.now(),
       lotteryId,
@@ -1778,10 +1778,10 @@ export class AIService {
   // Método para verificar eficácia do anti-repetição
   async getAntiRepetitionStats(lotteryId: number): Promise<any> {
     try {
-      const historicalResults = await storage.getAllResults(lotteryId);
+      const allResults = await storage.getLatestResults(lotteryId, 100);
       const drawnCombinations = new Set<string>();
 
-      historicalResults.forEach(result => {
+      allResults.forEach(result => {
         const numbers = JSON.parse(result.drawnNumbers);
         const sortedNumbers = numbers.sort((a: number, b: number) => a - b);
         drawnCombinations.add(JSON.stringify(sortedNumbers));
@@ -2393,7 +2393,7 @@ export class AIService {
   // Nova versão com cache inteligente
   private async getHistoricalDataCached(lotteryType: string): Promise<any[]> {
     const cacheKey = `historical_${lotteryType}`;
-    
+
     try {
       // Verificar cache primeiro
       const cached = DataCache.get(cacheKey);
@@ -2403,11 +2403,11 @@ export class AIService {
       }
 
       console.log(`🔄 Buscando dados históricos para ${lotteryType}...`);
-      
+
       // Buscar dados reais do banco
       const lotteries = await storage.getAllLotteries();
       const lottery = lotteries.find(l => l.slug.includes(lotteryType.toLowerCase()));
-      
+
       if (lottery) {
         const results = await storage.getLatestResults(lottery.id, 100);
         if (results && results.length > 0) {
@@ -2426,7 +2426,7 @@ export class AIService {
     } catch (error) {
       console.error(`❌ Erro ao buscar dados históricos para ${lotteryType}:`, error);
       this.recordError(`historical_data_${lotteryType}`, error);
-      
+
       // Retornar dados de fallback
       return await this.getHistoricalData(lotteryType);
     }
@@ -2448,7 +2448,7 @@ export class AIService {
   // Nova versão com auto-correção
   private async performAdvancedAnalysisWithCorrection(historicalData: any[], lotteryConfig: any): Promise<any> {
     const cacheKey = `analysis_${lotteryConfig.numbersCount}_${historicalData.length}`;
-    
+
     try {
       // Verificar cache da análise
       const cached = DataCache.get(cacheKey);
@@ -2458,10 +2458,10 @@ export class AIService {
       }
 
       console.log('🧠 Realizando análise estatística avançada...');
-      
+
       // Análise robusta com auto-correção
       const analysis = this.performRobustAnalysis(historicalData, lotteryConfig);
-      
+
       // Validar resultado da análise
       if (this.validateAnalysis(analysis, lotteryConfig)) {
         DataCache.set(cacheKey, analysis, 900000); // Cache por 15 minutos
@@ -2475,7 +2475,7 @@ export class AIService {
     } catch (error) {
       console.error('❌ Erro na análise avançada:', error);
       this.recordError('advanced_analysis', error);
-      
+
       // Fallback para análise simples
       return this.performAdvancedAnalysis(historicalData, lotteryConfig);
     }
@@ -2483,11 +2483,11 @@ export class AIService {
 
   private performRobustAnalysis(historicalData: any[], lotteryConfig: any): any {
     const { minNumber, maxNumber, numbersCount } = lotteryConfig;
-    
+
     // Análise de frequência
     const frequency: { [key: number]: number } = {};
     const lastSeen: { [key: number]: number } = {};
-    
+
     historicalData.forEach((data, index) => {
       try {
         const numbers = JSON.parse(data.drawnNumbers || '[]');
@@ -2527,7 +2527,7 @@ export class AIService {
     // Validar se a análise está coerente
     if (!analysis.hotNumbers || !analysis.coldNumbers) return false;
     if (analysis.hotNumbers.length === 0 || analysis.coldNumbers.length === 0) return false;
-    
+
     // Verificar se os números estão no range correto
     const allNumbers = [...analysis.hotNumbers, ...analysis.coldNumbers];
     return allNumbers.every(num => num >= config.minNumber && num <= config.maxNumber);
@@ -2535,10 +2535,10 @@ export class AIService {
 
   private correctAnalysis(analysis: any, config: any): any {
     console.log('🔧 Corrigindo análise...');
-    
+
     // Gerar números de fallback válidos
     const validNumbers = Array.from(
-      { length: config.maxNumber - config.minNumber + 1 }, 
+      { length: config.maxNumber - config.minNumber + 1 },
       (_, i) => i + config.minNumber
     );
 
@@ -2578,7 +2578,7 @@ export class AIService {
   private recordError(operation: string, error: any): void {
     const count = this.errorCountMap.get(operation) || 0;
     this.errorCountMap.set(operation, count + 1);
-    
+
     // Auto-correção baseada em frequência de erros
     if (count > 5) {
       console.warn(`⚠️ Muitos erros em ${operation}, desabilitando temporariamente...`);
