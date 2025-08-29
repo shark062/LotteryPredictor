@@ -19,64 +19,36 @@ const cache = new DataCache();
 // Middleware de log otimizado
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
   res.on('finish', () => {
     const duration = Date.now() - start;
-    if (config.getLogLevel() === 'debug') {
+
+    if (req.path.startsWith("/api")) {
+      let logLine = `${req.method} ${req.path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    } else if (config.getLogLevel() === 'debug') {
       console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
     }
   });
   next();
 });
 
-// Middleware de erro
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    message: config.isDev ? err.message : 'Internal Server Error',
-    stack: config.isDev ? err.stack : undefined
-  });
-});
-
-// Sistema de inicialização
-async function startServer() {
-  try {
-    // Registrar rotas
-    await registerRoutes(app);
-    
-    // Setup Vite em desenvolvimento
-    if (config.isDev) {
-      await setupVite(app);
-    } else {
-      serveStatic(app);
-    }
-
-    // Iniciar servidor
-    const server = app.listen(PORT, HOST, () => {
-      console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
-      console.log(`📊 Plataforma: ${platform}`);
-      console.log(`🔧 Ambiente: ${config.isDev ? 'desenvolvimento' : 'produção'}`);
-    });
-
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('🔄 Recebido SIGTERM, encerrando servidor...');
-      server.close(() => {
-        console.log('✅ Servidor encerrado com sucesso');
-        process.exit(0);
-      });
-    });
-
-    return server;
-  } catch (error) {
-    console.error('❌ Erro ao iniciar servidor:', error);
-    process.exit(1);
-  }
-}
-
-// Inicializar aplicação
-startServer().catch(console.error);
-
-export default app;alhas
+// Sistema de cache e otimização de falhas
 class StartupManager {
   private static initialized = false;
   private static startupPromise: Promise<void> | null = null;
@@ -86,7 +58,7 @@ class StartupManager {
     if (this.startupPromise) return this.startupPromise;
 
     console.log('🚀 Iniciando sistema com otimizações...');
-    
+
     this.startupPromise = this.performStartup();
     await this.startupPromise;
     this.initialized = true;
@@ -137,80 +109,21 @@ class StartupManager {
   }
 }
 
-// Tratamento robusto de erros - evitar crashes
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception (não crítico):', error.message);
-  // Continuar rodando - não encerrar processo
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection (não crítico):', reason);
-  // Continuar rodando - não encerrar processo
-});
-
-// Sistema de monitoramento de memória
-setInterval(() => {
-  const memUsage = process.memoryUsage();
-  const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-  
-  if (memMB > 250) { // Alerta se usar mais de 250MB
-    console.warn(`⚠️ Uso de memória alto: ${memMB}MB`);
-    // Limpar cache se necessário
-    if (memMB > 400) {
-      console.log('🧹 Limpando cache para liberar memória...');
-      DataCache.clear();
-    }
-  }
-}, 60000); // Verificar a cada minuto
-
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
-
-(async () => {
+// Sistema de inicialização
+async function startServer() {
   try {
     // Inicialização rápida
     await StartupManager.fastStartup();
 
-    // Registrar rotas com timeout
+    // Registrar rotas
     console.log('📋 Registrando rotas da aplicação...');
-    const server = await registerRoutes(app);
+    await registerRoutes(app);
 
     // Sistema de health check avançado
     app.get('/health', (req, res) => {
       const status = StartupManager.getStatus();
       const systemInfo = getSystemInfo();
-      
+
       res.json({
         status: 'healthy',
         platform,
@@ -252,7 +165,7 @@ app.use((req, res, next) => {
         try {
           res.status(status).json({ 
             message,
-            error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            error: config.isDev ? err.stack : undefined
           });
         } catch (responseError) {
           console.error("❌ Falha ao enviar resposta de erro:", responseError);
@@ -260,36 +173,32 @@ app.use((req, res, next) => {
       }
     });
 
-    // Setup do Vite otimizado
-    if (app.get("env") === "development") {
+    // Setup Vite em desenvolvimento
+    if (config.isDev) {
       console.log('⚡ Configurando Vite para desenvolvimento...');
-      await setupVite(app, server);
+      await setupVite(app);
     } else {
       console.log('📦 Servindo arquivos estáticos de produção...');
       serveStatic(app);
     }
 
-    // Iniciar servidor com configuração adaptável por plataforma
-    const port = config.port;
-    const host = config.host;
-    
-    server.listen({
-      port,
-      host,
-      reusePort: true,
-    }, () => {
+    // Iniciar servidor
+    const server = app.listen(PORT, HOST, () => {
       const uptime = StartupManager.getStatus().uptime;
-      log(`🎯 Shark Loto servidor ativo na ${platform} - ${host}:${port} (startup: ${uptime}ms)`);
-      
+      console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
+      console.log(`📊 Plataforma: ${platform}`);
+      console.log(`🔧 Ambiente: ${config.isDev ? 'desenvolvimento' : 'produção'}`);
+      console.log(`⚡ Startup: ${uptime}ms`);
+
       if (platform !== 'local') {
         console.log(`🌐 URL pública: ${getSystemInfo().publicUrl}`);
       }
     });
 
-    // Graceful shutdown melhorado
+    // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
       console.log(`🔄 Recebido sinal ${signal}, encerrando graciosamente...`);
-      
+
       try {
         // Fechar servidor HTTP
         server.close(() => {
@@ -302,7 +211,7 @@ app.use((req, res, next) => {
 
         // Aguardar processos finalizarem
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         console.log('✅ Shutdown completo');
         process.exit(0);
       } catch (error) {
@@ -314,14 +223,47 @@ app.use((req, res, next) => {
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+    return server;
   } catch (error) {
-    console.error('💥 Falha crítica na inicialização:', error);
-    
+    console.error('❌ Erro ao iniciar servidor:', error);
+
     // Tentar recuperação básica
     console.log('🩹 Tentando recuperação básica...');
-    const port = 5000;
-    const basicServer = app.listen(port, '0.0.0.0', () => {
-      console.log(`⚠️ Servidor básico ativo na porta ${port} (modo recuperação)`);
+    const basicServer = app.listen(5000, '0.0.0.0', () => {
+      console.log(`⚠️ Servidor básico ativo na porta 5000 (modo recuperação)`);
     });
+
+    return basicServer;
   }
-})();
+}
+
+// Tratamento robusto de erros - evitar crashes
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception (não crítico):', error.message);
+  // Continuar rodando - não encerrar processo
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection (não crítico):', reason);
+  // Continuar rodando - não encerrar processo
+});
+
+// Sistema de monitoramento de memória
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+
+  if (memMB > 250) { // Alerta se usar mais de 250MB
+    console.warn(`⚠️ Uso de memória alto: ${memMB}MB`);
+    // Limpar cache se necessário
+    if (memMB > 400) {
+      console.log('🧹 Limpando cache para liberar memória...');
+      DataCache.clear();
+    }
+  }
+}, 60000); // Verificar a cada minuto
+
+// Inicializar aplicação
+startServer().catch(console.error);
+
+export default app;
