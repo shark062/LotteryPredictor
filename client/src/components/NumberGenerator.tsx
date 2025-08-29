@@ -324,7 +324,8 @@ export default function NumberGenerator({
       const savedGames = [];
 
       // Salvar cada jogo individualmente com melhor tratamento de erro
-      for (let i = 0; i < generatedNumbers.length; i++) {
+      try {
+        for (let i = 0; i < generatedNumbers.length; i++) {
         const game = generatedNumbers[i];
 
         // Validações mais robustas
@@ -386,11 +387,10 @@ export default function NumberGenerator({
         savedGames.push(savedGame);
 
         console.log(`✅ Jogo ${i + 1} salvo com sucesso:`, savedGame);
-
-        } catch (saveError) {
-          console.error(`❌ Erro ao salvar jogo ${i + 1}:`, saveError);
-          throw new Error(`Falha ao salvar jogo ${i + 1}: ${saveError instanceof Error ? saveError.message : 'Erro desconhecido'}`);
         }
+      } catch (saveError) {
+        console.error(`❌ Erro ao salvar jogos:`, saveError);
+        throw new Error(`Falha ao salvar jogos: ${saveError instanceof Error ? saveError.message : 'Erro desconhecido'}`);
       }
 
       return savedGames;
