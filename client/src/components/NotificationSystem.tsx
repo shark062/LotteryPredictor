@@ -133,14 +133,20 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
     });
   };
 
-  // Conectar ao WebSocket com tratamento de erros e reconexão
+  // Conectar ao WebSocket com tratamento de erros e reconexão otimizado
   useEffect(() => {
     let ws: WebSocket | null = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
+    const maxReconnectAttempts = 3; // Reduzido para 3 tentativas
     let reconnectTimeout: NodeJS.Timeout | null = null;
+    let isComponentMounted = true;
 
     const connect = () => {
+      // Não tentar conectar se o componente foi desmontado
+      if (!isComponentMounted || reconnectAttempts >= maxReconnectAttempts) {
+        return;
+      }
+
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -152,15 +158,17 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
           reconnectAttempts = 0;
 
           // Registrar usuário
-          if (ws) {
+          if (ws && isComponentMounted) {
             ws.send(JSON.stringify({
               type: 'register',
-              userId: user?.id || 'guest' // Use o ID do usuário logado ou 'guest'
+              userId: user?.id || 'guest'
             }));
           }
         };
 
         ws.onmessage = (event) => {
+          if (!isComponentMounted) return;
+          
           try {
             const notification: Notification = JSON.parse(event.data);
             setNotifications(prev => [notification, ...prev.slice(0, 49)]);
@@ -202,30 +210,40 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
         };
 
         ws.onclose = (event) => {
+          if (!isComponentMounted) return;
+          
           console.log('❌ Desconectado do sistema de notificações');
 
-          // Não tentar reconectar se foi fechamento intencional (código 1000) ou se o número de tentativas foi excedido
-          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+          // Só tentar reconectar se não foi fechamento intencional e ainda há tentativas disponíveis
+          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts && isComponentMounted) {
             reconnectAttempts++;
-            // Aumenta o tempo de espera exponencialmente, com um limite
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            // Aumenta o tempo de espera progressivamente
+            const delay = Math.min(5000 + (reconnectAttempts * 5000), 30000); // 5s, 10s, 15s, max 30s
 
             reconnectTimeout = setTimeout(() => {
-              console.log(`🔄 Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`);
-              connect();
+              if (isComponentMounted) {
+                console.log(`🔄 Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts}...`);
+                connect();
+              }
             }, delay);
+          } else if (reconnectAttempts >= maxReconnectAttempts) {
+            console.log('⚠️ Máximo de tentativas de reconexão atingido. Notificações em tempo real desabilitadas.');
           }
         };
 
         ws.onerror = (error) => {
+          if (!isComponentMounted) return;
+          
           console.error('Erro WebSocket:', error);
-          // Em caso de erro, também tentamos reconectar se não excedermos as tentativas
+          // Só incrementar tentativas se não excedermos o limite
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            const delay = Math.min(5000 + (reconnectAttempts * 5000), 30000);
             reconnectTimeout = setTimeout(() => {
-              console.log(`🔄 Tentativa de reconexão após erro ${reconnectAttempts}/${maxReconnectAttempts}...`);
-              connect();
+              if (isComponentMounted) {
+                console.log(`🔄 Tentativa de reconexão após erro ${reconnectAttempts}/${maxReconnectAttempts}...`);
+                connect();
+              }
             }, delay);
           }
         };
@@ -244,12 +262,13 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
     connect();
 
     return () => {
+      isComponentMounted = false;
       // Limpa o timeout de reconexão se ele existir
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
       // Fecha a conexão WebSocket se ela estiver aberta
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close(1000, 'Component unmounting'); // Código 1000 indica fechamento normal
       }
     };

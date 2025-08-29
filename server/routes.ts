@@ -120,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(503).json({ 
           success: false,
           message: "Serviço temporariamente indisponível. API da Caixa não está respondendo.",
-          error: fetchError.message,
+          error: fetchError instanceof Error ? fetchError.message : 'Erro desconhecido',
           timestamp: new Date().toISOString()
         });
       }
@@ -832,8 +832,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: 'Dados oficiais atualizados com sucesso',
         data: {
-          results: hasResults ? Object.keys(resultsData).length : 0,
-          upcoming: hasUpcoming ? Object.keys(upcomingData).length : 0
+          results: hasResults && resultsData ? Object.keys(resultsData).length : 0,
+          upcoming: hasUpcoming && upcomingData ? Object.keys(upcomingData).length : 0
         },
         timestamp: new Date().toISOString()
       });

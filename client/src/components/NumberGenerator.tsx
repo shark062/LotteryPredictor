@@ -418,7 +418,7 @@ export default function NumberGenerator({
     },
   });
 
-  const selectedLotteryData = lotteries?.find((l: any) => l.id === selectedLottery);
+  const selectedLotteryData = Array.isArray(lotteries) ? lotteries.find((l: any) => l.id === selectedLottery) : null;
 
   const handleGenerate = useCallback(() => {
     const count = parseInt(numberCount) || 0;
@@ -583,11 +583,11 @@ export default function NumberGenerator({
                   <SelectValue placeholder="Selecione a modalidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  {lotteries?.map((lottery: any) => (
+                  {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
                     <SelectItem key={lottery.id} value={lottery.id.toString()}>
                       {lottery.name}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import logoUrl from '../assets/cyberpunk-shark.png';
+import logoUrl from '@/assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import FuturisticHeader from "@/components/FuturisticHeader";
@@ -264,7 +264,6 @@ export default function Home() {
                   <LotteryCard
                     key={lottery.id}
                     lottery={lottery}
-                    upcomingDraw={(upcomingDraws as any)?.[lottery.name] || undefined}
                     onSelect={() => setSelectedLottery(lottery.id)}
                     index={index}
                   />
@@ -301,7 +300,6 @@ export default function Home() {
                 <CommunityInsights
                   key={lottery.id}
                   lotterySlug={lottery.slug}
-                  lotteryName={lottery.name}
                   lotteryEmoji={getLotteryEmoji(lottery.name)}
                 />
               ))}
