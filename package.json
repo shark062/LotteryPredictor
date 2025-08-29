@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",

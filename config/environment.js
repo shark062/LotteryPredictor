@@ -1,119 +1,40 @@
-// Configuração de Ambiente Multiplataforma
-// Sistema inteligente que detecta e configura automaticamente para cada plataforma
-
-class EnvironmentDetector {
+class Environment {
   constructor() {
     this.platform = this.detectPlatform();
-    this.config = this.generateConfig();
+    this.isDev = process.env.NODE_ENV === 'development';
+    this.isProd = process.env.NODE_ENV === 'production';
   }
 
   detectPlatform() {
-    // Detectar Replit
-    if (process.env.REPLIT_DB_URL || process.env.REPLIT_CLUSTER) {
-      return 'replit';
-    }
-
-    // Detectar Vercel
-    if (process.env.VERCEL || process.env.VERCEL_ENV) {
-      return 'vercel';
-    }
-
-    // Detectar Netlify
-    if (process.env.NETLIFY || process.env.NETLIFY_ENV) {
-      return 'netlify';
-    }
-
-    // Detectar Heroku
-    if (process.env.DYNO || process.env.HEROKU_APP_NAME) {
-      return 'heroku';
-    }
-
-    // Detectar Railway
-    if (process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_GIT_COMMIT_SHA) {
-      return 'railway';
-    }
-
-    // Detectar DigitalOcean
-    if (process.env.DIGITALOCEAN_APP_NAME || process.env.DO_APP_NAME) {
-      return 'digitalocean';
-    }
-
-    // Detectar Docker
-    if (process.env.DOCKER_CONTAINER || fs.existsSync('/.dockerenv')) {
-      return 'docker';
-    }
-
-    // Ambiente local por padrão
+    if (process.env.REPLIT_DEPLOYMENT) return 'replit-deployment';
+    if (process.env.REPL_ID) return 'replit';
+    if (process.env.VERCEL) return 'vercel';
+    if (process.env.NETLIFY) return 'netlify';
+    if (process.env.DYNO) return 'heroku';
+    if (process.env.RAILWAY_ENVIRONMENT) return 'railway';
+    if (process.env.DIGITALOCEAN_APP_ID) return 'digitalocean';
+    if (process.env.DOCKERFILE_PATH) return 'docker';
     return 'local';
   }
 
-  generateConfig() {
-    const baseConfig = {
-      // Configurações universais
-      nodeEnv: process.env.NODE_ENV || 'development',
-      port: this.getPort(),
-      host: this.getHost(),
-      
-      // Database
-      database: {
-        url: this.getDatabaseUrl(),
-        ssl: this.requiresSsl(),
-        poolSize: this.getPoolSize(),
-        connectionTimeout: this.getConnectionTimeout()
-      },
-
-      // API Keys
-      apiKeys: {
-        openai: process.env.OPENAI_API_KEY,
-        caixa: process.env.CAIXA_API_KEY // Para futuras integrações oficiais
-      },
-
-      // Cache
-      cache: {
-        enabled: this.platform !== 'local',
-        ttl: this.getCacheTtl(),
-        maxSize: this.getCacheMaxSize()
-      },
-
-      // Logging
-      logging: {
-        level: this.getLogLevel(),
-        format: this.getLogFormat(),
-        enableConsole: true,
-        enableFile: this.platform === 'local'
-      },
-
-      // Performance
-      performance: {
-        enableGzip: true,
-        enableCors: true,
-        allowedOrigins: this.getAllowedOrigins(),
-        requestTimeout: this.getRequestTimeout(),
-        bodyLimit: '10mb'
-      },
-
-      // Features flags
-      features: {
-        realTimeNotifications: true,
-        aiLearning: true,
-        dataValidation: true,
-        autoCorrection: true,
-        analytics: this.platform !== 'local'
-      }
+  getPort() {
+    const platformPorts = {
+      replit: 5000,
+      'replit-deployment': 80,
+      vercel: 3000,
+      netlify: 8888,
+      heroku: process.env.PORT || 3000,
+      railway: process.env.PORT || 3000,
+      digitalocean: process.env.PORT || 8080,
+      docker: 3000,
+      local: 5000
     };
 
-    // Configurações específicas por plataforma
-    return this.applyPlatformSpecificConfig(baseConfig);
-  }
-
-  getPort() {
-    // Prioridade para variáveis de ambiente específicas da plataforma
     return parseInt(
-      process.env.PORT ||
-      process.env.REPLIT_PORT ||
-      process.env.VERCEL_PORT ||
-      process.env.RAILWAY_PORT ||
-      '5000'
+      process.env.PORT || 
+      process.env.REPLIT_PORT || 
+      platformPorts[this.platform] || 
+      5000
     );
   }
 
@@ -133,7 +54,6 @@ class EnvironmentDetector {
   }
 
   getDatabaseUrl() {
-    // Suporte a diferentes formatos de URL de banco
     return (
       process.env.DATABASE_URL ||
       process.env.POSTGRES_URL ||
@@ -145,9 +65,8 @@ class EnvironmentDetector {
   }
 
   requiresSsl() {
-    // SSL obrigatório em produção, exceto para localhost
     if (this.platform === 'local') return false;
-    
+
     const dbUrl = this.getDatabaseUrl();
     return !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1');
   }
@@ -155,7 +74,7 @@ class EnvironmentDetector {
   getPoolSize() {
     const platformPoolSizes = {
       replit: 20,
-      vercel: 5, // Limitado por conexões serverless
+      vercel: 5,
       netlify: 5,
       heroku: 10,
       railway: 15,
@@ -168,10 +87,9 @@ class EnvironmentDetector {
   }
 
   getConnectionTimeout() {
-    // Timeout em milissegundos
     const platformTimeouts = {
       replit: 30000,
-      vercel: 15000, // Mais rápido para serverless
+      vercel: 15000,
       netlify: 15000,
       heroku: 30000,
       railway: 30000,
@@ -184,26 +102,24 @@ class EnvironmentDetector {
   }
 
   getCacheTtl() {
-    // TTL padrão do cache em segundos
     const platformTtls = {
-      replit: 1800, // 30 minutos
-      vercel: 900,  // 15 minutos (serverless)
+      replit: 1800,
+      vercel: 900,
       netlify: 900,
       heroku: 1800,
       railway: 1800,
       digitalocean: 1800,
       docker: 1800,
-      local: 300 // 5 minutos para desenvolvimento
+      local: 300
     };
 
     return parseInt(process.env.CACHE_TTL || platformTtls[this.platform] || 1800);
   }
 
   getCacheMaxSize() {
-    // Tamanho máximo do cache em MB
     const platformSizes = {
       replit: 100,
-      vercel: 50, // Limitado por memória serverless
+      vercel: 50,
       netlify: 50,
       heroku: 100,
       railway: 150,
@@ -217,7 +133,7 @@ class EnvironmentDetector {
 
   getLogLevel() {
     if (process.env.LOG_LEVEL) return process.env.LOG_LEVEL;
-    
+
     return this.platform === 'local' ? 'debug' : 'info';
   }
 
@@ -225,179 +141,53 @@ class EnvironmentDetector {
     return this.platform === 'local' ? 'pretty' : 'json';
   }
 
-  getAllowedOrigins() {
-    // Configurar CORS baseado na plataforma
-    if (process.env.ALLOWED_ORIGINS) {
-      return process.env.ALLOWED_ORIGINS.split(',');
-    }
+  getCorsOrigins() {
+    const defaultOrigins = this.isDev 
+      ? ['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173']
+      : [];
 
     const platformOrigins = {
-      replit: ['*.replit.dev', '*.replit.co', '*.replit.app'],
-      vercel: ['*.vercel.app', '*.vercel.com'],
-      netlify: ['*.netlify.app', '*.netlify.com'],
-      heroku: ['*.herokuapp.com'],
-      railway: ['*.railway.app'],
-      digitalocean: ['*.ondigitalocean.app'],
-      docker: ['*'],
-      local: ['http://localhost:*', 'http://127.0.0.1:*']
+      replit: [`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`],
+      'replit-deployment': [process.env.REPLIT_DEPLOYMENT_URL],
+      vercel: [process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''],
+      netlify: [process.env.URL || ''],
+      heroku: [`https://${process.env.HEROKU_APP_NAME}.herokuapp.com`],
+      railway: [process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''],
+      digitalocean: [process.env.APP_URL || '']
     };
 
-    return platformOrigins[this.platform] || ['*'];
+    const origins = [
+      ...defaultOrigins,
+      ...(platformOrigins[this.platform] || [])
+    ].filter(Boolean);
+
+    return origins.length > 0 ? origins : ['*'];
   }
 
-  getRequestTimeout() {
-    // Timeout para requests em milissegundos
-    const platformTimeouts = {
-      replit: 120000, // 2 minutos
-      vercel: 30000,  // 30 segundos (limitação serverless)
-      netlify: 30000,
-      heroku: 60000,
-      railway: 120000,
-      digitalocean: 120000,
-      docker: 120000,
-      local: 30000
-    };
-
-    return parseInt(process.env.REQUEST_TIMEOUT || platformTimeouts[this.platform] || 60000);
+  getSessionSecret() {
+    return process.env.SESSION_SECRET || process.env.REPLIT_DB_URL || 'dev-secret-key';
   }
 
-  applyPlatformSpecificConfig(config) {
-    switch (this.platform) {
-      case 'replit':
-        return {
-          ...config,
-          replit: {
-            enableAnalytics: false, // Privacy
-            enableDebugMode: true,
-            hotReload: true
-          }
-        };
-
-      case 'vercel':
-        return {
-          ...config,
-          vercel: {
-            enableEdgeRuntime: false, // Usar Node.js runtime
-            enableISR: true, // Incremental Static Regeneration
-            regions: ['iad1'], // US East
-          }
-        };
-
-      case 'netlify':
-        return {
-          ...config,
-          netlify: {
-            enableFunctions: true,
-            enableEdgeFunctions: false,
-            splitTesting: false
-          }
-        };
-
-      case 'heroku':
-        return {
-          ...config,
-          heroku: {
-            enableMetrics: true,
-            enableAutoscaling: false,
-            dynoType: 'web'
-          }
-        };
-
-      case 'railway':
-        return {
-          ...config,
-          railway: {
-            enableAutoSleep: false,
-            enablePublicNetworking: true
-          }
-        };
-
-      case 'digitalocean':
-        return {
-          ...config,
-          digitalocean: {
-            enableCDN: true,
-            enableLoadBalancer: false
-          }
-        };
-
-      case 'docker':
-        return {
-          ...config,
-          docker: {
-            enableHealthCheck: true,
-            enableSwarm: false,
-            restartPolicy: 'unless-stopped'
-          }
-        };
-
-      default:
-        return config;
-    }
-  }
-
-  // Métodos utilitários
-  isPlatform(platformName) {
-    return this.platform === platformName;
-  }
-
-  isProduction() {
-    return this.config.nodeEnv === 'production';
-  }
-
-  isDevelopment() {
-    return this.config.nodeEnv === 'development';
-  }
-
-  isServerless() {
-    return ['vercel', 'netlify'].includes(this.platform);
-  }
-
-  supportsWebSockets() {
-    // Nem todas as plataformas suportam WebSockets
-    return !this.isServerless();
-  }
-
-  getPublicUrl() {
-    // Tentar detectar URL pública automaticamente
-    if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
-    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-    if (process.env.NETLIFY_URL) return process.env.NETLIFY_URL;
-    if (process.env.HEROKU_APP_NAME) return `https://${process.env.HEROKU_APP_NAME}.herokuapp.com`;
-    if (process.env.RAILWAY_STATIC_URL) return process.env.RAILWAY_STATIC_URL;
-    
-    return `http://${this.config.host}:${this.config.port}`;
-  }
-
-  // Método para debug e monitoramento
   getSystemInfo() {
     return {
       platform: this.platform,
+      port: this.getPort(),
+      host: this.getHost(),
+      isDev: this.isDev,
+      isProd: this.isProd,
       nodeVersion: process.version,
-      environment: this.config.nodeEnv,
-      publicUrl: this.getPublicUrl(),
-      features: this.config.features,
       memoryUsage: process.memoryUsage(),
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString()
+      uptime: process.uptime()
     };
   }
 }
 
-// Singleton instance
-const envDetector = new EnvironmentDetector();
+const environment = new Environment();
 
-module.exports = {
-  platform: envDetector.platform,
-  config: envDetector.config,
-  detector: envDetector,
-  
-  // Shortcuts para facilitar uso
-  isPlatform: (name) => envDetector.isPlatform(name),
-  isProduction: () => envDetector.isProduction(),
-  isDevelopment: () => envDetector.isDevelopment(),
-  isServerless: () => envDetector.isServerless(),
-  supportsWebSockets: () => envDetector.supportsWebSockets(),
-  getPublicUrl: () => envDetector.getPublicUrl(),
-  getSystemInfo: () => envDetector.getSystemInfo()
-};
+// Exports nomeados
+export const config = environment;
+export const platform = environment.platform;
+export const getSystemInfo = () => environment.getSystemInfo();
+
+// Export default
+export default environment;

@@ -2,9 +2,81 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { DataCache } from "./db";
-import { config, platform, getSystemInfo } from "../config/environment";
+import { config, platform, getSystemInfo } from "../config/environment.js";
 
 // Sistema de inicialização rápida e recuperação de falhas
+const app = express();
+const PORT = config.getPort();
+const HOST = config.getHost();
+
+// Middleware básico
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sistema de cache e otimização
+const cache = new DataCache();
+
+// Middleware de log otimizado
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (config.getLogLevel() === 'debug') {
+      console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    }
+  });
+  next();
+});
+
+// Middleware de erro
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    message: config.isDev ? err.message : 'Internal Server Error',
+    stack: config.isDev ? err.stack : undefined
+  });
+});
+
+// Sistema de inicialização
+async function startServer() {
+  try {
+    // Registrar rotas
+    await registerRoutes(app);
+    
+    // Setup Vite em desenvolvimento
+    if (config.isDev) {
+      await setupVite(app);
+    } else {
+      serveStatic(app);
+    }
+
+    // Iniciar servidor
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`🚀 Servidor rodando em http://${HOST}:${PORT}`);
+      console.log(`📊 Plataforma: ${platform}`);
+      console.log(`🔧 Ambiente: ${config.isDev ? 'desenvolvimento' : 'produção'}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('🔄 Recebido SIGTERM, encerrando servidor...');
+      server.close(() => {
+        console.log('✅ Servidor encerrado com sucesso');
+        process.exit(0);
+      });
+    });
+
+    return server;
+  } catch (error) {
+    console.error('❌ Erro ao iniciar servidor:', error);
+    process.exit(1);
+  }
+}
+
+// Inicializar aplicação
+startServer().catch(console.error);
+
+export default app;alhas
 class StartupManager {
   private static initialized = false;
   private static startupPromise: Promise<void> | null = null;

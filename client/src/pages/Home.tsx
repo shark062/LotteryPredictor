@@ -737,18 +737,7 @@ export default function Home() {
             </div>
           </TabsContent>
 
-          {/* Adiciona a aba do Painel de Controle n8n */}
-          <TabsContent value="n8n-control" className="space-y-6 sm:space-y-8">
-            {/* Descrição da seção */}
-            <div className="feature-description rounded-xl p-4 text-center mb-6">
-              <h2 className="text-xl font-bold text-cyan-300 mb-2">⚙️ Painel de Controle n8n - Automação e IA</h2>
-              <p className="text-muted-foreground">
-                Monitore e gerencie seus workflows do n8n diretamente aqui. Acompanhe a coleta de dados,
-                análises estatísticas e as previsões geradas pela IA para otimizar suas estratégias de loteria.
-              </p>
-            </div>
-            <N8nControlPanel />
-          </TabsContent>
+          
 
         </Tabs>
       </main>

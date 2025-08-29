@@ -203,6 +203,12 @@ const ContestWinners: React.FC = () => {
           <div className="text-red-300">Erro ao carregar dados dos concursos</div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+export default ContestWinners;t>
+      </Card>
     );
   }
 
