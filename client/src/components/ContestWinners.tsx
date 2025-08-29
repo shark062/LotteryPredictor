@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Wifi, RefreshCw, Users, Calendar, TrendingUp, Award } from 'lucide-react';
@@ -191,6 +190,87 @@ export default function ContestWinners() {
     );
   }
 
+  const renderLotteryCard = (name: string, data: any) => {
+    if (!data) {
+      return (
+        <Card key={name} className="bg-card/30 border border-border">
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-primary">{name}</h3>
+              <p className="text-sm text-muted-foreground">Dados não disponíveis</p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const { contest, date, drawnNumbers, winners, accumulated } = data;
+
+    return (
+      <Card key={name} className="bg-card/30 border border-border hover:bg-card/40 transition-colors">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold text-primary">{name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Concurso {contest} • {date || 'Data não disponível'}
+                </p>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                Oficial
+              </Badge>
+            </div>
+
+            {/* Números sorteados */}
+            {drawnNumbers && drawnNumbers.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Números sorteados:</p>
+                <div className="flex flex-wrap gap-2">
+                  {drawnNumbers.map((number: number, index: number) => (
+                    <div
+                      key={index}
+                      className="w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
+                    >
+                      {String(number).padStart(2, '0')}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ganhadores */}
+            {winners && Object.keys(winners).length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Ganhadores:</p>
+                <div className="space-y-1">
+                  {Object.entries(winners).map(([prize, info]: [string, any]) => (
+                    <div key={prize} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{prize}:</span>
+                      <span className="text-foreground font-medium">
+                        {info.count} ganhador{info.count !== 1 ? 'es' : ''} - {info.prize}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Prêmio acumulado */}
+            {accumulated && (
+              <div className="pt-2 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Próximo concurso:</span>
+                  <span className="text-sm font-bold text-green-400">{accumulated}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-cyan-500/30">
       <CardHeader className="pb-4">
@@ -229,11 +309,11 @@ export default function ContestWinners() {
             const contestDate = contest.date || 'Data não disponível';
             const numbersToShow = contest.numbers || contest.drawnNumbers || [];
             const isAccumulated = contest.accumulated === true || contest.accumulated === 'true';
-            
+
             // Extrair informações dos ganhadores se disponível
             let winnersInfo = 'Dados não disponíveis';
             let prizeInfo = contest.prize || 'Prêmio não disponível';
-            
+
             if (typeof contest.winners === 'number') {
               winnersInfo = `${contest.winners} ganhador(es)`;
             } else if (typeof contest.winners === 'string') {
@@ -253,24 +333,24 @@ export default function ContestWinners() {
                     </Badge>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-slate-400" />
                     <span className="text-slate-300">Concurso {contestNumber}</span>
                     <span className="text-slate-400">• {contestDate}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="w-4 h-4 text-green-400" />
                     <span className="text-green-300">{winnersInfo}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm">
                     <Award className="w-4 h-4 text-yellow-400" />
                     <span className="text-yellow-300 font-semibold">{prizeInfo}</span>
                   </div>
-                  
+
                   {numbersToShow && numbersToShow.length > 0 && (
                     <div className="mt-3">
                       <div className="text-xs text-slate-400 mb-2">Números sorteados:</div>
