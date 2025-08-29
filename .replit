@@ -63,5 +63,39 @@ mode = "sequential"
 task = "shell.exec"
 args = "NODE_ENV=development npm run dev"
 
+[[workflows.workflow]]
+name = "Universal Lottery Analysis"
+author = 47042471
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"console.log('🌐 Iniciando análise universal de todas as loterias...')\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "curl -X GET http://0.0.0.0:5000/api/lotteries/universal-analysis"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"console.log('📊 Análise histórica completa finalizada!')\""
+
+[[workflows.workflow]]
+name = "Universal Lottery Analysis"
+author = 47042471
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"console.log('🌐 Iniciando análise universal de todas as loterias...')\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "curl -X GET http://0.0.0.0:5000/api/lotteries/universal-analysis"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"console.log('📊 Análise histórica completa finalizada!')\""
+
 [agent]
 expertMode = true

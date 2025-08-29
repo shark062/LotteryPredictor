@@ -358,6 +358,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para análise histórica universal de TODAS as loterias
+  app.get("/api/lotteries/universal-analysis", async (req, res) => {
+    try {
+      console.log('🌐 Iniciando análise histórica universal para todas as loterias...');
+
+      const universalAnalysis = await aiService.getUniversalHistoricalAnalysis();
+
+      res.json({
+        success: true,
+        data: universalAnalysis,
+        timestamp: new Date().toISOString(),
+        message: `Análise universal completa para ${universalAnalysis.totalLotteries} loterias`
+      });
+
+    } catch (error) {
+      console.error("Error fetching universal analysis:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch universal analysis",
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Rota para análise histórica específica de uma loteria
+  app.get("/api/lotteries/:id/historical-complete", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.id);
+      const lottery = await storage.getLotteryById(lotteryId);
+
+      if (!lottery) {
+        return res.status(404).json({
+          success: false,
+          message: "Lottery not found"
+        });
+      }
+
+      console.log(`📊 Análise histórica completa para ${lottery.name}...`);
+
+      const historicalAnalysis = await aiService.getComprehensiveHistoricalAnalysis(lotteryId, lottery.name);
+
+      res.json({
+        success: true,
+        data: historicalAnalysis,
+        timestamp: new Date().toISOString(),
+        message: `Análise histórica completa para ${lottery.name}`
+      });
+
+    } catch (error) {
+      console.error("Error fetching historical analysis:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch historical analysis",
+        error: error.message
+      });
+    }
+  });
+
+  // Rota para estratégias personalizadas com OpenAI e n8n
+  app.post("/api/lotteries/:id/custom-strategies", async (req, res) => {
+    try {
+      const lotteryId = parseInt(req.params.id);
+      const { strategyType, riskLevel, budget } = req.body;
+
+      const lottery = await storage.getLotteryById(lotteryId);
+      if (!lottery) {
+        return res.status(404).json({
+          success: false,
+          message: "Lottery not found"
+        });
+      }
+
+      console.log(`🎯 Gerando estratégias personalizadas para ${lottery.name}...`);
+
+      // Obter análise histórica completa
+      const historicalData = await storage.getAllResults(lotteryId);
+      const strategies = await aiService.generateCustomStrategies(historicalData, lotteryId);
+
+      // Integração com OpenAI para refinamento
+      const aiRefinement = await aiService.getOpenAIUniversalInsights({
+        lotteryAnalyses: new Map([[lotteryId, { 
+          lotteryName: lottery.name, 
+          strategies,
+          riskLevel,
+          budget
+        }]])
+      });
+
+      // Integração com n8n se disponível
+      let n8nResult = null;
+      try {
+        const { n8nService } = await import('./services/n8nService');
+        const n8nStatus = n8nService.getStatus();
+        
+        if (n8nStatus.running) {
+          n8nResult = await n8nService.generateAdvancedStrategy(lotteryId, 1, {
+            useHot: true,
+            useCold: true,
+            useMixed: true,
+            strategyType,
+            riskLevel
+          });
+        }
+      } catch (n8nError) {
+        console.warn('n8n não disponível:', n8nError.message);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          lottery: lottery.name,
+          strategies,
+          aiRefinement,
+          n8nResult,
+          recommendations: {
+            primary: strategies.balanced || strategies.conservative,
+            alternative: strategies.aggressive,
+            riskAssessment: {
+              low: strategies.conservative,
+              medium: strategies.balanced,
+              high: strategies.aggressive
+            }
+          }
+        },
+        timestamp: new Date().toISOString(),
+        message: `Estratégias personalizadas geradas para ${lottery.name}`
+      });
+
+    } catch (error) {
+      console.error("Error generating custom strategies:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate custom strategies",
+        error: error.message
+      });
+    }
+  });
+
+  // Rota para iniciar análise de aprendizado contínuo para todas as loterias
+  app.post("/api/lotteries/start-learning", async (req, res) => {
+    try {
+      console.log('🧠 Iniciando aprendizado contínuo para todas as loterias...');
+
+      const lotteries = await storage.getAllLotteries();
+      const learningResults = [];
+
+      for (const lottery of lotteries) {
+        try {
+          // Atualizar modelo de IA
+          await aiService.updateModel(lottery.id);
+          
+          // Análise histórica
+          const analysis = await aiService.getComprehensiveHistoricalAnalysis(lottery.id, lottery.name);
+          
+          learningResults.push({
+            lotteryId: lottery.id,
+            name: lottery.name,
+            status: 'success',
+            totalConcursos: analysis.totalConcursos || 0,
+            lastUpdate: new Date()
+          });
+          
+          console.log(`✅ Aprendizado concluído para ${lottery.name}`);
+        } catch (error) {
+          learningResults.push({
+            lotteryId: lottery.id,
+            name: lottery.name,
+            status: 'error',
+            error: error.message
+          });
+          console.error(`❌ Erro no aprendizado para ${lottery.name}:`, error);
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          processedLotteries: learningResults.length,
+          successfulLearning: learningResults.filter(r => r.status === 'success').length,
+          results: learningResults
+        },
+        timestamp: new Date().toISOString(),
+        message: 'Processo de aprendizado iniciado para todas as loterias'
+      });
+
+    } catch (error) {
+      console.error("Error starting learning process:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to start learning process",
+        error: error.message
+      });
+    }
+  });
+
   app.get("/api/lotteries/:id/frequencies", async (req, res) => {
     try {
       const lotteryId = parseInt(req.params.id);
