@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "start": "NODE_ENV=production tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build --outDir dist/public",
-    "build:server": "tsc -p server/tsconfig.json",
-    "start": "node dist/server/index.js",
+    "build:client": "cd client && npm run build",
+    "build:server": "tsc --project server/tsconfig.json",
     "start:prod": "npm run build && npm start",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/db.ts"

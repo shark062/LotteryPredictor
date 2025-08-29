@@ -1,8 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { DataCache } from "./db";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { DataCache } from "./db.js";
 import { config, platform, getSystemInfo } from "../config/environment.js";
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 // Sistema de inicialização rápida e recuperação de falhas
 const app = express();
@@ -163,7 +166,7 @@ async function startServer() {
       // Resposta segura
       if (!res.headersSent) {
         try {
-          res.status(status).json({ 
+          res.status(status).json({
             message,
             error: config.isDev ? err.stack : undefined
           });
@@ -233,18 +236,18 @@ async function startServer() {
     return server;
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);
-    
+
     // Forçar uso do Vite em caso de erro
     console.log('🔄 Forçando inicialização com Vite...');
     try {
       const server = require('http').createServer(app);
       await setupVite(app, server);
-      
+
       const viteServer = server.listen(PORT, HOST, () => {
         console.log(`🚀 Servidor Vite rodando em http://${HOST}:${PORT}`);
         console.log('⚡ Modo de desenvolvimento ativo');
       });
-      
+
       return viteServer;
     } catch (viteError) {
       console.error('❌ Erro crítico:', viteError);
