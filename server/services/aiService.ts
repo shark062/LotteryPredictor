@@ -1368,16 +1368,22 @@ export class AIService {
     // Limpar cache antigo para forçar regeneração
     const cacheKeys = ['prediction_', 'historical_', 'analysis_'];
     cacheKeys.forEach(prefix => {
-      // Como DataCache não tem método keys(), vamos simular limpeza com tentativas diretas
+      // Como DataCache é um Map, usar o método correto para limpeza
       for (let i = 0; i < 100; i++) {
-        DataCache.delete(`${prefix}${i}`);
+        const key = `${prefix}${i}`;
+        if (DataCache.has && DataCache.has(key)) {
+          DataCache.set(key, null);
+        }
       }
       // Tentar limpar variações comuns
       const commonSuffixes = ['megaSena', 'lotofacil', 'quina', 'lotomania', 'timemania', 'duplaSena', 'diaDeSorte', 'superSete', 'maisMilionaria'];
       commonSuffixes.forEach(suffix => {
-        DataCache.delete(`${prefix}${suffix}`);
-        DataCache.delete(`${prefix}${suffix}_1`);
-        DataCache.delete(`${prefix}${suffix}_5`);
+        const keys = [`${prefix}${suffix}`, `${prefix}${suffix}_1`, `${prefix}${suffix}_5`];
+        keys.forEach(key => {
+          if (DataCache.has && DataCache.has(key)) {
+            DataCache.set(key, null);
+          }
+        });
       });
     });
 
