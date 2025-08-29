@@ -176,7 +176,8 @@ async function startServer() {
     // Setup Vite em desenvolvimento
     if (config.isDev) {
       console.log('⚡ Configurando Vite para desenvolvimento...');
-      await setupVite(app);
+      const server = require('http').createServer(app);
+      await setupVite(app, server);
     } else {
       console.log('📦 Servindo arquivos estáticos de produção...');
       serveStatic(app);
