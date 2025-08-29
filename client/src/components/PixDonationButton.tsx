@@ -8,17 +8,16 @@ const PixDonationButton: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const pixKey = "00020101021126580014br.gov.bcb.pix01365d237461-0a79-4ff3-9c8d-40afadf909b152040000530398654040.015802BR5921ALEX BARBOSA DE SOUSA6007GOIANIA62070503***63049872";
+  const pixKey = "alexbarbosa.shark062@gmail.com"; // Chave PIX real
 
   const handlePixDonation = () => {
-    const pixKey = "01234567890"; // Substitua pela sua chave PIX real
     const amount = "5.00"; // Valor sugerido
-    const description = "Doação para o Cyberpunk Shark Lottery";
+    const description = "Doação para o Shark Loteria - Análise IA";
 
     // Cria uma URL PIX padrão que pode ser interpretada por qualquer banco
     const pixUrl = `https://nubank.com.br/pagar/${pixKey}/${amount}`;
 
-    // Lista de esquemas de deep linking para apps bancários
+    // Lista de esquemas de deep linking para apps bancários (ampliada)
     const bankSchemes = [
       `nubank://qrauth?uuid=${pixKey}`,
       `inter://pix?qr=${pixKey}`,
@@ -28,7 +27,17 @@ const PixDonationButton: React.FC = () => {
       `bb://pix?chave=${pixKey}`,
       `caixa://pix?code=${pixKey}`,
       `picpay://pix?key=${pixKey}&value=${amount}`,
-      `99://pix?key=${pixKey}`
+      `99://pix?key=${pixKey}`,
+      `c6bank://pix?key=${pixKey}&amount=${amount}`,
+      `next://pix?key=${pixKey}`,
+      `original://pix?key=${pixKey}&value=${amount}`,
+      `will://pix?key=${pixKey}`,
+      `neon://pix?key=${pixKey}&amount=${amount}`,
+      `mercadopago://pix?key=${pixKey}&value=${amount}`,
+      `sicredi://pix?key=${pixKey}`,
+      `banrisul://pix?key=${pixKey}&amount=${amount}`,
+      `safra://pix?key=${pixKey}`,
+      `btgpactual://pix?key=${pixKey}&amount=${amount}`
     ];
 
     // Função para tentar abrir apps
@@ -105,7 +114,7 @@ const PixDonationButton: React.FC = () => {
           {/* Conteúdo */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-2">
-              <h3 className="text-lg font-bold text-white">💚 Apoie o Shark Loto</h3>
+              <h3 className="text-lg font-bold text-white">💚 Apoie o Shark Loteria</h3>
               <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs font-medium rounded-full">
                 PIX
               </span>
@@ -127,8 +136,9 @@ const PixDonationButton: React.FC = () => {
 
               <Button
                 onClick={() => {
-                  const pixKey = "01234567890";
                   navigator.clipboard.writeText(pixKey).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 3000);
                     toast({
                       title: "Chave PIX copiada! 📋",
                       description: `${pixKey} - Cole no seu app bancário`,
@@ -140,8 +150,8 @@ const PixDonationButton: React.FC = () => {
                 size="sm"
                 className="w-full text-xs"
               >
-                <Copy className="w-3 h-3 mr-1" />
-                Copiar chave PIX
+                {copied ? <CheckCircle className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+                {copied ? "Copiado!" : "Copiar chave PIX"}
               </Button>
             </div>
           </div>

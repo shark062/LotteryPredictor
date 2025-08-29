@@ -407,14 +407,7 @@ export default function NumberGenerator({
       return;
     }
 
-    if (count > selectedLotteryData.maxNumbers) {
-      toast({
-        title: "Quantidade inválida",
-        description: `Máximo de ${selectedLotteryData.maxNumbers} números para ${selectedLotteryData.name}`,
-        variant: "destructive",
-      });
-      return;
-    }
+    // Limitação removida - usuário pode escolher qualquer quantidade
 
     if (games > 100) {
       toast({
@@ -481,7 +474,7 @@ export default function NumberGenerator({
             <div>
               <Label htmlFor="lottery-select">Modalidade</Label>
               <Select
-                value={selectedLottery.toString()}
+                value={selectedLottery === 0 ? "" : selectedLottery.toString()}
                 onValueChange={(value) => onLotteryChange(parseInt(value))}
               >
                 <SelectTrigger data-testid="select-lottery-generator">

@@ -286,6 +286,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para dados de ganhadores dos concursos
+  app.get("/api/contest-winners", async (req, res) => {
+    try {
+      const contestData = await caixaLotteryService.getLatestResults();
+      res.json(contestData);
+    } catch (error) {
+      console.error("Error fetching contest winners:", error);
+      res.status(500).json({ message: "Failed to fetch contest winners" });
+    }
+  });
+
   // Rota para registrar uso e contribuir para aprendizado
   app.post("/api/lotteries/:slug/contribute-usage", async (req, res) => {
     try {

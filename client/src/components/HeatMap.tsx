@@ -16,10 +16,10 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
 
   const { data: frequencies, isLoading } = useQuery({
     queryKey: ["/api/lotteries", selectedLottery, "frequencies"],
-    enabled: !!selectedLottery,
+    enabled: selectedLottery > 0,
   });
 
-  const selectedLotteryData = lotteries?.find((l: any) => l.id === selectedLottery);
+  const selectedLotteryData = Array.isArray(lotteries) ? lotteries.find((l: any) => l.id === selectedLottery) : null;
 
   const getHeatLevel = (frequency: number, maxFreq: number): number => {
     if (maxFreq === 0) return 0;
@@ -32,7 +32,7 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
     return 0; // Muito frio
   };
 
-  const maxFrequency = frequencies ? Math.max(...frequencies.map((f: any) => f.frequency)) : 0;
+  const maxFrequency = Array.isArray(frequencies) && frequencies.length > 0 ? Math.max(...frequencies.map((f: any) => f.frequency)) : 0;
 
   return (
     <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
@@ -43,18 +43,18 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             <span>Mapa de Calor - Frequência dos Números</span>
           </div>
           <Select 
-            value={selectedLottery.toString()} 
+            value={selectedLottery === 0 ? "" : selectedLottery.toString()} 
             onValueChange={(value) => onLotteryChange(parseInt(value))}
           >
             <SelectTrigger className="w-48" data-testid="select-lottery-heatmap">
               <SelectValue placeholder="Selecione a modalidade" />
             </SelectTrigger>
             <SelectContent>
-              {lotteries?.map((lottery: any) => (
+              {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
                 <SelectItem key={lottery.id} value={lottery.id.toString()}>
                   {lottery.name} (1-{lottery.maxNumber})
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
         </CardTitle>
@@ -82,7 +82,7 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             >
               {Array.from({ length: selectedLotteryData?.maxNumber || 60 }, (_, i) => {
                 const number = i + 1;
-                const frequency = frequencies?.find((f: any) => f.number === number)?.frequency || 0;
+                const frequency = Array.isArray(frequencies) ? frequencies.find((f: any) => f.number === number)?.frequency || 0 : 0;
                 const heatLevel = getHeatLevel(frequency, maxFrequency);
                 
                 return (
@@ -133,13 +133,13 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-red-400">
-                  {frequencies?.filter((f: any) => f.frequency >= maxFrequency * 0.7).length || 0}
+                  {Array.isArray(frequencies) ? frequencies.filter((f: any) => f.frequency >= maxFrequency * 0.7).length : 0}
                 </div>
                 <p className="text-sm text-muted-foreground">Números Quentes</p>
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-400">
-                  {frequencies?.filter((f: any) => f.frequency <= maxFrequency * 0.3).length || 0}
+                  {Array.isArray(frequencies) ? frequencies.filter((f: any) => f.frequency <= maxFrequency * 0.3).length : 0}
                 </div>
                 <p className="text-sm text-muted-foreground">Números Frios</p>
               </div>

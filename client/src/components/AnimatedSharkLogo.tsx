@@ -257,7 +257,7 @@ export default function AnimatedSharkLogo() {
           letterSpacing: '3px'
         }}
       >
-        SHARK<br />LOTO
+        SHARK<br />LOTERIA
       </div>
       {/* Underwater lighting effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent animate-pulse opacity-50"></div>

@@ -22,7 +22,7 @@ import N8nControlPanel from "@/components/N8nControlPanel"; // Importa o novo co
 
 export default function Home() {
   const { user, isLoading } = useAuth();
-  const [selectedLottery, setSelectedLottery] = useState<number>(1);
+  const [selectedLottery, setSelectedLottery] = useState<number>(0); // Iniciar sem seleção
   const { toast } = useToast();
 
   const { data: lotteries, isLoading: lotteriesLoading, refetch: refetchLotteries, error } = useQuery<Array<{
@@ -331,7 +331,7 @@ export default function Home() {
               </p>
             </div>
             <NumberGenerator
-              selectedLottery={selectedLottery || 1}
+              selectedLottery={selectedLottery}
               onLotteryChange={setSelectedLottery}
             />
           </TabsContent>
@@ -734,7 +734,7 @@ export default function Home() {
                       <span>⚠️</span> Aviso Importante
                     </h4>
                     <p className="text-sm text-yellow-200">
-                      Todas as loterias são jogos de azar baseados em probabilidade e sorte. O Shark Loto oferece
+                      Todas as loterias são jogos de azar baseados em probabilidade e sorte. O Shark Loteria oferece
                       análises estatísticas para otimizar suas chances, mas não garantimos premiação.
                       Jogue com responsabilidade e apenas o que pode permitir-se perder.
                     </p>
@@ -757,13 +757,13 @@ export default function Home() {
               🚀 Experiência Única e Exclusiva
             </h3>
             <p className="text-muted-foreground max-w-3xl mx-auto mb-4">
-              O Shark Loto utiliza inteligência artificial avançada para analisar padrões históricos, identificar números quentes e frios,
+              O Shark Loteria utiliza inteligência artificial avançada para analisar padrões históricos, identificar números quentes e frios,
               e gerar combinações otimizadas que maximizam suas chances de sucesso. Nossa IA aprende continuamente com cada concurso,
               evoluindo para oferecer previsões cada vez mais precisas e personalizadas para seu perfil de jogo.
             </p>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-4xl mx-auto">
               <p className="text-sm text-yellow-200 text-center">
-                ⚠️ <strong>IMPORTANTE:</strong> O Shark Loto é uma ferramenta educacional baseada em estudos estatísticos dos números que mais saem e menos saem com frequência nas loterias.
+                ⚠️ <strong>IMPORTANTE:</strong> O Shark Loteria é uma ferramenta educacional baseada em estudos estatísticos dos números que mais saem e menos saem com frequência nas loterias.
                 Desenvolvemos estratégias para maximizar o número de acertos e aumentar as chances de êxito nos jogos.
                 <strong> Não garantimos premiação</strong> - os jogos de loteria são baseados em sorte e probabilidade.
                 Jogue com responsabilidade e apenas o que pode permitir-se perder.
@@ -771,9 +771,9 @@ export default function Home() {
             </div>
           </div>
           <div className="text-sm text-muted-foreground space-y-2">
-            <p>© 2025 Shark Loto. Análise inteligente de loterias com tecnologia de ponta.</p>
+            <p>© 2025 Shark Loteria. Análise inteligente de loterias com tecnologia de ponta.</p>
             <p>🔒 Seus dados são privados e seguros. Nenhuma informação é compartilhada com outros usuários.</p>
-            <p className="text-accent shark-brand font-semibold">powered by Shark062</p>
+            <p className="text-accent shark-brand font-semibold">POWERED BY SHARK062</p>
           </div>
         </div>
       </footer>

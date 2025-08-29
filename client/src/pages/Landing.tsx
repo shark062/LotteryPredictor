@@ -16,12 +16,12 @@ export default function Landing() {
               <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center glow-effect overflow-hidden">
                 <img 
                   src={logoUrl} 
-                  alt="Shark Loto Logo" 
+                  alt="Shark Loteria Logo" 
                   className="w-full h-full object-cover rounded-2xl"
                 />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent shark-brand">
-                Shark Loto 💵
+                Shark Loteria 💵
               </h1>
               <p className="text-muted-foreground mt-2">
                 Análise Inteligente de Loterias com IA
@@ -34,7 +34,7 @@ export default function Landing() {
                   🚀 Experiência Única e Exclusiva
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  O Shark Loto utiliza inteligência artificial avançada para analisar padrões históricos, 
+                  O Shark Loteria utiliza inteligência artificial avançada para analisar padrões históricos, 
                   identificar números quentes 🔥 e frios 🥶, gerando combinações otimizadas que maximizam 
                   suas chances de sucesso nas loterias brasileiras.
                 </p>
@@ -75,7 +75,7 @@ export default function Landing() {
 
         <div className="text-center mt-6">
           <p className="text-xs text-muted-foreground">
-            powered by <span className="text-accent font-semibold shark-brand">Shark062</span>
+            <span className="text-accent font-semibold shark-brand">POWERED BY SHARK062</span>
           </p>
         </div>
       </div>

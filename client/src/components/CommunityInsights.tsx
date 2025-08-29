@@ -402,7 +402,7 @@ export default function CommunityInsights({ lotterySlug }: CommunityInsightsProp
 
         <div className="pt-4 border-t border-border/30">
           <div className="text-center text-xs text-muted-foreground animate-pulse">
-            💡 Dados atualizados em tempo real pela comunidade Shark Loto
+            💡 Dados atualizados em tempo real pela comunidade Shark Loteria
           </div>
         </div>
       </CardContent>
