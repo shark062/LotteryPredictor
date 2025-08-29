@@ -7,7 +7,7 @@ import { config, platform, getSystemInfo } from "../config/environment.js";
 // Sistema de inicialização rápida e recuperação de falhas
 const app = express();
 const PORT = config.getPort();
-const HOST = config.getHost();
+const HOST = '0.0.0.0'; // Usar 0.0.0.0 para permitir acesso externo
 
 // Middleware básico
 app.use(express.json({ limit: '10mb' }));
@@ -173,14 +173,20 @@ async function startServer() {
       }
     });
 
-    // Setup Vite em desenvolvimento
+    // Setup Vite em desenvolvimento ou produção
     if (config.isDev) {
       console.log('⚡ Configurando Vite para desenvolvimento...');
       const server = require('http').createServer(app);
       await setupVite(app, server);
     } else {
-      console.log('📦 Servindo arquivos estáticos de produção...');
-      serveStatic(app);
+      console.log('📦 Tentando servir arquivos estáticos de produção...');
+      try {
+        serveStatic(app);
+      } catch (staticError) {
+        console.warn('⚠️ Arquivos estáticos não encontrados, usando Vite...');
+        const server = require('http').createServer(app);
+        await setupVite(app, server);
+      }
     }
 
     // Iniciar servidor
@@ -227,14 +233,23 @@ async function startServer() {
     return server;
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);
-
-    // Tentar recuperação básica
-    console.log('🩹 Tentando recuperação básica...');
-    const basicServer = app.listen(5000, '0.0.0.0', () => {
-      console.log(`⚠️ Servidor básico ativo na porta 5000 (modo recuperação)`);
-    });
-
-    return basicServer;
+    
+    // Forçar uso do Vite em caso de erro
+    console.log('🔄 Forçando inicialização com Vite...');
+    try {
+      const server = require('http').createServer(app);
+      await setupVite(app, server);
+      
+      const viteServer = server.listen(PORT, HOST, () => {
+        console.log(`🚀 Servidor Vite rodando em http://${HOST}:${PORT}`);
+        console.log('⚡ Modo de desenvolvimento ativo');
+      });
+      
+      return viteServer;
+    } catch (viteError) {
+      console.error('❌ Erro crítico:', viteError);
+      process.exit(1);
+    }
   }
 }
 
