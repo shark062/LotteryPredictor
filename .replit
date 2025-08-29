@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -64,5 +64,4 @@ task = "shell.exec"
 args = "NODE_ENV=development npm run dev"
 
 [agent]
-integrations = ["javascript_openai==1.0.0", "javascript_log_in_with_replit==1.0.0", "javascript_database==1.0.0", "javascript_websocket==1.0.0"]
 expertMode = true
