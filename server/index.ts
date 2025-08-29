@@ -2,31 +2,15 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { DataCache } from "./db.js";
+import { config, platform, getSystemInfo } from "../config/environment.js";
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
-// Configuração do ambiente
-const config = {
-  isDev: process.env.NODE_ENV !== 'production',
-  port: process.env.PORT || 5000,
-  host: '0.0.0.0'
-};
-
-const platform = process.platform;
-
-function getSystemInfo() {
-  return {
-    platform: process.platform,
-    nodeVersion: process.version,
-    memory: process.memoryUsage()
-  };
-}
-
 // Sistema de inicialização rápida e recuperação de falhas
 const app = express();
 const PORT = config.getPort();
-const HOST = '0.0.0.0'; // Usar 0.0.0.0 para permitir acesso externo
+const HOST = config.getHost();
 
 // Middleware básico
 app.use(express.json({ limit: '10mb' }));
@@ -146,21 +130,15 @@ async function startServer() {
       res.json({
         status: 'healthy',
         platform,
-        environment: config.nodeEnv,
+        environment: config.isDev ? 'development' : 'production',
         uptime: status.uptime,
         initialized: status.initialized,
         cache_size: DataCache.size(),
         memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         database: {
           connected: true,
-          pool_size: config.database.poolSize,
-          ssl_enabled: config.database.ssl
-        },
-        features: config.features,
-        performance: {
-          request_timeout: config.performance.requestTimeout,
-          cache_enabled: config.cache.enabled,
-          gzip_enabled: config.performance.enableGzip
+          pool_size: config.getPoolSize(),
+          ssl_enabled: config.requiresSsl()
         },
         system: systemInfo,
         timestamp: new Date().toISOString()
