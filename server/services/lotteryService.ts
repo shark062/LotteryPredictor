@@ -126,6 +126,30 @@ export class LotteryService {
           gameType: 'special',
           betValue: '3.00',
           specialNumbers: false
+        },
+        {
+          name: '+Milionária',
+          slug: 'mais-milionaria',
+          maxNumber: 50,
+          minNumbers: 6,
+          maxNumbers: 12,
+          drawDays: JSON.stringify(['sabado']),
+          description: 'Escolha 6 números entre 1 e 50 + 2 trevos entre 1 e 6. Prêmio mínimo garantido de R$ 10 milhões.',
+          gameType: 'special',
+          betValue: '10.00',
+          specialNumbers: true
+        },
+        {
+          name: 'Loteria Federal',
+          slug: 'loteria-federal',
+          maxNumber: 99999,
+          minNumbers: 1,
+          maxNumbers: 1,
+          drawDays: JSON.stringify(['quarta', 'sabado']),
+          description: 'Bilhetes numerados de 00000 a 99999. Sistema tradicional de premiação.',
+          gameType: 'special',
+          betValue: '5.00',
+          specialNumbers: false
         }
       ];
 

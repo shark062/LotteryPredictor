@@ -73,6 +73,10 @@ export default function LotteryCard({ lottery, onSelect, index = 0 }: LotteryCar
       case 'dupla-sena': return '🎲';
       case 'dia de sorte': return '🌟';
       case 'super sete': return '🔥';
+      case '+milionária': return '💎';
+      case 'mais-milionaria': return '💎';
+      case 'loteria federal': return '🎫';
+      case 'loteria-federal': return '🎫';
       default: return '🎰';
     }
   };

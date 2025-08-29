@@ -127,6 +127,8 @@ export default function Home() {
       case 'Dia de Sorte': return '🗓️';
       case 'Super Sete': return '7️⃣';
       case 'Lotofácil da Independência': return '🎉';
+      case '+Milionária': return '💎';
+      case 'Loteria Federal': return '🎫';
       default: return '🎲';
     }
   };
@@ -202,12 +204,13 @@ export default function Home() {
       <main className="responsive-container py-4 sm:py-6 lg:py-8 dashboard-content">
         <Tabs defaultValue="dashboard" className="space-y-6 sm:space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1">
+          <TabsList className="grid grid-cols-5 w-full max-w-6xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1">
             {[
               { value: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Aqui você vê todas as loterias com dados atualizados em tempo real' },
               { value: 'generator', icon: '🎲', label: 'Gerador', description: 'Aqui a IA gera os números com as melhores probabilidades' },
               { value: 'heatmap', icon: '🗺️', label: 'Mapa', description: 'Aqui você visualiza quais números saem mais frequentemente' },
-              { value: 'results', icon: '🏆', label: 'Resultados', description: 'Aqui você acompanha todos os concursos e histórico' }
+              { value: 'results', icon: '🏆', label: 'Resultados', description: 'Aqui você acompanha todos os concursos e histórico' },
+              { value: 'loterias-info', icon: '📋', label: 'Info', description: 'Guia completo com todas as informações das loterias brasileiras' }
             ].map((tab, index) => (
               <TabsTrigger
                 key={tab.value}
@@ -351,6 +354,398 @@ export default function Home() {
               </p>
             </div>
             <GameResults />
+          </TabsContent>
+
+          {/* Loterias Info - Guia Completo */}
+          <TabsContent value="loterias-info" className="space-y-6 sm:space-y-8">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">📋 Guia Completo das Loterias - Informações Oficiais</h2>
+              <p className="text-muted-foreground">
+                Tabela completa com todas as loterias da Caixa Econômica Federal, incluindo como jogar,
+                valores das apostas, probabilidades e faixas de premiação de cada modalidade.
+              </p>
+            </div>
+
+            {/* Tabela Completa das Loterias */}
+            <div className="grid gap-6">
+              {/* Cards das Loterias Principais */}
+              <div className="responsive-grid-2">
+                {/* Mega-Sena */}
+                <Card className="bg-gradient-to-br from-green-500/10 to-yellow-500/10 border-green-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <span className="text-3xl">💰</span>
+                      <span className="text-green-300">Mega-Sena</span>
+                      <Badge className="bg-green-500/20 text-green-300">Principal</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Como Jogar</h4>
+                        <p className="text-sm text-muted-foreground">Escolha 6 a 15 números entre 1 e 60</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Aposta Mínima</h4>
+                        <p className="text-sm font-bold text-green-300">R$ 6,00</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Probabilidade (6 acertos)</h4>
+                      <p className="text-sm text-orange-300">1 em 50.063.860</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Faixas de Prêmios</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {['6 acertos', '5 acertos (Quina)', '4 acertos (Quadra)'].map((faixa, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{faixa}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+                      <p className="text-xs text-green-300">
+                        <strong>Sorteios:</strong> Quartas e Sábados às 20h
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* +Milionária */}
+                <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <span className="text-3xl">💎</span>
+                      <span className="text-purple-300">+Milionária</span>
+                      <Badge className="bg-purple-500/20 text-purple-300 animate-pulse">NOVA!</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Como Jogar</h4>
+                        <p className="text-sm text-muted-foreground">6 números (1-50) + 2 trevos (1-6)</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Aposta Mínima</h4>
+                        <p className="text-sm font-bold text-purple-300">R$ 10,00</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Prêmio Mínimo</h4>
+                      <p className="text-sm text-purple-300 font-bold">R$ 10 MILHÕES garantidos</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Faixas de Prêmios</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {['10 faixas', '6+2 acertos', '6+1 acertos', '6+0 acertos', '5+2 acertos'].map((faixa, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{faixa}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20">
+                      <p className="text-xs text-purple-300">
+                        <strong>Sorteios:</strong> Sábados às 20h
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Lotofácil */}
+                <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <span className="text-3xl">🍀</span>
+                      <span className="text-blue-300">Lotofácil</span>
+                      <Badge className="bg-blue-500/20 text-blue-300">Fácil</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Como Jogar</h4>
+                        <p className="text-sm text-muted-foreground">Escolha 15 a 20 números entre 1 e 25</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Aposta Mínima</h4>
+                        <p className="text-sm font-bold text-blue-300">R$ 3,50</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Probabilidade (15 acertos)</h4>
+                      <p className="text-sm text-orange-300">1 em 3.268.760</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Faixas de Prêmios</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {['15 acertos', '14 acertos', '13 acertos', '12 acertos', '11 acertos'].map((faixa, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{faixa}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                      <p className="text-xs text-blue-300">
+                        <strong>Sorteios:</strong> Segunda a Sábado às 20h
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quina */}
+                <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <span className="text-3xl">⭐</span>
+                      <span className="text-yellow-300">Quina</span>
+                      <Badge className="bg-yellow-500/20 text-yellow-300">Diária</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Como Jogar</h4>
+                        <p className="text-sm text-muted-foreground">Escolha 5 a 15 números entre 1 e 80</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-cyan-300 mb-2">Aposta Mínima</h4>
+                        <p className="text-sm font-bold text-yellow-300">R$ 3,00</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Probabilidade (5 acertos)</h4>
+                      <p className="text-sm text-orange-300">1 em 24.040.016</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-2">Faixas de Prêmios</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {['5 acertos (Quina)', '4 acertos (Quadra)', '3 acertos (Terno)', '2 acertos (Duque)'].map((faixa, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">{faixa}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
+                      <p className="text-xs text-yellow-300">
+                        <strong>Sorteios:</strong> Segunda a Sábado às 20h
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Cards das Loterias Especiais */}
+              <div className="responsive-grid-3">
+                {/* Lotomania */}
+                <Card className="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-red-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">🎯</span>
+                      <span className="text-red-300">Lotomania</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">50 números entre 0 e 99</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-red-300">R$ 2,50</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Probabilidade</h4>
+                      <p className="text-xs text-orange-300">1 em 11.372.635</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">20, 19, 18, 17, 16, 15, 0 acertos</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Timemania */}
+                <Card className="bg-gradient-to-br from-green-500/10 to-blue-500/10 border-green-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">⚽</span>
+                      <span className="text-green-300">Timemania</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">10 números + time do coração</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-green-300">R$ 3,00</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Probabilidade</h4>
+                      <p className="text-xs text-orange-300">1 em 26.472.637</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">7, 6, 5, 4, 3 acertos + time</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dupla Sena */}
+                <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">🎲</span>
+                      <span className="text-purple-300">Dupla Sena</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">6 a 15 números (2 sorteios)</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-purple-300">R$ 3,00</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Probabilidade</h4>
+                      <p className="text-xs text-orange-300">1 em 15.890.700</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">6, 5, 4, 3 acertos (cada sorteio)</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dia de Sorte */}
+                <Card className="bg-gradient-to-br from-orange-500/10 to-yellow-500/10 border-orange-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">🌟</span>
+                      <span className="text-orange-300">Dia de Sorte</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">7 a 15 números + mês</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-orange-300">R$ 2,00</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Probabilidade</h4>
+                      <p className="text-xs text-orange-300">1 em 2.629.375</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">7, 6, 5, 4, 3 acertos + mês</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Super Sete */}
+                <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">🔥</span>
+                      <span className="text-indigo-300">Super Sete</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">7 colunas (0 a 9 cada)</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-indigo-300">R$ 2,50</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Probabilidade</h4>
+                      <p className="text-xs text-orange-300">1 em 10.000.000</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">7, 6, 5, 4, 3 acertos</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Loteria Federal */}
+                <Card className="bg-gradient-to-br from-teal-500/10 to-green-500/10 border-teal-500/30 backdrop-blur-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <span className="text-2xl">🎫</span>
+                      <span className="text-teal-300">Loteria Federal</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Como Jogar</h4>
+                      <p className="text-xs text-muted-foreground">Bilhetes numerados 00000-99999</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Aposta</h4>
+                      <p className="text-xs font-bold text-teal-300">R$ 5,00</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Sistema</h4>
+                      <p className="text-xs text-orange-300">Bilhete físico tradicional</p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-cyan-300 mb-1">Prêmios</h4>
+                      <p className="text-xs text-muted-foreground">Principal + aproximações</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Resumo e Dicas */}
+              <Card className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-500/30 backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <span className="text-3xl">💡</span>
+                    <span className="text-cyan-300">Dicas e Informações Importantes</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-yellow-300">🎯 Estratégias Inteligentes</h3>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li>• <strong>Lotofácil:</strong> Maior chance de ganhar, ideal para iniciantes</li>
+                        <li>• <strong>Quina:</strong> Sorteios diários aumentam as oportunidades</li>
+                        <li>• <strong>Mega-Sena:</strong> Maiores prêmios, mas menor probabilidade</li>
+                        <li>• <strong>+Milionária:</strong> Prêmio mínimo garantido de R$ 10 milhões</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-green-300">💰 Investimento vs Retorno</h3>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li>• <strong>Menor investimento:</strong> Dia de Sorte (R$ 2,00)</li>
+                        <li>• <strong>Melhor custo-benefício:</strong> Lotofácil (R$ 3,50)</li>
+                        <li>• <strong>Maiores prêmios:</strong> Mega-Sena e +Milionária</li>
+                        <li>• <strong>Mais sorteios:</strong> Lotofácil e Quina (diárias)</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                    <h4 className="font-semibold text-yellow-300 mb-2 flex items-center gap-2">
+                      <span>⚠️</span> Aviso Importante
+                    </h4>
+                    <p className="text-sm text-yellow-200">
+                      Todas as loterias são jogos de azar baseados em probabilidade e sorte. O Shark Loto oferece
+                      análises estatísticas para otimizar suas chances, mas não garantimos premiação. 
+                      Jogue com responsabilidade e apenas o que pode permitir-se perder.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Adiciona a aba do Painel de Controle n8n */}
