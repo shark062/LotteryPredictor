@@ -41,6 +41,19 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow]]
+name = "Start n8n System"
+author = 47013062
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"console.log('🚀 Iniciando sistema n8n...')\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
 [agent]
 integrations = ["javascript_openai==1.0.0", "javascript_log_in_with_replit==1.0.0", "javascript_database==1.0.0", "javascript_websocket==1.0.0"]
 expertMode = true

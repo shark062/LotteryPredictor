@@ -885,5 +885,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(status);
   });
 
+  // Import n8n service
+  const { n8nService } = await import('./services/n8nService');
+
+  // n8n Integration Routes
+  app.post('/api/n8n/start', async (req, res) => {
+    try {
+      await n8nService.startN8n();
+      res.json({ 
+        success: true, 
+        message: 'n8n iniciado com sucesso',
+        status: n8nService.getStatus()
+      });
+    } catch (error) {
+      console.error('Erro ao iniciar n8n:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Erro ao iniciar n8n',
+        error: error.message 
+      });
+    }
+  });
+
+  app.get('/api/n8n/status', (req, res) => {
+    const status = n8nService.getStatus();
+    res.json(status);
+  });
+
+  // Endpoint para n8n salvar estatísticas processadas
+  app.post('/api/n8n/save-statistics', async (req, res) => {
+    try {
+      const { processedData } = req.body;
+      
+      // Salvar estatísticas avançadas no banco
+      for (const [lotteryName, data] of Object.entries(processedData)) {
+        await storage.saveN8nStatistics(lotteryName, data);
+      }
+
+      res.json({ success: true, message: 'Estatísticas salvas com sucesso' });
+    } catch (error) {
+      console.error('Erro ao salvar estatísticas n8n:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Endpoint para n8n gerar estratégias com IA
+  app.post('/api/n8n/generate-ai-strategies', async (req, res) => {
+    try {
+      const { processedData } = req.body;
+      const strategies = {};
+
+      // Gerar estratégias avançadas para cada loteria
+      for (const [lotteryName, data] of Object.entries(processedData)) {
+        const lottery = await storage.getLotteryByName(lotteryName);
+        if (lottery) {
+          // Aplicar algoritmos avançados de IA
+          strategies[lottery.id] = await aiService.generateAdvancedStrategy(
+            lottery.id, 
+            data.numbers, 
+            data.patterns
+          );
+        }
+      }
+
+      await storage.saveN8nStrategies(strategies);
+      res.json({ success: true, strategies });
+    } catch (error) {
+      console.error('Erro ao gerar estratégias n8n:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Endpoint para n8n buscar estratégias mais recentes
+  app.get('/api/n8n/get-latest-strategies', async (req, res) => {
+    try {
+      const strategies = await storage.getLatestN8nStrategies();
+      res.json({ success: true, strategies });
+    } catch (error) {
+      console.error('Erro ao buscar estratégias n8n:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Endpoint melhorado de predição que usa n8n
+  app.post("/api/ai/predict-advanced", async (req, res) => {
+    try {
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+
+      if (!checkAIRateLimit(clientIP)) {
+        return res.status(429).json({ 
+          message: "Rate limit exceeded. Please wait before making more predictions." 
+        });
+      }
+
+      const { lotteryId, count, preferences } = req.body;
+
+      // Validações
+      if (!lotteryId || !count) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+
+      const parsedLotteryId = parseInt(String(lotteryId));
+      const parsedCount = parseInt(String(count));
+
+      // Verificar se n8n está rodando
+      const n8nStatus = n8nService.getStatus();
+      
+      if (n8nStatus.running) {
+        // Usar n8n para predição avançada
+        console.log('🔮 Usando n8n para predição avançada...');
+        const n8nResult = await n8nService.generateAdvancedStrategy(
+          parsedLotteryId, 
+          parsedCount, 
+          preferences
+        );
+        
+        res.json({
+          numbers: n8nResult.numbers,
+          source: 'n8n_advanced_ai',
+          confidence: n8nResult.confidence,
+          strategy: n8nResult.strategy
+        });
+      } else {
+        // Fallback para predição normal
+        console.log('⚠️ n8n não disponível, usando predição padrão...');
+        const prediction = await aiService.generatePrediction(
+          parsedLotteryId,
+          parsedCount,
+          preferences
+        );
+
+        res.json({
+          numbers: prediction,
+          source: 'standard_ai',
+          confidence: 0.85
+        });
+      }
+
+    } catch (error) {
+      console.error("Error generating advanced prediction:", error);
+      res.status(500).json({ message: "Failed to generate advanced prediction" });
+    }
+  });
+
   return httpServer;
 }

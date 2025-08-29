@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import ContestWinners from "@/components/ContestWinners";
 import NotificationSystem from "@/components/NotificationSystem";
 import PixDonationButton from "@/components/PixDonationButton";
+import N8nControlPanel from "@/components/N8nControlPanel"; // Importa o novo componente
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -157,7 +158,7 @@ export default function Home() {
             }}
           />
         ))}
-        
+
         {/* Microbolhas */}
         {[...Array(20)].map((_, i) => (
           <div
@@ -174,7 +175,7 @@ export default function Home() {
             }}
           />
         ))}
-        
+
         {/* Partículas de plâncton luminoso */}
         {[...Array(15)].map((_, i) => (
           <div
@@ -221,13 +222,13 @@ export default function Home() {
                 <span className="hidden sm:inline group-hover:text-cyan-300 transition-colors duration-300">
                   {tab.label}
                 </span>
-                
+
                 {/* Tooltip com descrição */}
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50 pointer-events-none border border-cyan-400/50">
                   {tab.description}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
                 </div>
-                
+
                 {/* Indicador ativo animado */}
                 <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-cyan-400 group-data-[state=active]:w-full group-data-[state=active]:left-0 transition-all duration-300 rounded-full" />
               </TabsTrigger>
@@ -240,7 +241,7 @@ export default function Home() {
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🎯 Dashboard Principal - Visão Geral Completa</h2>
               <p className="text-muted-foreground">
-                Aqui você encontra todas as loterias com dados oficiais da Caixa Econômica Federal atualizados em tempo real. 
+                Aqui você encontra todas as loterias com dados oficiais da Caixa Econômica Federal atualizados em tempo real.
                 Veja prêmios, próximos sorteios e estatísticas de cada modalidade.
               </p>
             </div>
@@ -324,7 +325,7 @@ export default function Home() {
             />
           </TabsContent>
 
-          
+
 
           {/* Heat Map */}
           <TabsContent value="heatmap" className="space-y-6 sm:space-y-8">
@@ -332,7 +333,7 @@ export default function Home() {
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🔥 Mapa de Calor - Análise Visual de Frequências</h2>
               <p className="text-muted-foreground">
-                Visualize quais números saem com mais frequência através de cores. Números em azul são frios (raros), 
+                Visualize quais números saem com mais frequência através de cores. Números em azul são frios (raros),
                 em amarelo/vermelho são quentes (frequentes). Use essa informação para suas estratégias.
               </p>
             </div>
@@ -345,12 +346,26 @@ export default function Home() {
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🏆 Resultados - Histórico Completo dos Concursos</h2>
               <p className="text-muted-foreground">
-                Consulte todos os resultados oficiais dos concursos, veja estatísticas detalhadas e 
+                Consulte todos os resultados oficiais dos concursos, veja estatísticas detalhadas e
                 acompanhe a evolução dos prêmios. Dados sempre atualizados da Caixa Econômica Federal.
               </p>
             </div>
             <GameResults />
           </TabsContent>
+
+          {/* Adiciona a aba do Painel de Controle n8n */}
+          <TabsContent value="n8n-control" className="space-y-6 sm:space-y-8">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">⚙️ Painel de Controle n8n - Automação e IA</h2>
+              <p className="text-muted-foreground">
+                Monitore e gerencie seus workflows do n8n diretamente aqui. Acompanhe a coleta de dados,
+                análises estatísticas e as previsões geradas pela IA para otimizar suas estratégias de loteria.
+              </p>
+            </div>
+            <N8nControlPanel />
+          </TabsContent>
+
         </Tabs>
       </main>
 

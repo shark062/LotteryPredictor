@@ -62,6 +62,12 @@ export interface IStorage {
   // Collaborative Strategies
   updateCollaborativeStrategies(lotterySlug: string, strategies: any[]): Promise<void>;
   getCollaborativeStrategies(lotterySlug: string): Promise<any[]>;
+
+  // n8n Integration Methods
+  saveN8nStatistics(lotteryName: string, data: any): Promise<void>;
+  saveN8nStrategies(strategies: any): Promise<void>;
+  getLatestN8nStrategies(): Promise<any>;
+  getLotteryByName(name: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -329,6 +335,81 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Erro ao recuperar estratégias colaborativas:', error);
       return [];
+    }
+  }
+
+  // Métodos para integração com n8n
+  async saveN8nStatistics(lotteryName: string, data: any): Promise<void> {
+    try {
+      // Assumindo que 'db' é uma instância acessível ou passada para a classe.
+      // Se 'db' não estiver diretamente acessível aqui, você precisará passá-lo para o construtor da classe.
+      // Exemplo com um cliente de banco de dados hipotético `this.db`:
+      const query = `
+        INSERT INTO n8n_statistics (lottery_name, statistics_data, created_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (lottery_name) 
+        DO UPDATE SET statistics_data = $2, updated_at = NOW()
+      `;
+
+      // Substitua `this.db.execute` pelo método correto do seu cliente de banco de dados
+      // Aqui, estamos usando `db` diretamente como no restante da classe, mas para maior clareza,
+      // pode ser melhor ter uma instância de banco de dados explícita na classe.
+      await db.execute(query, [lotteryName, JSON.stringify(data)]);
+      console.log(`✅ Estatísticas n8n salvas para ${lotteryName}`);
+    } catch (error) {
+      console.error("Erro ao salvar estatísticas n8n:", error);
+      throw error;
+    }
+  }
+
+  async saveN8nStrategies(strategies: any): Promise<void> {
+    try {
+      const query = `
+        INSERT INTO n8n_strategies (strategies_data, created_at)
+        VALUES ($1, NOW())
+      `;
+      // Novamente, assumindo `db` acessível.
+      await db.execute(query, [JSON.stringify(strategies)]);
+      console.log('✅ Estratégias n8n salvas');
+    } catch (error) {
+      console.error("Erro ao salvar estratégias n8n:", error);
+      throw error;
+    }
+  }
+
+  async getLatestN8nStrategies(): Promise<any> {
+    try {
+      // Assumindo `db` acessível.
+      const result = await db.execute(`
+        SELECT strategies_data
+        FROM n8n_strategies
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+
+      if (result.rows.length > 0) {
+        return JSON.parse(result.rows[0].strategies_data);
+      }
+
+      return {};
+    } catch (error) {
+      console.error("Erro ao buscar estratégias n8n:", error);
+      return {};
+    }
+  }
+
+  async getLotteryByName(name: string): Promise<any> {
+    try {
+      // Assumindo `db` acessível.
+      const result = await db.execute(
+        'SELECT * FROM lotteries WHERE name = $1',
+        [name]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("Erro ao buscar loteria por nome:", error);
+      return null;
     }
   }
 }

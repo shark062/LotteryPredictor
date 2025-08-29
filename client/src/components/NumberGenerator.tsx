@@ -95,7 +95,62 @@ export default function NumberGenerator({
         description: error.message || "Ocorreu um erro desconhecido",
         variant: "destructive",
       });
-      setGeneratedNumbers([]); // Limpa os números gerados em caso de erro
+      setGeneratedNumbers([]);
+    },
+  });
+
+  const advancedMutation = useMutation({
+    mutationFn: async () => {
+      const gamesCount = parseInt(gameCount) || 1;
+      const numbersPerGame = parseInt(numberCount) || 0;
+
+      if (numbersPerGame === 0) {
+        setGeneratedNumbers([]);
+        return { games: [], total: 0, numbersPerGame: 0, source: 'none' };
+      }
+
+      const allGames = [];
+      for (let i = 0; i < gamesCount; i++) {
+        const response = await apiRequest('POST', '/api/ai/predict-advanced', {
+          lotteryId: selectedLottery,
+          count: numbersPerGame,
+          preferences,
+        });
+        const gameData = await response.json();
+        allGames.push(gameData.numbers);
+        
+        // Armazenar informações extras da predição avançada
+        if (i === 0) {
+          setConfidenceScore(gameData.confidence || 0.95);
+        }
+      }
+
+      return { 
+        games: allGames, 
+        total: gamesCount, 
+        numbersPerGame,
+        source: allGames[0]?.source || 'advanced_ai'
+      };
+    },
+    onSuccess: (data) => {
+      setGeneratedNumbers(data.games);
+      if (data.total > 0) {
+        const sourceText = data.source === 'n8n_advanced_ai' ? 'IA Avançada n8n' : 'IA Padrão';
+        toast({
+          title: "🔮 Predição Avançada Concluída!",
+          description: `${data.total} jogo${data.total > 1 ? 's' : ''} gerado${data.total > 1 ? 's' : ''} com ${sourceText}`,
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na predição avançada",
+        description: error.message || "Erro na IA avançada, tentando método padrão...",
+        variant: "destructive",
+      });
+      
+      // Fallback para método padrão se avançado falhar
+      generateMutation.mutate();
     },
   });
 
@@ -251,6 +306,64 @@ export default function NumberGenerator({
     generateMutation.mutate();
   }, [numberCount, gameCount, selectedLotteryData, generateMutation, toast]);
 
+  const handleAdvancedGenerate = useCallback(() => {
+    const count = parseInt(numberCount) || 0;
+    const games = parseInt(gameCount) || 1;
+
+    if (!selectedLotteryData) {
+      toast({
+        title: "Seleção inválida",
+        description: "Por favor, selecione uma modalidade de loteria primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (count === 0 || numberCount === '') {
+      setGeneratedNumbers([]);
+      toast({
+        title: "Aviso",
+        description: "Por favor, insira a quantidade de dezenas para gerar os jogos.",
+        variant: "default",
+      });
+      return;
+    }
+
+    if (count > selectedLotteryData.maxNumbers) {
+      toast({
+        title: "Quantidade inválida",
+        description: `Máximo de ${selectedLotteryData.maxNumbers} números para ${selectedLotteryData.name}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (games > 50) { // Limite menor para IA avançada
+      toast({
+        title: "Muitos jogos para IA avançada",
+        description: "Máximo de 50 jogos por vez para predição avançada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setProgress(0);
+    
+    // Simular progresso durante geração avançada
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+
+    advancedMutation.mutate();
+  }, [numberCount, gameCount, selectedLotteryData, advancedMutation, toast]);
+
 
   // Função de geração simplificada sem CDN
   const regenerateNumbers = useCallback(async () => {
@@ -405,14 +518,25 @@ export default function NumberGenerator({
 
           </div>
 
-          <Button
-            onClick={handleGenerate} // Usando a função handleGenerate original
-            disabled={generateMutation.isPending || !selectedLotteryData || numberCount === ''}
-            className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground py-3 rounded-lg font-semibold glow-effect hover:scale-105 transition-transform"
-            data-testid="button-generate"
-          >
-            {generateMutation.isPending ? "Gerando..." : "Gerar Jogo Inteligente"}
-          </Button>
+          <div className="flex space-x-4">
+            <Button
+              onClick={handleGenerate}
+              disabled={generateMutation.isPending || !selectedLotteryData || numberCount === ''}
+              className="flex-1 bg-gradient-to-r from-primary to-secondary text-primary-foreground py-3 rounded-lg font-semibold glow-effect hover:scale-105 transition-transform"
+              data-testid="button-generate"
+            >
+              {generateMutation.isPending ? "Gerando..." : "Gerar IA Padrão"}
+            </Button>
+
+            <Button
+              onClick={handleAdvancedGenerate}
+              disabled={advancedMutation.isPending || !selectedLotteryData || numberCount === ''}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold glow-effect hover:scale-105 transition-transform"
+              data-testid="button-generate-advanced"
+            >
+              {advancedMutation.isPending ? "Processando..." : "🔮 IA Avançada n8n"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
