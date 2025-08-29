@@ -32,7 +32,9 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
     return 0; // Muito frio
   };
 
-  const maxFrequency = Array.isArray(frequencies) && frequencies.length > 0 ? Math.max(...frequencies.map((f: any) => f.frequency)) : 0;
+  // Garantir que frequencies seja um array válido e calcular frequência máxima
+  const validFrequencies = Array.isArray(frequencies) ? frequencies : [];
+  const maxFrequency = validFrequencies.length > 0 ? Math.max(...validFrequencies.map((f: any) => f.frequency || 0)) : 0;
 
   return (
     <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
@@ -82,7 +84,8 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             >
               {Array.from({ length: selectedLotteryData?.maxNumber || 60 }, (_, i) => {
                 const number = i + 1;
-                const frequency = Array.isArray(frequencies) ? frequencies.find((f: any) => f.number === number)?.frequency || 0 : 0;
+                const frequencyData = validFrequencies.find((f: any) => f.number === number);
+                const frequency = frequencyData?.frequency || 0;
                 const heatLevel = getHeatLevel(frequency, maxFrequency);
                 
                 return (
@@ -133,13 +136,13 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-red-400">
-                  {Array.isArray(frequencies) ? frequencies.filter((f: any) => f.frequency >= maxFrequency * 0.7).length : 0}
+                  {validFrequencies.filter((f: any) => (f.frequency || 0) >= maxFrequency * 0.7).length}
                 </div>
                 <p className="text-sm text-muted-foreground">Números Quentes</p>
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-400">
-                  {Array.isArray(frequencies) ? frequencies.filter((f: any) => f.frequency <= maxFrequency * 0.3).length : 0}
+                  {validFrequencies.filter((f: any) => (f.frequency || 0) <= maxFrequency * 0.3).length}
                 </div>
                 <p className="text-sm text-muted-foreground">Números Frios</p>
               </div>
