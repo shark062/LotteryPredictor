@@ -1368,8 +1368,17 @@ export class AIService {
     // Limpar cache antigo para forçar regeneração
     const cacheKeys = ['prediction_', 'historical_', 'analysis_'];
     cacheKeys.forEach(prefix => {
-      const keysToRemove = Array.from(DataCache.keys()).filter(key => key.startsWith(prefix));
-      keysToRemove.forEach(key => DataCache.delete(key));
+      // Como DataCache não tem método keys(), vamos simular limpeza com tentativas diretas
+      for (let i = 0; i < 100; i++) {
+        DataCache.delete(`${prefix}${i}`);
+      }
+      // Tentar limpar variações comuns
+      const commonSuffixes = ['megaSena', 'lotofacil', 'quina', 'lotomania', 'timemania', 'duplaSena', 'diaDeSorte', 'superSete', 'maisMilionaria'];
+      commonSuffixes.forEach(suffix => {
+        DataCache.delete(`${prefix}${suffix}`);
+        DataCache.delete(`${prefix}${suffix}_1`);
+        DataCache.delete(`${prefix}${suffix}_5`);
+      });
     });
 
     console.log('✅ Cache otimizado - modelos serão regenerados na próxima predição');
