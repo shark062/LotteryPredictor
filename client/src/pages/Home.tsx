@@ -198,10 +198,10 @@ export default function Home() {
       <FuturisticHeader />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
-        <Tabs defaultValue="dashboard" className="space-y-8">
+      <main className="responsive-container py-4 sm:py-6 lg:py-8 dashboard-content">
+        <Tabs defaultValue="dashboard" className="space-y-6 sm:space-y-8">
           {/* Navigation */}
-          <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1">
             {[
               { value: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Aqui você vê todas as loterias com dados atualizados em tempo real' },
               { value: 'generator', icon: '🎲', label: 'Gerador', description: 'Aqui a IA gera os números com as melhores probabilidades' },
@@ -235,7 +235,7 @@ export default function Home() {
           </TabsList>
 
           {/* Dashboard */}
-          <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+          <TabsContent value="dashboard" className="space-y-6 sm:space-y-8">
             {/* Descrição da seção */}
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🎯 Dashboard Principal - Visão Geral Completa</h2>
@@ -244,7 +244,7 @@ export default function Home() {
                 Veja prêmios, próximos sorteios e estatísticas de cada modalidade.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="responsive-grid-4">
               {lotteriesLoading || upcomingLoading ? (
                 <div className="col-span-full flex items-center justify-center py-12">
                   <div className="text-center space-y-4">
@@ -291,7 +291,7 @@ export default function Home() {
             <ContestWinners />
 
             {/* Community Insights para todas as loterias */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="responsive-grid-3">
               {lotteries?.slice(0, 3).map((lottery) => (
                 <CommunityInsights
                   key={lottery.id}
@@ -303,13 +303,13 @@ export default function Home() {
             </div>
 
             {/* Botão PIX de Doação - Final da Dashboard */}
-            <div className="animate-[fadeInUp_0.6s_ease-out_0.4s_both]">
+            <div>
               <PixDonationButton />
             </div>
           </TabsContent>
 
           {/* Generator */}
-          <TabsContent value="generator" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+          <TabsContent value="generator" className="space-y-6 sm:space-y-8">
             {/* Descrição da seção */}
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🤖 Gerador IA - Criação Inteligente de Jogos</h2>
@@ -327,7 +327,7 @@ export default function Home() {
           
 
           {/* Heat Map */}
-          <TabsContent value="heatmap" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+          <TabsContent value="heatmap" className="space-y-6 sm:space-y-8">
             {/* Descrição da seção */}
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🔥 Mapa de Calor - Análise Visual de Frequências</h2>
@@ -340,7 +340,7 @@ export default function Home() {
           </TabsContent>
 
           {/* Results */}
-          <TabsContent value="results" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+          <TabsContent value="results" className="space-y-6 sm:space-y-8">
             {/* Descrição da seção */}
             <div className="feature-description rounded-xl p-4 text-center mb-6">
               <h2 className="text-xl font-bold text-cyan-300 mb-2">🏆 Resultados - Histórico Completo dos Concursos</h2>
@@ -355,8 +355,8 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/30 backdrop-blur-md py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
+      <footer className="border-t border-border bg-card/30 backdrop-blur-md py-6 sm:py-8 mt-8 sm:mt-16">
+        <div className="responsive-container text-center">
           <div className="mb-4">
             <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
               🚀 Experiência Única e Exclusiva
