@@ -1,8 +1,8 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteDevServer, createLogger } from "vite";
-import { type Server as HttpServer } from "http";
+import { createServer as createViteServer, createLogger } from "vite";
+import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
@@ -19,14 +19,14 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: HttpServer) {
+export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
     allowedHosts: true as const,
   };
 
-  const vite = await createViteDevServer({
+  const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
     customLogger: {

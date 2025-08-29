@@ -4,16 +4,14 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false server/index.ts",
+    "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
+    "build:client": "vite build --outDir dist/public",
     "build:server": "tsc -p server/tsconfig.json",
     "start": "node dist/server/index.js",
-    "typecheck": "tsc --noEmit",
+    "start:prod": "npm run build && npm start",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx server/db.ts",
-    "db:studio": "drizzle-kit studio",
-    "preview": "vite preview --host 0.0.0.0 --port 5000"
+    "db:migrate": "tsx server/db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
