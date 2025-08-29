@@ -1,6 +1,5 @@
-
 import { spawn, ChildProcess } from 'child_process';
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch'; // Removed: node-fetch is no longer needed
 import { storage } from '../storage';
 
 export class N8nService {
@@ -8,6 +7,8 @@ export class N8nService {
   private n8nProcess: ChildProcess | null = null;
   private webhookUrl: string = '';
   private isRunning: boolean = false;
+  // Assuming apiKey is defined elsewhere or will be provided
+  private apiKey: string = process.env.N8N_API_KEY || 'default-api-key'; 
 
   public static getInstance(): N8nService {
     if (!N8nService.instance) {
@@ -32,6 +33,11 @@ export class N8nService {
     process.env.N8N_BASIC_AUTH_ACTIVE = 'true';
     process.env.N8N_BASIC_AUTH_USER = 'admin';
     process.env.N8N_BASIC_AUTH_PASSWORD = 'lottery123';
+    // Set API key for n8n if it's available
+    if (this.apiKey !== 'default-api-key') {
+      process.env.N8N_API_KEY = this.apiKey;
+    }
+
 
     try {
       // Instalar n8n via npm se não estiver instalado
@@ -53,12 +59,12 @@ export class N8nService {
 
       // Aguardar n8n inicializar
       await new Promise(resolve => setTimeout(resolve, 10000));
-      
+
       this.isRunning = true;
       this.webhookUrl = 'http://0.0.0.0:5678/webhook';
 
       console.log('✅ n8n iniciado com sucesso na porta 5678');
-      
+
       // Criar workflows automaticamente
       await this.createWorkflows();
 
@@ -87,7 +93,7 @@ export class N8nService {
 
   async createWorkflows(): Promise<void> {
     console.log('🔧 Criando workflows automatizados...');
-    
+
     // Workflow A - Coleta & Aprendizado
     const collectionWorkflow = {
       id: 'lottery-collection-workflow',
@@ -121,7 +127,7 @@ export class N8nService {
             functionCode: `
               const data = items[0].json.data;
               const processedData = {};
-              
+
               Object.keys(data).forEach(lotteryName => {
                 const lottery = data[lotteryName];
                 processedData[lotteryName] = {
@@ -131,7 +137,7 @@ export class N8nService {
                   timestamp: new Date().toISOString()
                 };
               });
-              
+
               return [{ json: { processedData } }];
             `
           }
@@ -196,18 +202,18 @@ export class N8nService {
             functionCode: `
               const request = items[0].json.body;
               const strategies = items[0].json.strategies;
-              
+
               const lotteryId = request.lotteryId;
               const count = request.count;
               const preferences = request.preferences;
-              
+
               // Aplicar estratégias avançadas baseadas nos dados coletados
               const optimizedNumbers = this.applyAdvancedStrategies(
                 strategies[lotteryId], 
                 count, 
                 preferences
               );
-              
+
               return [{
                 json: {
                   numbers: optimizedNumbers,
@@ -240,12 +246,16 @@ export class N8nService {
 
   async callWorkflow(workflowPath: string, data: any): Promise<any> {
     const url = `${this.webhookUrl}/${workflowPath}`;
-    
+
     try {
+      // Updated to use built-in fetch
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          // Assuming apiKey is intended for n8n API calls, not webhook calls.
+          // If it's for webhook authentication, adjust accordingly.
+          // 'Authorization': `Bearer ${this.apiKey}` 
         },
         body: JSON.stringify(data)
       });
