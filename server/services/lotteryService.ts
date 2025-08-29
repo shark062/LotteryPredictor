@@ -3,6 +3,8 @@ import { Lottery, LotteryResult } from '@shared/schema';
 
 export class LotteryService {
   private static instance: LotteryService;
+  private historicalAnalysisCache: Map<number, any> = new Map();
+  private lastAnalysisUpdate: Map<number, number> = new Map();
   
   public static getInstance(): LotteryService {
     if (!LotteryService.instance) {
@@ -371,6 +373,289 @@ export class LotteryService {
       const variation = Math.floor(Math.random() * 10) - 5; // -5 to +5 variation
       const frequency = Math.max(1, baseFrequency + variation);
       await storage.updateNumberFrequency(lotteryId, i, frequency);
+    }
+  }
+
+  // Análise Estatística Avançada - Histórico Completo
+  async getComprehensiveAnalysis(lotteryId: number): Promise<any> {
+    try {
+      const cacheKey = `comprehensive_${lotteryId}`;
+      const lastUpdate = this.lastAnalysisUpdate.get(lotteryId) || 0;
+      const now = Date.now();
+      
+      // Cache válido por 1 hora
+      if (now - lastUpdate < 3600000 && this.historicalAnalysisCache.has(cacheKey)) {
+        return this.historicalAnalysisCache.get(cacheKey);
+      }
+
+      console.log(`📊 Iniciando análise estatística completa para loteria ${lotteryId}...`);
+      
+      // Obter TODOS os resultados históricos
+      const allResults = await storage.getAllResults(lotteryId);
+      
+      if (allResults.length === 0) {
+        return this.getBasicAnalysis(lotteryId);
+      }
+
+      const analysis = {
+        totalDraws: allResults.length,
+        periodAnalysis: await this.calculatePeriodTrends(allResults),
+        numberFrequencies: await this.calculatePreciseFrequencies(allResults),
+        patternAnalysis: await this.analyzeDrawPatterns(allResults),
+        probabilityMatrix: await this.buildProbabilityMatrix(allResults, lotteryId),
+        hotColdAnalysis: await this.getAdvancedHotColdAnalysis(allResults, lotteryId),
+        sequenceAnalysis: await this.analyzeNumberSequences(allResults),
+        lastUpdated: new Date()
+      };
+
+      // Cache da análise
+      this.historicalAnalysisCache.set(cacheKey, analysis);
+      this.lastAnalysisUpdate.set(lotteryId, now);
+      
+      console.log(`✅ Análise completa finalizada - ${allResults.length} concursos analisados`);
+      
+      return analysis;
+      
+    } catch (error) {
+      console.error('Erro na análise estatística completa:', error);
+      return this.getBasicAnalysis(lotteryId);
+    }
+  }
+
+  private async calculatePeriodTrends(results: any[]): Promise<any> {
+    const trends = {
+      monthly: new Map(),
+      yearly: new Map(),
+      weekday: new Map(),
+      recent: { last10: [], last30: [], last100: [] }
+    };
+
+    results.forEach((result, index) => {
+      const date = new Date(result.drawDate);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const weekday = date.getDay();
+      
+      const numbers = JSON.parse(result.drawnNumbers);
+      
+      // Tendências mensais
+      if (!trends.monthly.has(month)) trends.monthly.set(month, []);
+      trends.monthly.get(month).push(numbers);
+      
+      // Tendências anuais  
+      if (!trends.yearly.has(year)) trends.yearly.set(year, []);
+      trends.yearly.get(year).push(numbers);
+      
+      // Tendências por dia da semana
+      if (!trends.weekday.has(weekday)) trends.weekday.set(weekday, []);
+      trends.weekday.get(weekday).push(numbers);
+      
+      // Tendências recentes
+      if (index < 10) trends.recent.last10.push(numbers);
+      if (index < 30) trends.recent.last30.push(numbers);
+      if (index < 100) trends.recent.last100.push(numbers);
+    });
+
+    return trends;
+  }
+
+  private async calculatePreciseFrequencies(results: any[]): Promise<Map<number, any>> {
+    const frequencies = new Map<number, any>();
+    
+    results.forEach((result, index) => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      const recentWeight = Math.max(0.1, 1 - (index / results.length)); // Peso maior para concursos recentes
+      
+      numbers.forEach((num: number) => {
+        if (!frequencies.has(num)) {
+          frequencies.set(num, {
+            count: 0,
+            weightedCount: 0,
+            lastAppearance: -1,
+            gaps: [],
+            trend: 'stable'
+          });
+        }
+        
+        const freq = frequencies.get(num);
+        freq.count += 1;
+        freq.weightedCount += recentWeight;
+        
+        if (freq.lastAppearance >= 0) {
+          freq.gaps.push(index - freq.lastAppearance);
+        }
+        freq.lastAppearance = index;
+      });
+    });
+
+    // Calcular tendências
+    frequencies.forEach((freq, number) => {
+      if (freq.gaps.length > 0) {
+        const avgGap = freq.gaps.reduce((a, b) => a + b, 0) / freq.gaps.length;
+        const recentGaps = freq.gaps.slice(-5);
+        const recentAvg = recentGaps.reduce((a, b) => a + b, 0) / recentGaps.length;
+        
+        if (recentAvg < avgGap * 0.8) freq.trend = 'increasing';
+        else if (recentAvg > avgGap * 1.2) freq.trend = 'decreasing';
+        else freq.trend = 'stable';
+      }
+    });
+
+    return frequencies;
+  }
+
+  private async analyzeDrawPatterns(results: any[]): Promise<any> {
+    const patterns = {
+      evenOddRatios: [],
+      highLowRatios: [],
+      consecutiveOccurrences: [],
+      sumRanges: [],
+      numberSpacing: []
+    };
+
+    results.forEach(result => {
+      const numbers = JSON.parse(result.drawnNumbers).sort((a: number, b: number) => a - b);
+      
+      // Análise par/ímpar
+      const evenCount = numbers.filter((n: number) => n % 2 === 0).length;
+      patterns.evenOddRatios.push(evenCount / numbers.length);
+      
+      // Análise alto/baixo (assumindo números 1-60 para exemplo)
+      const maxNum = Math.max(...numbers);
+      const midPoint = maxNum / 2;
+      const highCount = numbers.filter((n: number) => n > midPoint).length;
+      patterns.highLowRatios.push(highCount / numbers.length);
+      
+      // Números consecutivos
+      let consecutives = 0;
+      for (let i = 0; i < numbers.length - 1; i++) {
+        if (numbers[i + 1] === numbers[i] + 1) consecutives++;
+      }
+      patterns.consecutiveOccurrences.push(consecutives);
+      
+      // Soma dos números
+      const sum = numbers.reduce((a: number, b: number) => a + b, 0);
+      patterns.sumRanges.push(sum);
+      
+      // Espaçamento entre números
+      const spacing = [];
+      for (let i = 0; i < numbers.length - 1; i++) {
+        spacing.push(numbers[i + 1] - numbers[i]);
+      }
+      patterns.numberSpacing.push(spacing);
+    });
+
+    return patterns;
+  }
+
+  private async buildProbabilityMatrix(results: any[], lotteryId: number): Promise<Map<number, number>> {
+    const lottery = await storage.getLotteryById(lotteryId);
+    if (!lottery) return new Map();
+
+    const probabilities = new Map<number, number>();
+    const totalDraws = results.length;
+    
+    // Inicializar todas as probabilidades
+    for (let i = 1; i <= lottery.maxNumber; i++) {
+      probabilities.set(i, 0);
+    }
+    
+    // Calcular probabilidades baseadas no histórico completo
+    results.forEach((result, index) => {
+      const numbers = JSON.parse(result.drawnNumbers);
+      const weight = 1 + (index / totalDraws) * 0.5; // Peso ligeiramente maior para concursos recentes
+      
+      numbers.forEach((num: number) => {
+        probabilities.set(num, probabilities.get(num) + weight);
+      });
+    });
+    
+    // Normalizar probabilidades
+    const maxCount = Math.max(...Array.from(probabilities.values()));
+    probabilities.forEach((count, num) => {
+      probabilities.set(num, (count / maxCount) * 100);
+    });
+
+    return probabilities;
+  }
+
+  private async getAdvancedHotColdAnalysis(results: any[], lotteryId: number): Promise<any> {
+    const lottery = await storage.getLotteryById(lotteryId);
+    if (!lottery) return { hot: [], cold: [], mixed: [] };
+
+    const frequencies = await this.calculatePreciseFrequencies(results);
+    const probabilities = await this.buildProbabilityMatrix(results, lotteryId);
+    
+    const numbers = Array.from({ length: lottery.maxNumber }, (_, i) => i + 1);
+    
+    // Análise mais sofisticada considerando múltiplos fatores
+    const analysis = numbers.map(num => {
+      const freq = frequencies.get(num) || { count: 0, weightedCount: 0, trend: 'stable', gaps: [] };
+      const prob = probabilities.get(num) || 0;
+      const avgGap = freq.gaps.length > 0 ? freq.gaps.reduce((a, b) => a + b, 0) / freq.gaps.length : 0;
+      
+      return {
+        number: num,
+        frequency: freq.count,
+        weightedFrequency: freq.weightedCount,
+        probability: prob,
+        trend: freq.trend,
+        avgGap,
+        score: freq.weightedCount + (prob * 0.3) + (freq.trend === 'increasing' ? 10 : freq.trend === 'decreasing' ? -5 : 0)
+      };
+    });
+    
+    // Classificar em hot, cold e mixed
+    analysis.sort((a, b) => b.score - a.score);
+    
+    const hot = analysis.slice(0, Math.floor(numbers.length * 0.3)).map(a => a.number);
+    const cold = analysis.slice(-Math.floor(numbers.length * 0.3)).map(a => a.number);
+    const mixed = analysis.slice(Math.floor(numbers.length * 0.3), -Math.floor(numbers.length * 0.3)).map(a => a.number);
+
+    return { hot, cold, mixed };
+  }
+
+  private async analyzeNumberSequences(results: any[]): Promise<any> {
+    const sequences = {
+      common: new Map(),
+      pairs: new Map(),
+      triplets: new Map(),
+      gaps: new Map()
+    };
+
+    results.forEach(result => {
+      const numbers = JSON.parse(result.drawnNumbers).sort((a: number, b: number) => a - b);
+      
+      // Análise de pares
+      for (let i = 0; i < numbers.length - 1; i++) {
+        for (let j = i + 1; j < numbers.length; j++) {
+          const pair = `${numbers[i]}-${numbers[j]}`;
+          sequences.pairs.set(pair, (sequences.pairs.get(pair) || 0) + 1);
+        }
+      }
+      
+      // Análise de sequências de 3
+      for (let i = 0; i < numbers.length - 2; i++) {
+        for (let j = i + 1; j < numbers.length - 1; j++) {
+          for (let k = j + 1; k < numbers.length; k++) {
+            const triplet = `${numbers[i]}-${numbers[j]}-${numbers[k]}`;
+            sequences.triplets.set(triplet, (sequences.triplets.get(triplet) || 0) + 1);
+          }
+        }
+      }
+    });
+
+    return sequences;
+  }
+
+  // Cache management
+  clearAnalysisCache(lotteryId?: number): void {
+    if (lotteryId) {
+      this.historicalAnalysisCache.delete(`comprehensive_${lotteryId}`);
+      this.lastAnalysisUpdate.delete(lotteryId);
+    } else {
+      this.historicalAnalysisCache.clear();
+      this.lastAnalysisUpdate.clear();
     }
   }
 }

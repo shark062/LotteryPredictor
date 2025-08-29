@@ -140,6 +140,22 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      {/* Partículas flutuantes animadas */}
+      <div className="floating-particles">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              animationDuration: `${15 + Math.random() * 10}s`,
+              animation: `particle-float ${15 + Math.random() * 10}s ${Math.random() * 10}s infinite linear, particle-drift ${8 + Math.random() * 6}s ease-in-out infinite`
+            }}
+          />
+        ))}
+      </div>
+
       {/* Futuristic Header */}
       <FuturisticHeader />
 
@@ -149,16 +165,17 @@ export default function Home() {
           {/* Navigation */}
           <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-card/40 backdrop-blur-md border border-border/50 rounded-xl p-1 animate-[slideInLeft_0.6s_ease-out_0.1s_both]">
             {[
-              { value: 'dashboard', icon: '📊', label: 'Dashboard' },
-              { value: 'generator', icon: '🎲', label: 'Gerador' },
-              { value: 'heatmap', icon: '🗺️', label: 'Mapa' },
-              { value: 'results', icon: '🏆', label: 'Resultados' }
+              { value: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Aqui você vê todas as loterias com dados atualizados em tempo real' },
+              { value: 'generator', icon: '🎲', label: 'Gerador', description: 'Aqui a IA gera os números com as melhores probabilidades' },
+              { value: 'heatmap', icon: '🗺️', label: 'Mapa', description: 'Aqui você visualiza quais números saem mais frequentemente' },
+              { value: 'results', icon: '🏆', label: 'Resultados', description: 'Aqui você acompanha todos os concursos e histórico' }
             ].map((tab, index) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="group flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-cyan-400/50"
+                className="group relative flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 data-[state=active]:border-cyan-400/50"
                 data-testid={`tab-${tab.value}`}
+                title={tab.description}
               >
                 <span className="text-lg group-hover:scale-125 group-hover:rotate-12 transition-all duration-300">
                   {tab.icon}
@@ -166,6 +183,13 @@ export default function Home() {
                 <span className="hidden sm:inline group-hover:text-cyan-300 transition-colors duration-300">
                   {tab.label}
                 </span>
+                
+                {/* Tooltip com descrição */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50 pointer-events-none border border-cyan-400/50">
+                  {tab.description}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+                </div>
+                
                 {/* Indicador ativo animado */}
                 <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-cyan-400 group-data-[state=active]:w-full group-data-[state=active]:left-0 transition-all duration-300 rounded-full" />
               </TabsTrigger>
@@ -174,6 +198,14 @@ export default function Home() {
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">🎯 Dashboard Principal - Visão Geral Completa</h2>
+              <p className="text-muted-foreground">
+                Aqui você encontra todas as loterias com dados oficiais da Caixa Econômica Federal atualizados em tempo real. 
+                Veja prêmios, próximos sorteios e estatísticas de cada modalidade.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {lotteriesLoading || upcomingLoading ? (
                 <div className="col-span-full flex items-center justify-center py-12">
@@ -239,7 +271,15 @@ export default function Home() {
           </TabsContent>
 
           {/* Generator */}
-          <TabsContent value="generator">
+          <TabsContent value="generator" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">🤖 Gerador IA - Criação Inteligente de Jogos</h2>
+              <p className="text-muted-foreground">
+                Nossa IA analisa milhares de resultados históricos para gerar seus números com base em estratégias avançadas.
+                Escolha entre números quentes, frios ou use análise mista para maximizar suas chances.
+              </p>
+            </div>
             <NumberGenerator
               selectedLottery={selectedLottery || 1}
               onLotteryChange={setSelectedLottery}
@@ -249,12 +289,28 @@ export default function Home() {
           
 
           {/* Heat Map */}
-          <TabsContent value="heatmap">
+          <TabsContent value="heatmap" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">🔥 Mapa de Calor - Análise Visual de Frequências</h2>
+              <p className="text-muted-foreground">
+                Visualize quais números saem com mais frequência através de cores. Números em azul são frios (raros), 
+                em amarelo/vermelho são quentes (frequentes). Use essa informação para suas estratégias.
+              </p>
+            </div>
             <HeatMap selectedLottery={selectedLottery || 1} onLotteryChange={setSelectedLottery} />
           </TabsContent>
 
           {/* Results */}
-          <TabsContent value="results">
+          <TabsContent value="results" className="space-y-8 animate-[scaleIn_0.6s_ease-out_0.3s_both]">
+            {/* Descrição da seção */}
+            <div className="feature-description rounded-xl p-4 text-center mb-6">
+              <h2 className="text-xl font-bold text-cyan-300 mb-2">🏆 Resultados - Histórico Completo dos Concursos</h2>
+              <p className="text-muted-foreground">
+                Consulte todos os resultados oficiais dos concursos, veja estatísticas detalhadas e 
+                acompanhe a evolução dos prêmios. Dados sempre atualizados da Caixa Econômica Federal.
+              </p>
+            </div>
             <GameResults />
           </TabsContent>
         </Tabs>

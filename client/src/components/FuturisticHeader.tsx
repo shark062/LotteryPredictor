@@ -51,7 +51,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
 
   return (
     <header
-      className="relative overflow-hidden py-4 border-b border-cyan-400/30 shadow-lg"
+      className="relative overflow-hidden py-2 border-b border-cyan-400/30 shadow-lg"
       style={{
         background: `
           linear-gradient(135deg, rgba(2, 6, 23, 0.95), rgba(8, 15, 30, 0.95)),
@@ -98,7 +98,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
           {/* Logo e Nome */}
           <div className="flex items-center space-x-4">
             {/* Ícone logo */}
-            <div className="relative w-12 h-12 rounded-xl bg-black/60 border border-cyan-400/40 backdrop-blur-md flex items-center justify-center overflow-hidden">
+            <div className="relative w-10 h-10 rounded-xl bg-black/60 border border-cyan-400/40 backdrop-blur-md flex items-center justify-center overflow-hidden">
               <div
                 className="w-full h-full bg-cover bg-center opacity-80"
                 style={{ backgroundImage: `url('${logoUrl}')` }}
@@ -109,7 +109,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
             {/* Nome dinâmico */}
             <div className="relative">
               <h1
-                className="text-3xl md:text-4xl font-black tracking-wider transition-all duration-300 hover:scale-105"
+                className="text-xl md:text-2xl font-black tracking-wider transition-all duration-300 hover:scale-105"
                 style={{
                   background: 'linear-gradient(45deg, #00ffaa 0%, #0088ff 25%, #aa00ff 50%, #ff0088 75%, #00ffaa 100%)',
                   backgroundSize: '400% 400%',
@@ -126,7 +126,7 @@ export default function FuturisticHeader({}: FuturisticHeaderProps) {
 
               {/* Efeito de profundidade */}
               <h1
-                className="absolute inset-0 text-3xl md:text-4xl font-black tracking-wider opacity-20 blur-sm"
+                className="absolute inset-0 text-xl md:text-2xl font-black tracking-wider opacity-20 blur-sm"
                 style={{
                   background: 'linear-gradient(45deg, #ff00aa, #00aaff)',
                   WebkitBackgroundClip: 'text',
