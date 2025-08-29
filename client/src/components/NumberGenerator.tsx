@@ -239,36 +239,35 @@ export default function NumberGenerator({
           throw new Error(`Jogo ${i + 1} deve ter entre ${selectedLotteryData.minNumbers} e ${selectedLotteryData.maxNumbers} números`);
         }
 
-        try {
-          // Garantir que os números estão ordenados e únicos
-          const uniqueSortedNumbers = [...new Set(validNumbers)].sort((a, b) => a - b);
+        // Garantir que os números estão ordenados e únicos
+        const uniqueSortedNumbers = [...new Set(validNumbers)].sort((a, b) => a - b);
 
-          const gameData = {
-            lotteryId: selectedLottery,
-            numbers: JSON.stringify(uniqueSortedNumbers),
-            isPlayed: false,
-            contestNumber: null
-          };
+        const gameData = {
+          lotteryId: selectedLottery,
+          numbers: JSON.stringify(uniqueSortedNumbers),
+          isPlayed: false,
+          contestNumber: null
+        };
 
-          console.log(`Salvando jogo ${i + 1}:`, gameData);
+        console.log(`Salvando jogo ${i + 1}:`, gameData);
 
-          const response = await apiRequest('POST', '/api/games', gameData);
+        const response = await apiRequest('POST', '/api/games', gameData);
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { message: errorText || `Erro HTTP ${response.status}` };
-            }
-            throw new Error(errorData.message || `Erro ao salvar jogo ${i + 1}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { message: errorText || `Erro HTTP ${response.status}` };
           }
+          throw new Error(errorData.message || `Erro ao salvar jogo ${i + 1}`);
+        }
 
-          const savedGame = await response.json();
-          savedGames.push(savedGame);
+        const savedGame = await response.json();
+        savedGames.push(savedGame);
 
-          console.log(`✅ Jogo ${i + 1} salvo com sucesso:`, savedGame);
+        console.log(`✅ Jogo ${i + 1} salvo com sucesso:`, savedGame);
 
         } catch (saveError) {
           console.error(`❌ Erro ao salvar jogo ${i + 1}:`, saveError);

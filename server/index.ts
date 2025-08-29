@@ -58,7 +58,11 @@ app.use((req, res, next) => {
     
     // Only send response if headers haven't been sent yet
     if (!res.headersSent) {
-      res.status(status).json({ message });
+      try {
+        res.status(status).json({ message });
+      } catch (responseError) {
+        console.error("Error sending error response:", responseError);
+      }
     }
     
     // DO NOT throw err here - this crashes the server

@@ -9,7 +9,6 @@ import { webScrapingService } from "./services/webScrapingService";
 import { lotteryDataService } from "./services/lotteryDataService";
 import { caixaLotteryService } from "./services/caixaLotteryService";
 import { notificationService } from "./services/notificationService";
-import { insertUserGameSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {

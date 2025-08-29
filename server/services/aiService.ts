@@ -57,11 +57,11 @@ export class AIService {
     // Analisar histórico completo desde o primeiro concurso
     historicalResults.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers);
-      
+
       // Armazenar combinações completas
       const sortedCombo = numbers.sort((a: number, b: number) => a - b);
       drawnCombinations.add(JSON.stringify(sortedCombo));
-      
+
       // Analisar frequência de cada número
       numbers.forEach((num: number) => {
         numberFrequencyMap.set(num, (numberFrequencyMap.get(num) || 0) + 1);
@@ -105,7 +105,7 @@ export class AIService {
   // Função exclusiva para gerar 2 trevos da sorte para +Milionária (1-6)
   private generateClovers(): number[] {
     const clovers: number[] = [];
-    
+
     // Gerar 2 trevos únicos entre 1 e 6
     while (clovers.length < 2) {
       const clover = Math.floor(Math.random() * 6) + 1; // 1 a 6
@@ -113,7 +113,7 @@ export class AIService {
         clovers.push(clover);
       }
     }
-    
+
     return clovers.sort((a, b) => a - b); // Ordenar os trevos
   }
 
@@ -1060,15 +1060,15 @@ export class AIService {
   // Sistema de Aprendizado Contínuo
   private startContinuousLearning(): void {
     if (this.continuousLearningActive) return;
-    
+
     this.continuousLearningActive = true;
     console.log('🤖 Sistema de IA contínuo iniciado - estudando estratégias automaticamente');
-    
+
     // Executa aprendizado a cada 30 minutos
     setInterval(() => {
       this.performContinuousLearning();
     }, 30 * 60 * 1000);
-    
+
     // Primeira execução após 5 minutos para não sobrecarregar o startup
     setTimeout(() => {
       this.performContinuousLearning();
@@ -1078,17 +1078,17 @@ export class AIService {
   private async performContinuousLearning(): Promise<void> {
     try {
       console.log('🔬 IA estudando novas estratégias...');
-      
+
       const lotteries = await storage.getAllLotteries();
-      
+
       for (const lottery of lotteries) {
         await this.analyzeAndImproveStrategies(lottery.id);
         await this.updatePredictionAccuracy(lottery.id);
       }
-      
+
       this.lastLearningDate = new Date();
       console.log('✅ IA completou ciclo de estudos - estratégias atualizadas');
-      
+
     } catch (error) {
       console.error('❌ Erro no aprendizado contínuo da IA:', error);
     }
@@ -1101,16 +1101,16 @@ export class AIService {
       if (recentResults.length === 0) return;
 
       const patterns = this.identifyPatterns(recentResults);
-      
+
       // Atualizar frequências de números
       await this.updateNumberFrequencies(lotteryId, recentResults);
-      
+
       // Calcular novos pesos para estratégias
       const strategyWeights = await this.calculateStrategyWeights(lotteryId, patterns);
-      
+
       // Armazenar melhorias
       await this.storeStrategyImprovements(lotteryId, strategyWeights);
-      
+
     } catch (error) {
       console.warn(`⚠️ Erro ao analisar estratégias para loteria ${lotteryId}:`, error);
     }
@@ -1126,18 +1126,18 @@ export class AIService {
 
     results.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers).sort((a: number, b: number) => a - b);
-      
+
       // Detectar números consecutivos
       let consecutive = 0;
       for (let i = 0; i < numbers.length - 1; i++) {
         if (numbers[i + 1] === numbers[i] + 1) consecutive++;
       }
       patterns.consecutiveNumbers += consecutive;
-      
+
       // Razão par/ímpar
       const evenCount = numbers.filter((n: number) => n % 2 === 0).length;
       patterns.evenOddRatio += evenCount / numbers.length;
-      
+
       // Razão alto/baixo
       const maxNumber = Math.max(...numbers);
       const midPoint = maxNumber / 2;
@@ -1156,7 +1156,7 @@ export class AIService {
 
   private async updateNumberFrequencies(lotteryId: number, results: any[]): Promise<void> {
     const frequencies = new Map<number, number>();
-    
+
     results.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers);
       numbers.forEach((num: number) => {
@@ -1189,10 +1189,10 @@ export class AIService {
         lastUpdated: new Date(),
         version: Date.now()
       };
-      
+
       // Em produção salvaria no storage
       console.log(`🔧 Estratégias atualizadas para loteria ${lotteryId} - Precisão: ${aiModel.accuracy.toFixed(1)}%`);
-      
+
     } catch (error) {
       console.warn('Erro ao salvar melhorias da estratégia:', error);
     }
@@ -1204,9 +1204,9 @@ export class AIService {
       const currentAccuracy = this.precisionHistory.get(lotteryId) || 0;
       const improvement = Math.random() * 0.3; // Melhoria de 0-0.3%
       const newAccuracy = Math.min(95, currentAccuracy + improvement);
-      
+
       this.precisionHistory.set(lotteryId, newAccuracy);
-      
+
     } catch (error) {
       console.warn('Erro ao atualizar precisão:', error);
     }
@@ -1222,14 +1222,14 @@ export class AIService {
   // Algoritmo Anti-Repetição Avançado
   private generatePartialCombinations(numbers: number[]): string[] {
     const partials: string[] = [];
-    
+
     // Gerar pares
     for (let i = 0; i < numbers.length - 1; i++) {
       for (let j = i + 1; j < numbers.length; j++) {
         partials.push(`pair:${numbers[i]}-${numbers[j]}`);
       }
     }
-    
+
     // Gerar trios
     for (let i = 0; i < numbers.length - 2; i++) {
       for (let j = i + 1; j < numbers.length - 1; j++) {
@@ -1238,21 +1238,21 @@ export class AIService {
         }
       }
     }
-    
+
     // Sequências consecutivas
     const consecutives = this.findConsecutiveSequences(numbers);
     consecutives.forEach(seq => {
       partials.push(`consecutive:${seq.join('-')}`);
     });
-    
+
     return partials;
   }
 
   private hasProblematicPatterns(numbers: number[], partialCombinations: Map<string, number>): boolean {
     const problematicThreshold = 5; // Se um padrão apareceu mais de 5 vezes, evitar
-    
+
     const partials = this.generatePartialCombinations(numbers);
-    
+
     for (const partial of partials) {
       const frequency = partialCombinations.get(partial) || 0;
       if (frequency > problematicThreshold) {
@@ -1260,19 +1260,19 @@ export class AIService {
         return true;
       }
     }
-    
+
     // Verificar outros padrões problemáticos
     if (this.hasAllConsecutive(numbers)) return true;
     if (this.hasAllEvenOrOdd(numbers)) return true;
     if (this.hasArithmeticProgression(numbers)) return true;
-    
+
     return false;
   }
 
   private findConsecutiveSequences(numbers: number[]): number[][] {
     const sequences: number[][] = [];
     let currentSequence: number[] = [numbers[0]];
-    
+
     for (let i = 1; i < numbers.length; i++) {
       if (numbers[i] === numbers[i - 1] + 1) {
         currentSequence.push(numbers[i]);
@@ -1283,11 +1283,11 @@ export class AIService {
         currentSequence = [numbers[i]];
       }
     }
-    
+
     if (currentSequence.length >= 3) {
       sequences.push(currentSequence);
     }
-    
+
     return sequences;
   }
 
@@ -1308,7 +1308,7 @@ export class AIService {
 
   private hasArithmeticProgression(numbers: number[]): boolean {
     if (numbers.length < 3) return false;
-    
+
     const diff = numbers[1] - numbers[0];
     for (let i = 2; i < numbers.length; i++) {
       if (numbers[i] - numbers[i - 1] !== diff) {
@@ -1321,28 +1321,28 @@ export class AIService {
   private generateTrueRandomCombination(maxNumber: number, count: number, drawnCombinations: Set<string>): number[] {
     const maxRetries = 100;
     let retries = 0;
-    
+
     while (retries < maxRetries) {
       const numbers: number[] = [];
-      
+
       while (numbers.length < count) {
         const randomNum = Math.floor(Math.random() * maxNumber) + 1;
         if (!numbers.includes(randomNum)) {
           numbers.push(randomNum);
         }
       }
-      
+
       const sortedNumbers = numbers.sort((a, b) => a - b);
       const combinationKey = JSON.stringify(sortedNumbers);
-      
+
       if (!drawnCombinations.has(combinationKey)) {
         console.log(`🎲 Combinação aleatória verdadeira gerada após ${retries + 1} tentativas`);
         return sortedNumbers;
       }
-      
+
       retries++;
     }
-    
+
     // Se chegou aqui, gerar números realmente aleatórios sem verificação
     const finalNumbers: number[] = [];
     while (finalNumbers.length < count) {
@@ -1351,7 +1351,7 @@ export class AIService {
         finalNumbers.push(randomNum);
       }
     }
-    
+
     console.log(`⚠️ Combinação final gerada sem verificação anti-repetição`);
     return finalNumbers.sort((a, b) => a - b);
   }
@@ -1361,20 +1361,20 @@ export class AIService {
     try {
       const historicalResults = await storage.getAllResults(lotteryId);
       const drawnCombinations = new Set<string>();
-      
+
       historicalResults.forEach(result => {
         const numbers = JSON.parse(result.drawnNumbers);
         const sortedNumbers = numbers.sort((a: number, b: number) => a - b);
         drawnCombinations.add(JSON.stringify(sortedNumbers));
       });
-      
+
       return {
         totalHistoricalCombinations: drawnCombinations.size,
         protectionActive: true,
         lastCheck: new Date(),
         effectivenessRate: 100 - (drawnCombinations.size / Math.pow(2, 10)) * 100 // Estimativa
       };
-      
+
     } catch (error) {
       console.error('Erro ao calcular estatísticas anti-repetição:', error);
       return {
@@ -1415,36 +1415,36 @@ export class AIService {
     for (let i = 1; i <= lottery.maxNumber; i++) {
       const frequency = frequencyMap.get(i) || 0;
       const recentAppearances = await this.getRecentAppearances(lotteryId, i);
-      
+
       // Calcular score baseado em múltiplos fatores
       let score = 0;
-      
+
       // Fator de frequência histórica (peso 30%)
       const avgFrequency = Array.from(frequencyMap.values()).reduce((a, b) => a + b, 0) / frequencyMap.size;
       if (preferences.useHot && frequency > avgFrequency) score += 30;
       if (preferences.useCold && frequency < avgFrequency * 0.7) score += 25;
       if (preferences.useMixed) score += 20;
-      
+
       // Fator de ausência (peso 25%)
       const absenceDays = await this.calculateAbsenceDays(lotteryId, i);
       if (absenceDays > 30) score += 25;
       else if (absenceDays < 5) score -= 10;
-      
+
       // Fator de tendência matemática (peso 20%)
       score += this.calculateMathematicalTrend(i, lottery.maxNumber);
-      
+
       // Fator de distribuição equilibrada (peso 15%)
       score += this.calculateDistributionScore(i, lottery.maxNumber, count);
-      
+
       // Fator anti-padrão comum (peso 10%)
       score -= this.calculateCommonPatternPenalty(i, partialCombinations);
-      
+
       scoredNumbers.push({ number: i, score, frequency });
     }
 
     // Ordenar por score e aplicar diversificação
     scoredNumbers.sort((a, b) => b.score - a.score);
-    
+
     // Seleção inteligente evitando repetições
     const selectedNumbers = await this.intelligentSelection(
       scoredNumbers,
@@ -1469,12 +1469,12 @@ export class AIService {
 
     while (selected.length < count && attempts < maxAttempts) {
       attempts++;
-      
+
       // Selecionar próximo número com base no score e diversidade
       const candidate = this.selectNextCandidate(scoredNumbers, selected);
       if (candidate && !selected.includes(candidate)) {
         selected.push(candidate);
-        
+
         // Verificar se a combinação atual não é repetida
         if (selected.length === count) {
           const sortedCombo = [...selected].sort((a, b) => a - b);
@@ -1529,30 +1529,30 @@ export class AIService {
 
   private async calculateAbsenceDays(lotteryId: number, number: number): Promise<number> {
     const recentResults = await storage.getLatestResults(lotteryId, 50);
-    
+
     for (let i = 0; i < recentResults.length; i++) {
       const numbers = JSON.parse(recentResults[i].drawnNumbers);
       if (numbers.includes(number)) {
         return i; // Retorna quantos concursos desde a última aparição
       }
     }
-    
+
     return 50; // Não apareceu nos últimos 50 concursos
   }
 
   private calculateMathematicalTrend(number: number, maxNumber: number): number {
     let score = 0;
-    
+
     // Preferência por números primos
     if (this.isPrime(number)) score += 5;
-    
+
     // Preferência por números com distribuição equilibrada
     const position = number / maxNumber;
     if (position > 0.2 && position < 0.8) score += 3;
-    
+
     // Penalizar números muito baixos ou muito altos
     if (number <= 3 || number >= maxNumber - 2) score -= 2;
-    
+
     return score;
   }
 
@@ -1560,7 +1560,7 @@ export class AIService {
     // Dividir em faixas e premiar distribuição equilibrada
     const range = Math.ceil(maxNumber / 3);
     const numberRange = Math.floor((number - 1) / range);
-    
+
     // Premiar números de diferentes faixas
     return numberRange * 2;
   }
@@ -1568,14 +1568,14 @@ export class AIService {
   private calculateCommonPatternPenalty(number: number, partialCombinations: Map<string, number>): number {
     // Penalizar números que formam pares muito frequentes
     let penalty = 0;
-    
+
     partialCombinations.forEach((frequency, pair) => {
       const [num1, num2] = pair.split('-').map(n => parseInt(n));
       if ((num1 === number || num2 === number) && frequency > 10) {
         penalty += frequency * 0.1;
       }
     });
-    
+
     return penalty;
   }
 
@@ -1645,22 +1645,23 @@ export class AIService {
     if (patterns && Object.keys(patterns).length > 0) confidence += 0.15;
 
     return Math.min(0.98, confidence);
+  }
   async generateN8nAdvancedStrategy(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
     console.log(`🔮 Gerando estratégia avançada n8n para loteria ${lotteryId}`);
-    
+
     try {
       const lottery = await storage.getLotteryById(lotteryId);
       if (!lottery) throw new Error('Lottery not found');
 
       // Análise super avançada com IA + padrões n8n
       const advancedAnalysis = await this.performAdvancedAnalysis(lotteryId, numbers, patterns);
-      
+
       // Aplicar algoritmos quânticos e neural networks
       const quantumPrediction = await this.applyQuantumAlgorithms(advancedAnalysis);
-      
+
       // Combinar com machine learning patterns
       const mlEnhanced = await this.applyMachineLearningEnhancement(quantumPrediction);
-      
+
       return {
         numbers: mlEnhanced.numbers,
         confidence: 0.98, // Altíssima confiança com n8n
@@ -1678,7 +1679,7 @@ export class AIService {
   private async performAdvancedAnalysis(lotteryId: number, numbers: number[], patterns: any): Promise<any> {
     // Análise super avançada combinando múltiplas dimensões
     const historicalResults = await storage.getLatestResults(lotteryId, 200);
-    
+
     const analysis = {
       frequencyMatrix: this.buildFrequencyMatrix(historicalResults),
       temporalPatterns: this.analyzeTemporalPatterns(historicalResults),
@@ -1694,7 +1695,7 @@ export class AIService {
   private async applyQuantumAlgorithms(analysis: any): Promise<any> {
     // Simulação de algoritmos quânticos para predição
     const quantumStates = [];
-    
+
     // Aplicar superposição quântica nos números
     for (let i = 1; i <= 60; i++) {
       const probability = this.calculateQuantumProbability(i, analysis);
@@ -1707,7 +1708,7 @@ export class AIService {
 
     // Colapsar estados quânticos para seleção final
     const selectedNumbers = this.collapseQuantumStates(quantumStates);
-    
+
     return {
       numbers: selectedNumbers,
       quantumConfidence: 0.96,
@@ -1725,7 +1726,7 @@ export class AIService {
 
     // Processo de backpropagation simulado
     const optimizedNumbers = this.optimizeWithBackpropagation(neuralNetwork);
-    
+
     return {
       numbers: optimizedNumbers.slice(0, 15), // Retornar top 15 números
       predictedAccuracy: 0.97,
@@ -1736,7 +1737,7 @@ export class AIService {
 
   private buildFrequencyMatrix(results: any[]): number[][] {
     const matrix: number[][] = Array(61).fill(null).map(() => Array(61).fill(0));
-    
+
     results.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers);
       for (let i = 0; i < numbers.length; i++) {
@@ -1746,7 +1747,7 @@ export class AIService {
         }
       }
     });
-    
+
     return matrix;
   }
 
@@ -1760,12 +1761,12 @@ export class AIService {
     results.forEach(result => {
       const date = new Date(result.drawDate);
       const numbers = JSON.parse(result.drawnNumbers);
-      
+
       // Análise por dia da semana
       const dayOfWeek = date.getDay();
       if (!patterns.weeklyTrends[dayOfWeek]) patterns.weeklyTrends[dayOfWeek] = [];
       patterns.weeklyTrends[dayOfWeek].push(...numbers);
-      
+
       // Análise por mês
       const month = date.getMonth();
       if (!patterns.monthlyTrends[month]) patterns.monthlyTrends[month] = [];
@@ -1780,29 +1781,29 @@ export class AIService {
     const baseProb = 1 / 60; // Probabilidade uniforme
     const frequencyBonus = (analysis.frequencyMatrix[number]?.reduce((a, b) => a + b, 0) || 0) * 0.001;
     const temporalBonus = this.getTemporalBonus(number, analysis.temporalPatterns);
-    
+
     // Aplicar função de onda quântica
     const quantumAmplitude = Math.sin(number * Math.PI / 30) ** 2;
-    
+
     return (baseProb + frequencyBonus + temporalBonus) * quantumAmplitude;
   }
 
   private calculateEntanglement(number: number, correlations: any): number {
     // Simular entrelaçamento quântico entre números
     let entanglement = 0;
-    
+
     Object.keys(correlations).forEach(otherNumber => {
       const correlation = correlations[otherNumber] || 0;
       entanglement += correlation * Math.exp(-Math.abs(number - parseInt(otherNumber)) / 10);
     });
-    
+
     return entanglement;
   }
 
   private collapseQuantumStates(states: any[]): number[] {
     // Colapsar estados quânticos para números específicos
     states.sort((a, b) => (b.quantumState * b.entanglement) - (a.quantumState * a.entanglement));
-    
+
     return states.slice(0, 20).map(state => state.number);
   }
 
@@ -1831,21 +1832,21 @@ export class AIService {
       const adjustment = (Math.random() - 0.5) * 2; // -1 a 1
       return Math.max(1, Math.min(60, n + adjustment));
     });
-    
+
     return [...new Set(optimized.map(n => Math.round(n)))]; // Remove duplicatas e arredonda
   }
 
   private findSequentialCorrelations(numbers: number[]): any {
     const correlations: any = {};
-    
+
     for (let i = 0; i < numbers.length - 1; i++) {
       const current = numbers[i];
       const next = numbers[i + 1];
-      
+
       if (!correlations[current]) correlations[current] = {};
       correlations[current][next] = (correlations[current][next] || 0) + 1;
     }
-    
+
     return correlations;
   }
 
@@ -1867,7 +1868,7 @@ export class AIService {
     };
 
     const recent = results.slice(0, 100);
-    
+
     cycles.shortTerm = this.identifyCyclePattern(recent.slice(0, 5));
     cycles.mediumTerm = this.identifyCyclePattern(recent.slice(0, 20));
     cycles.longTerm = this.identifyCyclePattern(recent);
@@ -1877,14 +1878,14 @@ export class AIService {
 
   private identifyCyclePattern(results: any[]): number[] {
     const frequency: { [key: number]: number } = {};
-    
+
     results.forEach(result => {
       const numbers = JSON.parse(result.drawnNumbers);
       numbers.forEach((num: number) => {
         frequency[num] = (frequency[num] || 0) + 1;
       });
     });
-    
+
     return Object.entries(frequency)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
@@ -1894,11 +1895,11 @@ export class AIService {
   private getTemporalBonus(number: number, patterns: any): number {
     // Calcular bonus temporal baseado em padrões
     let bonus = 0;
-    
+
     Object.values(patterns.weeklyTrends).forEach((nums: any) => {
       if (nums.includes(number)) bonus += 0.1;
     });
-    
+
     return bonus;
   }
 
@@ -1911,7 +1912,7 @@ export class AIService {
     const mean = numbers.reduce((a, b) => a + b, 0) / numbers.length;
     const variance = this.calculateVariance(numbers);
     const stdDev = Math.sqrt(variance);
-    
+
     const skewness = numbers.reduce((acc, num) => acc + Math.pow((num - mean) / stdDev, 3), 0) / numbers.length;
     return skewness;
   }
@@ -1920,20 +1921,20 @@ export class AIService {
     const mean = numbers.reduce((a, b) => a + b, 0) / numbers.length;
     const variance = this.calculateVariance(numbers);
     const stdDev = Math.sqrt(variance);
-    
+
     const kurtosis = numbers.reduce((acc, num) => acc + Math.pow((num - mean) / stdDev, 4), 0) / numbers.length;
     return kurtosis - 3; // Excess kurtosis
   }
 
   private calculateOverallEntanglement(numbers: number[]): number {
     let totalEntanglement = 0;
-    
+
     for (let i = 0; i < numbers.length; i++) {
       for (let j = i + 1; j < numbers.length; j++) {
         totalEntanglement += Math.exp(-Math.abs(numbers[i] - numbers[j]) / 15);
       }
     }
-    
+
     return totalEntanglement / (numbers.length * (numbers.length - 1) / 2);
   }
 }
