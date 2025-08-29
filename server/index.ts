@@ -172,8 +172,10 @@ async function startServer() {
       console.log(`⚡ Startup: ${uptime}ms`);
 
       if (platform !== 'local') {
-        const systemInfo = getEnvSystemInfo();
-        console.log(`🌐 URL pública: ${systemInfo.publicUrl}`);
+        const systemInfo = getEnvSystemInfo() as any;
+        if (systemInfo.publicUrl) {
+          console.log(`🌐 URL pública: ${systemInfo.publicUrl}`);
+        }
       }
     });
 

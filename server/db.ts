@@ -1,28 +1,27 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema.js";
+import { config as envConfig } from "../config/environment.js";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.warn("⚠️ DATABASE_URL not set, using default connection");
+  process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/sharkloto";
 }
 
-// Configuração otimizada do pool para Neon Database
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: false, // Desabilitado para desenvolvimento local
-  // Configurações otimizadas para performance
-  max: 20, // Máximo de conexões no pool
-  min: 2, // Mínimo de conexões mantidas
-  idleTimeoutMillis: 30000, // 30 segundos para timeout de conexões inativas
-  connectionTimeoutMillis: 10000, // 10 segundos para timeout de conexão
-  // Configurações de manutenção do pool
+// Configuração otimizada do pool baseada na plataforma
+const poolConfig = {
+  connectionString: envConfig.getDatabaseUrl(),
+  ssl: envConfig.requiresSsl() ? { rejectUnauthorized: false } : false,
+  max: envConfig.getPoolSize(),
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: envConfig.getConnectionTimeout(),
   allowExitOnIdle: false,
-  // Configurações de statement timeout
-  statement_timeout: 30000, // 30 segundos para statements
-  query_timeout: 25000, // 25 segundos para queries
-});
+  statement_timeout: 30000,
+  query_timeout: 25000,
+};
+
+export const pool = new Pool(poolConfig);
 
 // Configuração do Drizzle com schema
 export const db = drizzle(pool, { 

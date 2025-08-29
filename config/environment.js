@@ -169,7 +169,7 @@ class Environment {
   }
 
   getSystemInfo() {
-    return {
+    const systemInfo = {
       platform: this.platform,
       port: this.getPort(),
       host: this.getHost(),
@@ -179,6 +179,19 @@ class Environment {
       memoryUsage: process.memoryUsage(),
       uptime: process.uptime()
     };
+
+    // Add publicUrl for supported platforms
+    if (this.platform === 'replit' && process.env.REPL_SLUG && process.env.REPL_OWNER) {
+      systemInfo.publicUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    } else if (this.platform === 'replit-deployment' && process.env.REPLIT_DEPLOYMENT_URL) {
+      systemInfo.publicUrl = process.env.REPLIT_DEPLOYMENT_URL;
+    } else if (this.platform === 'vercel' && process.env.VERCEL_URL) {
+      systemInfo.publicUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (this.platform === 'netlify' && process.env.URL) {
+      systemInfo.publicUrl = process.env.URL;
+    }
+
+    return systemInfo;
   }
 }
 

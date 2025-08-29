@@ -802,7 +802,7 @@ export default function NumberGenerator({
                   {analysis?.hot?.slice(0, 10).map((number: number) => (
                     <NumberBall key={number} number={number} type="hot" />
                   ))}
-                </div>div>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Alta frequência recente + padrões de sucesso
                 </p>
