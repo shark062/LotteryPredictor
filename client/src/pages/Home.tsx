@@ -42,14 +42,14 @@ export default function Home() {
 
   const { data: upcomingDraws, refetch: refetchUpcomingDraws, isLoading: upcomingLoading } = useQuery({
     queryKey: ["/api/lotteries/upcoming"],
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
-    retry: 2, // Reduzir tentativas
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 15000), // Delays menores
+    staleTime: 15 * 60 * 1000, // 15 minutos - dados não mudam frequentemente
+    gcTime: 30 * 60 * 1000, // 30 minutos
+    retry: 1, // Reduzir tentativas para 1
+    retryDelay: 5000, // 5 segundos fixos
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchInterval: false, // Desabilitar refetch automático
-    networkMode: 'always', // Sempre tentar buscar dados
+    refetchOnMount: false, // Não refetch no mount para reduzir requests
+    refetchInterval: false,
+    networkMode: 'online', // Só buscar quando online
   });
 
   const { mutate: updateLotteryData, isPending: isUpdating } = useMutation({
@@ -76,30 +76,30 @@ export default function Home() {
     }
   });
 
-  // Auto-refresh otimizado - reduzir frequência para evitar travamentos
+  // Auto-refresh otimizado - reduzir frequência drasticamente para melhorar performance
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
 
     const startInterval = () => {
       interval = setInterval(() => {
         if (document.visibilityState === 'visible' && !isUpdating) {
-          // Apenas atualizar dados dos próximos sorteios
+          // Apenas atualizar dados dos próximos sorteios - intervalo de 10 minutos
           refetchUpcomingDraws();
         }
-      }, 2 * 60 * 1000); // 2 minutos ao invés de 10
+      }, 10 * 60 * 1000); // 10 minutos para reduzir carga no servidor
     };
 
-    // Aguardar 10 segundos antes de iniciar o interval
+    // Aguardar 30 segundos antes de iniciar o interval
     const initialDelay = setTimeout(() => {
       startInterval();
-    }, 10000);
+    }, 30000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Pequeno delay para evitar múltiplas requisições
+        // Delay maior para evitar múltiplas requisições
         setTimeout(() => {
           refetchUpcomingDraws();
-        }, 1000);
+        }, 3000);
       }
     };
 

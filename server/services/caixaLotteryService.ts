@@ -214,7 +214,15 @@ export class CaixaLotteryService {
       if (typeof numbersText === 'string') {
         drawnNumbers = numbersText.split('-').map(n => {
           const num = parseInt(n.trim());
-          if (isNaN(num) || num <= 0) {
+          if (isNaN(num)) {
+            throw new Error(`Número inválido encontrado: ${n}`);
+          }
+          // Para Super Sete, aceitar números de 0 a 9
+          if (lotteryName === 'Super Sete' && (num < 0 || num > 9)) {
+            throw new Error(`Número fora do range para Super Sete: ${num}`);
+          }
+          // Para outras loterias, não aceitar números menores que 1
+          if (lotteryName !== 'Super Sete' && num <= 0) {
             throw new Error(`Número inválido encontrado: ${n}`);
           }
           return num;
@@ -222,7 +230,15 @@ export class CaixaLotteryService {
       } else if (Array.isArray(numbersText)) {
         drawnNumbers = numbersText.map((n: string) => {
           const num = parseInt(n);
-          if (isNaN(num) || num <= 0) {
+          if (isNaN(num)) {
+            throw new Error(`Número inválido encontrado: ${n}`);
+          }
+          // Para Super Sete, aceitar números de 0 a 9
+          if (lotteryName === 'Super Sete' && (num < 0 || num > 9)) {
+            throw new Error(`Número fora do range para Super Sete: ${num}`);
+          }
+          // Para outras loterias, não aceitar números menores que 1
+          if (lotteryName !== 'Super Sete' && num <= 0) {
             throw new Error(`Número inválido encontrado: ${n}`);
           }
           return num;

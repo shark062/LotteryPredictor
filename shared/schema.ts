@@ -60,6 +60,7 @@ export const lotteryResults = pgTable("lottery_results", {
   lotteryId: integer("lottery_id").references(() => lotteries.id),
   contestNumber: integer("contest_number").notNull(),
   drawnNumbers: text("drawn_numbers").notNull(), // JSON array de números sorteados
+  drawnClovers: text("drawn_clovers"), // JSON array dos trevos sorteados para +Milionária
   drawDate: timestamp("draw_date").notNull(),
   nextDrawDate: timestamp("next_draw_date"),
   estimatedPrize: decimal("estimated_prize", { precision: 15, scale: 2 }),
@@ -81,6 +82,7 @@ export const userGames = pgTable("user_games", {
   userId: varchar("user_id").references(() => users.id),
   lotteryId: integer("lottery_id").references(() => lotteries.id),
   numbers: text("numbers").notNull(), // JSON array
+  clovers: text("clovers"), // JSON array para +Milionária trevos da sorte (1-6)
   contestNumber: integer("contest_number"),
   isPlayed: boolean("is_played").default(false),
   createdAt: timestamp("created_at").defaultNow(),

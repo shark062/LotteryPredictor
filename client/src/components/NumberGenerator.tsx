@@ -32,6 +32,7 @@ export default function NumberGenerator({
     useMixed: false,
   });
   const [generatedNumbers, setGeneratedNumbers] = useState<number[][]>([]);
+  const [generatedClovers, setGeneratedClovers] = useState<number[][]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // Estado para a barra de progresso
@@ -68,6 +69,7 @@ export default function NumberGenerator({
       }
 
       const allGames = [];
+      const allClovers = [];
       for (let i = 0; i < gamesCount; i++) {
         const response = await apiRequest('POST', '/api/ai/predict', {
           lotteryId: selectedLottery,
@@ -76,6 +78,17 @@ export default function NumberGenerator({
         });
         const gameData = await response.json();
         allGames.push(gameData.numbers);
+        // Capturar trevos se existirem (apenas para +Milionária)
+        if (gameData.clovers) {
+          allClovers.push(gameData.clovers);
+        }
+      }
+      
+      // Definir trevos se foram gerados
+      if (allClovers.length > 0) {
+        setGeneratedClovers(allClovers);
+      } else {
+        setGeneratedClovers([]);
       }
 
       return { games: allGames, total: gamesCount, numbersPerGame };
@@ -83,9 +96,10 @@ export default function NumberGenerator({
     onSuccess: (data) => {
       setGeneratedNumbers(data.games);
       if (data.total > 0) {
+        const isMillionaria = selectedLotteryData?.slug === 'mais-milionaria';
         toast({
           title: "Jogos Gerados! 🎲",
-          description: `${data.total} jogo${data.total > 1 ? 's' : ''} com ${data.numbersPerGame} números cada`,
+          description: `${data.total} jogo${data.total > 1 ? 's' : ''} com ${data.numbersPerGame} números cada${isMillionaria ? ' + trevos da sorte' : ''}`,
         });
       }
     },
@@ -96,6 +110,7 @@ export default function NumberGenerator({
         variant: "destructive",
       });
       setGeneratedNumbers([]);
+      setGeneratedClovers([]);
     },
   });
 
@@ -110,6 +125,7 @@ export default function NumberGenerator({
       }
 
       const allGames = [];
+      const allClovers = [];
       for (let i = 0; i < gamesCount; i++) {
         const response = await apiRequest('POST', '/api/ai/predict-advanced', {
           lotteryId: selectedLottery,
@@ -119,10 +135,22 @@ export default function NumberGenerator({
         const gameData = await response.json();
         allGames.push(gameData.numbers);
         
+        // Capturar trevos se existirem (apenas para +Milionária)
+        if (gameData.clovers) {
+          allClovers.push(gameData.clovers);
+        }
+        
         // Armazenar informações extras da predição avançada
         if (i === 0) {
           setConfidenceScore(gameData.confidence || 0.95);
         }
+      }
+      
+      // Definir trevos se foram gerados
+      if (allClovers.length > 0) {
+        setGeneratedClovers(allClovers);
+      } else {
+        setGeneratedClovers([]);
       }
 
       return { 
@@ -379,6 +407,13 @@ export default function NumberGenerator({
       const result = await response.json();
       setGeneratedNumbers([result.numbers]);
       
+      // Capturar trevos se existirem (apenas para +Milionária)
+      if (result.clovers) {
+        setGeneratedClovers([result.clovers]);
+      } else {
+        setGeneratedClovers([]);
+      }
+      
       toast({
         title: "Números Gerados! 🎯",
         description: "Novos números gerados com sucesso",
@@ -566,6 +601,28 @@ export default function NumberGenerator({
                       <NumberBall key={numberIndex} number={number} size="lg" />
                     ))}
                   </div>
+                  
+                  {/* Trevos da Sorte para +Milionária */}
+                  {selectedLotteryData?.slug === 'mais-milionaria' && generatedClovers[gameIndex] && (
+                    <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-sm font-semibold text-green-400">🍀 Trevos da Sorte</h5>
+                        <Badge variant="outline" className="text-xs border-green-500/30 text-green-400">
+                          2 trevos
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2" data-testid={`generated-clovers-${gameIndex}`}>
+                        {generatedClovers[gameIndex].map((clover: number, cloverIndex: number) => (
+                          <div 
+                            key={cloverIndex} 
+                            className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm flex items-center justify-center border-2 border-green-400 shadow-lg"
+                          >
+                            {clover}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

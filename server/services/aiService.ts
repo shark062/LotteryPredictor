@@ -38,7 +38,7 @@ export class AIService {
       useCold: boolean;
       useMixed: boolean;
     }
-  ): Promise<number[]> {
+  ): Promise<{ numbers: number[], clovers?: number[] }> {
     const lottery = await storage.getLotteryById(lotteryId);
     if (!lottery) {
       throw new Error('Lottery not found');
@@ -109,9 +109,30 @@ export class AIService {
       console.log(`Aviso: Após ${maxAttempts} tentativas, usando combinação que pode ter sido sorteada antes`);
     }
 
-    return selectedNumbers;
-
+    // Gerar trevos da sorte para +Milionária (slug: 'mais-milionaria')
+    let clovers: number[] | undefined = undefined;
+    if (lottery.slug === 'mais-milionaria') {
+      clovers = this.generateClovers();
+      console.log(`🍀 Trevos da sorte gerados para +Milionária: ${clovers.join(', ')}`);
     }
+
+    return { numbers: selectedNumbers, clovers };
+  }
+
+  // Função exclusiva para gerar 2 trevos da sorte para +Milionária (1-6)
+  private generateClovers(): number[] {
+    const clovers: number[] = [];
+    
+    // Gerar 2 trevos únicos entre 1 e 6
+    while (clovers.length < 2) {
+      const clover = Math.floor(Math.random() * 6) + 1; // 1 a 6
+      if (!clovers.includes(clover)) {
+        clovers.push(clover);
+      }
+    }
+    
+    return clovers.sort((a, b) => a - b); // Ordenar os trevos
+  }
 
   private async generateUniqueStrategy(
     lotteryId: number, 

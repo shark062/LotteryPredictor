@@ -407,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sanitizedPreferences
       );
 
-      res.json({ numbers: prediction });
+      res.json(prediction);
     } catch (error) {
       console.error("Error generating prediction:", error);
       res.status(500).json({ message: "Failed to generate prediction" });
@@ -1016,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
         res.json({
-          numbers: prediction,
+          ...prediction,
           source: 'standard_ai',
           confidence: 0.85
         });
