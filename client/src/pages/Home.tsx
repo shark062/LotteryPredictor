@@ -140,17 +140,55 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Partículas flutuantes animadas */}
+      {/* Partículas flutuantes aquáticas animadas */}
       <div className="floating-particles">
-        {[...Array(8)].map((_, i) => (
+        {/* Bolhas principais */}
+        {[...Array(12)].map((_, i) => (
           <div
-            key={i}
+            key={`main-${i}`}
             className="particle"
             style={{
               left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 10}s`,
-              animationDuration: `${15 + Math.random() * 10}s`,
-              animation: `particle-float ${15 + Math.random() * 10}s ${Math.random() * 10}s infinite linear, particle-drift ${8 + Math.random() * 6}s ease-in-out infinite`
+              width: `${3 + Math.random() * 5}px`,
+              height: `${3 + Math.random() * 5}px`,
+              animationDelay: `${Math.random() * 15}s`,
+              animationDuration: `${20 + Math.random() * 15}s`,
+              animation: `particle-float ${20 + Math.random() * 15}s ${Math.random() * 15}s infinite linear, particle-drift ${12 + Math.random() * 8}s ease-in-out infinite`
+            }}
+          />
+        ))}
+        
+        {/* Microbolhas */}
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={`micro-${i}`}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              width: '1px',
+              height: '1px',
+              animationDelay: `${Math.random() * 20}s`,
+              animationDuration: `${8 + Math.random() * 12}s`,
+              animation: `bubble-rise ${8 + Math.random() * 12}s ${Math.random() * 20}s infinite linear`,
+              opacity: 0.4
+            }}
+          />
+        ))}
+        
+        {/* Partículas de plâncton luminoso */}
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={`plankton-${i}`}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              width: `${2 + Math.random() * 3}px`,
+              height: `${2 + Math.random() * 3}px`,
+              animationDelay: `${Math.random() * 25}s`,
+              animationDuration: `${25 + Math.random() * 20}s`,
+              animation: `particle-float ${25 + Math.random() * 20}s ${Math.random() * 25}s infinite ease-in-out, particle-drift ${15 + Math.random() * 10}s ease-in-out infinite`,
+              background: `rgba(${Math.random() * 100 + 155}, ${Math.random() * 100 + 155}, 255, ${0.3 + Math.random() * 0.4})`,
+              filter: `blur(${Math.random() * 2}px)`
             }}
           />
         ))}
