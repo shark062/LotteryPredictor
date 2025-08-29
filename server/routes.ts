@@ -482,6 +482,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para análise histórica completa com OpenAI + n8n
+  app.post("/api/ai/complete-analysis", async (req, res) => {
+    try {
+      const { lottery, fullAnalysis, useOpenAI, useN8n } = req.body;
+      
+      console.log(`🔍 Iniciando análise histórica completa para ${lottery}`);
+      
+      // Buscar ID da loteria
+      const lotteries = await storage.getAllLotteries();
+      const targetLottery = lotteries.find(l => 
+        l.name.toLowerCase().includes(lottery.toLowerCase()) ||
+        l.slug.toLowerCase().includes(lottery.toLowerCase())
+      );
+
+      if (!targetLottery) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Loteria não encontrada" 
+        });
+      }
+
+      // Executar análise completa
+      const analysis = await aiService.performCompleteHistoricalAnalysis(targetLottery.id);
+      
+      res.json({
+        success: true,
+        message: "Análise histórica completa concluída",
+        ...analysis,
+        lottery: targetLottery.name,
+        timestamp: new Date()
+      });
+
+    } catch (error) {
+      console.error("Erro na análise histórica completa:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao executar análise histórica completa" 
+      });
+    }
+  });
+
   // Simular sorteio para testar atualização de precisão
   app.post("/api/ai/simulate-draw/:lotteryId", async (req, res) => {
     try {

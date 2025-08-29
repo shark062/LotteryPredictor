@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast"; // Import toast here
 
 interface HeatMapProps {
   selectedLottery: number;
@@ -14,10 +15,39 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
     queryKey: ["/api/lotteries"],
   });
 
-  const { data: frequencies, isLoading } = useQuery({
+  const { data: frequencies, isLoading, isError, error } = useQuery({
     queryKey: ["/api/lotteries", selectedLottery, "frequencies"],
     enabled: selectedLottery > 0,
   });
+
+  // Function to trigger historical analysis
+  const triggerHistoricalAnalysis = async () => {
+    try {
+      const response = await fetch("/api/analysis/historical", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ lotteryId: selectedLottery }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to start historical analysis.");
+      }
+
+      toast({
+        title: "Análise Histórica Iniciada",
+        description: "O processo de análise histórica foi iniciado. Os resultados serão refletidos em breve.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro na Análise Histórica",
+        description: err.message || "Ocorreu um erro ao iniciar a análise histórica.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const selectedLotteryData = Array.isArray(lotteries) ? lotteries.find((l: any) => l.id === selectedLottery) : null;
 
@@ -36,6 +66,16 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
   const validFrequencies = Array.isArray(frequencies) ? frequencies.filter((f: any) => f && typeof f.frequency === 'number') : [];
   const maxFrequency = validFrequencies.length > 0 ? Math.max(...validFrequencies.map((f: any) => f.frequency)) : 0;
 
+  // Handle errors for frequencies query
+  if (isError && selectedLottery > 0) {
+    console.error("Error fetching frequencies:", error);
+    toast({
+      title: "Erro ao carregar dados",
+      description: `Não foi possível carregar a frequência para a modalidade selecionada. ${error.message}`,
+      variant: "destructive",
+    });
+  }
+
   return (
     <Card className="bg-card/30 border border-border glow-effect backdrop-blur-md">
       <CardHeader>
@@ -44,27 +84,38 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             <span>🗺️</span>
             <span>Mapa de Calor - Frequência dos Números</span>
           </div>
-          <Select 
-            value={selectedLottery === 0 ? "" : selectedLottery.toString()} 
-            onValueChange={(value) => onLotteryChange(parseInt(value))}
-          >
-            <SelectTrigger className="w-48" data-testid="select-lottery-heatmap">
-              <SelectValue placeholder="Selecione a modalidade" />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
-                <SelectItem key={lottery.id} value={lottery.id.toString()}>
-                  {lottery.name} (1-{lottery.maxNumber})
-                </SelectItem>
-              )) : null}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center space-x-4">
+            {selectedLottery > 0 && (
+              <button 
+                onClick={triggerHistoricalAnalysis}
+                className="px-3 py-1.5 border border-primary text-primary rounded-md hover:bg-primary/10 transition-colors text-sm"
+                data-testid="analyze-button-heatmap"
+              >
+                Analisar Histórico
+              </button>
+            )}
+            <Select 
+              value={selectedLottery === 0 ? "" : selectedLottery.toString()} 
+              onValueChange={(value) => onLotteryChange(parseInt(value))}
+            >
+              <SelectTrigger className="w-48" data-testid="select-lottery-heatmap">
+                <SelectValue placeholder="Selecione a modalidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
+                  <SelectItem key={lottery.id} value={lottery.id.toString()}>
+                    {lottery.name} (1-{lottery.maxNumber})
+                  </SelectItem>
+                )) : null}
+              </SelectContent>
+            </Select>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (
           <div className="grid grid-cols-10 gap-1">
-            {Array.from({ length: 60 }, (_, i) => (
+            {Array.from({ length: selectedLotteryData?.maxNumber || 60 }, (_, i) => (
               <Skeleton key={i} className="w-10 h-10 rounded" />
             ))}
           </div>
@@ -92,7 +143,7 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
                 const frequencyData = validFrequencies.find((f: any) => f.number === number);
                 const frequency = frequencyData?.frequency || 0;
                 const heatLevel = getHeatLevel(frequency, maxFrequency);
-                
+
                 return (
                   <div
                     key={number}
