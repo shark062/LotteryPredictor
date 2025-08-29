@@ -644,7 +644,7 @@ export default function NumberGenerator({
                             className="relative w-16 h-16 flex items-center justify-center"
                           >
                             <span className="text-5xl text-green-500">🍀</span>
-                            <span className="absolute inset-0 flex items-center justify-center text-black font-bold text-lg drop-shadow-2xl shadow-white">
+                            <span className="absolute inset-0 flex items-center justify-center text-white font-black text-lg" style={{ textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 2px 2px 4px rgba(0,0,0,0.8)' }}>
                               {clover}
                             </span>
                           </div>
