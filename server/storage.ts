@@ -148,13 +148,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserGames(userId: string, lotteryId?: number): Promise<UserGame[]> {
-    const query = db.select().from(userGames).where(eq(userGames.userId, userId));
-
     if (lotteryId) {
-      return await query.where(eq(userGames.lotteryId, lotteryId));
+      return await db.select().from(userGames).where(and(eq(userGames.userId, userId), eq(userGames.lotteryId, lotteryId)));
     }
 
-    return await query;
+    return await db.select().from(userGames).where(eq(userGames.userId, userId));
   }
 
   async getUserGamesByLottery(lotteryId: number): Promise<UserGame[]> {
@@ -364,7 +362,7 @@ export class DatabaseStorage implements IStorage {
       // Substitua `this.db.execute` pelo método correto do seu cliente de banco de dados
       // Aqui, estamos usando `db` diretamente como no restante da classe, mas para maior clareza,
       // pode ser melhor ter uma instância de banco de dados explícita na classe.
-      await db.execute(query, [lotteryName, JSON.stringify(data)]);
+      await db.execute(sql`INSERT INTO n8n_statistics (lottery_name, statistics_data, created_at) VALUES (${lotteryName}, ${JSON.stringify(data)}, NOW()) ON CONFLICT (lottery_name) DO UPDATE SET statistics_data = ${JSON.stringify(data)}, updated_at = NOW()`);
       console.log(`✅ Estatísticas n8n salvas para ${lotteryName}`);
     } catch (error) {
       console.error("Erro ao salvar estatísticas n8n:", error);
@@ -379,7 +377,7 @@ export class DatabaseStorage implements IStorage {
         VALUES ($1, NOW())
       `;
       // Novamente, assumindo `db` acessível.
-      await db.execute(query, [JSON.stringify(strategies)]);
+      await db.execute(sql`INSERT INTO n8n_strategies (strategies_data, created_at) VALUES (${JSON.stringify(strategies)}, NOW())`);
       console.log('✅ Estratégias n8n salvas');
     } catch (error) {
       console.error("Erro ao salvar estratégias n8n:", error);
@@ -390,15 +388,15 @@ export class DatabaseStorage implements IStorage {
   async getLatestN8nStrategies(): Promise<any> {
     try {
       // Assumindo `db` acessível.
-      const result = await db.execute(`
+      const result = await db.execute(sql`
         SELECT strategies_data
         FROM n8n_strategies
         ORDER BY created_at DESC
         LIMIT 1
       `);
 
-      if (result.rows.length > 0) {
-        return JSON.parse(result.rows[0].strategies_data);
+      if (result.rows && result.rows.length > 0) {
+        return JSON.parse((result.rows[0] as any).strategies_data);
       }
 
       return {};
@@ -411,12 +409,11 @@ export class DatabaseStorage implements IStorage {
   async getLotteryByName(name: string): Promise<any> {
     try {
       // Assumindo `db` acessível.
-      const result = await db.execute(
-        'SELECT * FROM lotteries WHERE name = $1',
-        [name]
-      );
+      const result = await db.execute(sql`
+        SELECT * FROM lotteries WHERE name = ${name}
+      `);
 
-      return result.rows[0] || null;
+      return (result.rows && result.rows[0]) || null;
     } catch (error) {
       console.error("Erro ao buscar loteria por nome:", error);
       return null;
