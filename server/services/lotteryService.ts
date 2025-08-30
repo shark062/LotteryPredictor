@@ -306,6 +306,8 @@ export class LotteryService {
     // Ocultar após 7 de setembro até o próximo ano
     if (currentMonth === 8) return true; // Agosto todo
     if (currentMonth === 9 && currentDay <= 7) return true; // Até 7 de setembro
+    
+    // Como estamos fora da época, não mostrar
     return false; // Resto do ano oculto
   }
 

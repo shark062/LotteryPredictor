@@ -331,7 +331,18 @@ export class CaixaLotteryService {
     const date = data.dataApuracao || data.data || '';
     let drawnNumbers: number[] = [];
 
-    if (lotteryName === 'Super Sete' && data.grupos && Array.isArray(data.grupos)) {
+    if (lotteryName === '+Milionária' && data.listaDezenas && data.listaDezenasSegundoSorteio) {
+      // +Milionária tem dois sorteios: números principais e trevos
+      const mainNumbers = Array.isArray(data.listaDezenas) 
+        ? data.listaDezenas.map(n => parseInt(n))
+        : data.listaDezenas.split('-').map(n => parseInt(n.trim()));
+      
+      const trevos = Array.isArray(data.listaDezenasSegundoSorteio)
+        ? data.listaDezenasSegundoSorteio.map(n => parseInt(n))
+        : data.listaDezenasSegundoSorteio.split('-').map(n => parseInt(n.trim()));
+      
+      drawnNumbers = [...mainNumbers, ...trevos];
+    } else if (lotteryName === 'Super Sete' && data.grupos && Array.isArray(data.grupos)) {
       // Super Sete tem um formato diferente, com sorteios por grupo
       const allGroupNumbers: number[] = [];
       data.grupos.forEach((group: any) => {
