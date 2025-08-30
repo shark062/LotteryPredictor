@@ -407,55 +407,109 @@ export class CaixaLotteryService {
     // Processar premiação baseado no tipo de loteria
     const winners = this.processWinnerData(data, lotteryName);
     const accumulated = data.valorAcumuladoProximoConcurso || data.valorEstimadoProximoConcurso;
+    const nextEstimate = data.valorEstimadoProximoConcurso;
+    const totalPrize = data.valorArrecadado;
+    const nextDraw = data.dataProximoConcurso;
 
     return {
+      lottery: lotteryName,
       contest,
       date: date || new Date().toLocaleDateString('pt-BR'),
       drawnNumbers: drawnNumbers.map((n: number) => {
         return n;
       }),
       winners,
-      accumulated: accumulated && accumulated > 0 ? `R$ ${this.formatMoney(accumulated)}` : undefined
+      accumulated: data.acumulado === true || data.acumulado === 'true',
+      nextEstimate: nextEstimate && nextEstimate > 0 ? `R$ ${this.formatMoney(nextEstimate)}` : undefined,
+      totalPrize: totalPrize && totalPrize > 0 ? `R$ ${this.formatMoney(totalPrize)}` : undefined,
+      nextDraw: nextDraw || undefined
     };
   }
 
-  private processWinnerData(data: any, lotteryName: string): { [key: string]: { count: number; prize: string } } {
-    const winners: { [key: string]: { count: number; prize: string } } = {};
+  private processWinnerData(data: any, lotteryName: string): any[] {
+    const winners: any[] = [];
 
     if (data.listaRateioPremio && Array.isArray(data.listaRateioPremio)) {
       data.listaRateioPremio.forEach((prize: any) => {
         if (prize && typeof prize === 'object') {
-          const description = this.getPrizeDescription(prize.descricaoFaixa, lotteryName);
+          const hits = this.extractHitsFromDescription(prize.descricaoFaixa || '', lotteryName);
           const count = parseInt(prize.numeroDeGanhadores) || 0;
           const prizeValue = parseFloat(prize.valorPremio) || 0;
 
-          if (description && !isNaN(count) && !isNaN(prizeValue)) {
-            winners[description] = {
-              count: count,
-              prize: `R$ ${this.formatMoney(prizeValue)}`
-            };
+          if (hits > 0 && !isNaN(count) && !isNaN(prizeValue)) {
+            winners.push({
+              hits: hits,
+              winnerCount: count,
+              prizeValue: prizeValue > 0 ? `R$ ${this.formatMoney(prizeValue)}` : 'Não há ganhadores'
+            });
           }
         }
       });
     } else if (lotteryName === 'Super Sete' && data.premios && Array.isArray(data.premios)) {
-      // Tratamento específico para Super Sete, que pode ter o formato de premiação diferente
+      // Tratamento específico para Super Sete
       data.premios.forEach((prize: any) => {
         if (prize && typeof prize === 'object') {
-          const description = prize.faixa; // Assumindo que 'faixa' contém a descrição dos acertos
+          const hits = this.extractHitsFromDescription(prize.faixa || '', lotteryName);
           const count = parseInt(prize.ganhadores) || 0;
           const prizeValue = parseFloat(prize.valor) || 0;
 
-          if (description && !isNaN(count) && !isNaN(prizeValue)) {
-            winners[description] = {
-              count: count,
-              prize: `R$ ${this.formatMoney(prizeValue)}`
-            };
+          if (hits > 0 && !isNaN(count) && !isNaN(prizeValue)) {
+            winners.push({
+              hits: hits,
+              winnerCount: count,
+              prizeValue: prizeValue > 0 ? `R$ ${this.formatMoney(prizeValue)}` : 'Não há ganhadores'
+            });
           }
         }
       });
     }
 
-    return winners;
+    // Ordenar por número de acertos (maior primeiro)
+    return winners.sort((a, b) => b.hits - a.hits);
+  }
+
+  private extractHitsFromDescription(description: string, lotteryName: string): number {
+    if (!description) return 0;
+
+    // Extrair número de acertos da descrição
+    const match = description.match(/(\d+)/);
+    if (match) {
+      return parseInt(match[1]);
+    }
+
+    // Mapeamento específico por loteria
+    const hitMappings: { [key: string]: { [key: string]: number } } = {
+      'Mega-Sena': {
+        'sena': 6,
+        'quina': 5,
+        'quadra': 4
+      },
+      'Lotofácil': {
+        '15': 15,
+        '14': 14,
+        '13': 13,
+        '12': 12,
+        '11': 11
+      },
+      'Quina': {
+        'quina': 5,
+        'quadra': 4,
+        'terno': 3,
+        'duque': 2
+      }
+    };
+
+    const lotteryMapping = hitMappings[lotteryName];
+    if (lotteryMapping) {
+      const desc = description.toLowerCase();
+      for (const [key, value] of Object.entries(lotteryMapping)) {
+        if (desc.includes(key)) {
+          return value;
+        }
+      }
+    }
+
+    return 0;
   }
 
   private getPrizeDescription(originalDesc: string, lotteryName: string): string {

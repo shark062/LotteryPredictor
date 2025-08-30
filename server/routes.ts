@@ -298,6 +298,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota específica para dados detalhados dos concursos
+  app.get("/api/lotteries/contest-winners", async (req, res) => {
+    try {
+      console.log('🏆 Buscando dados detalhados dos ganhadores dos últimos concursos...');
+      const contestData = await caixaLotteryService.getLatestResults();
+      
+      res.json({
+        success: true,
+        data: contestData,
+        source: 'Caixa Econômica Federal - API Oficial',
+        timestamp: new Date().toISOString(),
+        count: Object.keys(contestData).length
+      });
+    } catch (error) {
+      console.error("Error fetching detailed contest winners:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to fetch detailed contest winners",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Rota para registrar uso e contribuir para aprendizado
   app.post("/api/lotteries/:slug/contribute-usage", async (req, res) => {
     try {
