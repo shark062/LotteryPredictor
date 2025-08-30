@@ -246,26 +246,17 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
           <>
             {/* Mapa de Calor Principal */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <h4 className="text-lg font-semibold text-white flex items-center gap-2">
                   <Activity className="w-5 h-5 text-purple-400" />
                   Mapa de Frequência - {selectedLotteryData?.name}
                 </h4>
                 <div className="text-sm text-slate-400">
-                  Total de números: {selectedLotteryData?.maxNumber}
+                  Total: {selectedLotteryData?.maxNumber} números
                 </div>
               </div>
               
-              <div 
-                className="grid gap-2 p-4 bg-slate-800/50 rounded-xl" 
-                style={{ 
-                  gridTemplateColumns: selectedLotteryData?.maxNumber <= 25 
-                    ? 'repeat(5, minmax(0, 1fr))' 
-                    : selectedLotteryData?.maxNumber <= 60 
-                    ? 'repeat(10, minmax(0, 1fr))' 
-                    : 'repeat(10, minmax(0, 1fr))'
-                }}
-              >
+              <div className="heat-map-grid">
                 {Array.from({ length: selectedLotteryData?.maxNumber || 60 }, (_, i) => {
                   const number = i + 1;
                   const frequencyData = validFrequencies.find(f => f.number === number);
@@ -276,17 +267,13 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
                   return (
                     <div
                       key={number}
-                      className={cn(
-                        "w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold text-xs cursor-pointer hover:scale-110 transition-all duration-200 shadow-lg",
-                        `heat-${heatLevel}`,
-                        "hover:shadow-xl hover:z-10 relative"
-                      )}
+                      className={cn("heat-number", `heat-${heatLevel}`)}
                       title={`Número ${number}\nFrequência: ${frequency} vezes\nPercentual: ${percentage}% do máximo`}
                     >
-                      <span className="text-xs font-bold">
+                      <span className="heat-number-main">
                         {number.toString().padStart(2, '0')}
                       </span>
-                      <span className="text-[8px] opacity-80">
+                      <span className="heat-number-freq">
                         {frequency}
                       </span>
                     </div>
@@ -296,31 +283,31 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             </div>
 
             {/* Legenda do Mapa de Calor */}
-            <div className="bg-slate-800/30 rounded-xl p-4">
-              <h5 className="text-sm font-semibold text-white mb-3">Legenda de Intensidade</h5>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-xs">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-0 rounded-lg"></div>
+            <div className="bg-slate-800/30 rounded-xl p-3">
+              <h5 className="text-sm font-semibold text-white mb-2">Legenda de Intensidade</h5>
+              <div className="flex flex-wrap gap-3 text-xs">
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-0"></div>
                   <span className="text-slate-300">Muito Frio</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-1 rounded-lg"></div>
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-1"></div>
                   <span className="text-slate-300">Frio</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-2 rounded-lg"></div>
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-2"></div>
                   <span className="text-slate-300">Morno</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-3 rounded-lg"></div>
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-3"></div>
                   <span className="text-slate-300">Quente</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-4 rounded-lg"></div>
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-4"></div>
                   <span className="text-slate-300">Muito Quente</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 heat-5 rounded-lg"></div>
+                <div className="heat-legend">
+                  <div className="heat-legend-item heat-5"></div>
                   <span className="text-slate-300">Máximo</span>
                 </div>
               </div>
