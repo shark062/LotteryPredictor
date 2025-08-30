@@ -116,7 +116,8 @@ export default function LotteryCard({ lottery, onSelect, index = 0 }: LotteryCar
       'timemania': 'Timemania',
       'dupla-sena': 'Dupla-Sena',
       'dia-de-sorte': 'Dia de Sorte',
-      'super-sete': 'Super Sete'
+      'super-sete': 'Super Sete',
+      'mais-milionaria': '+Milionária'
     };
 
     const mappedName = nameMapping[lottery.slug] || lottery.name;

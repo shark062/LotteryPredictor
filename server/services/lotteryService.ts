@@ -288,6 +288,11 @@ export class LotteryService {
         prize: 'R$ 2.300.000',
         date: this.getNextDrawDate('Sexta', referenceDate),
         contestNumber: 540,
+      },
+      '+Milionária': {
+        prize: 'R$ 10.000.000',
+        date: this.getNextDrawDate('Sábado', referenceDate),
+        contestNumber: 150,
       }
     };
   }

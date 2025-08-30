@@ -65,7 +65,8 @@ export class CaixaLotteryService {
       { name: 'Timemania', endpoint: 'timemania' },
       { name: 'Dupla-Sena', endpoint: 'duplasena' },
       { name: 'Dia de Sorte', endpoint: 'diadesorte' },
-      { name: 'Super Sete', endpoint: 'supersete' }
+      { name: 'Super Sete', endpoint: 'supersete' },
+      { name: '+Milionária', endpoint: 'maismilionaria' }
     ];
 
     const results: { [key: string]: LotteryResult } = {};
@@ -313,7 +314,8 @@ export class CaixaLotteryService {
       'Timemania': 7, // 7 números + time
       'Dupla-Sena': 6,
       'Dia de Sorte': 7,
-      'Super Sete': 7
+      'Super Sete': 7,
+      '+Milionária': 8 // 6 números + 2 trevos
     };
 
     return expectedCounts[lotteryName] || 6;
