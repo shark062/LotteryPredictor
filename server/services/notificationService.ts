@@ -1,4 +1,3 @@
-
 import { WebSocket } from 'ws';
 import { storage } from '../storage';
 
@@ -89,7 +88,7 @@ export class NotificationService {
   // Broadcast para todos os usuários conectados
   broadcast(notification: NotificationData) {
     console.log(`📢 Broadcasting: ${notification.title} - ${notification.message}`);
-    
+
     this.connectedUsers.forEach((user, userId) => {
       if (user.socket.readyState === WebSocket.OPEN) {
         try {
@@ -108,20 +107,20 @@ export class NotificationService {
   async checkForRealWinners() {
     try {
       const lotteries = await storage.getAllLotteries();
-      
+
       for (const lottery of lotteries) {
         const latestResults = await storage.getLatestResults(lottery.id, 5);
-        
+
         if (latestResults && latestResults.length > 0) {
           const latestResult = latestResults[0];
-          
+
           // Verificar se há ganhadores reais neste resultado
           if (latestResult.winners && latestResult.winners.length > 0) {
             for (const winner of latestResult.winners) {
               if (winner.winners > 0 && winner.prize) {
                 // Atualizar estatísticas
                 this.updateWinnerStats(lottery.name, winner.winners, winner.prize);
-                
+
                 // Notificar sobre ganhador real
                 this.notifyRealWinner(
                   lottery.name,
@@ -163,7 +162,7 @@ export class NotificationService {
     };
 
     this.broadcast(notification);
-    
+
     console.log(`🏆 GANHADOR REAL DETECTADO: ${winnerCount} ganhador(es) - ${prize} na ${lottery} (Concurso ${contestNumber})`);
   }
 
@@ -171,32 +170,32 @@ export class NotificationService {
   updateWinnerStats(lottery: string, winnerCount: number, prize: string) {
     // Converter prize string para número para cálculos
     const prizeValue = this.parsePrizeValue(prize);
-    
+
     this.winnerStats.totalWinners += winnerCount;
     this.winnerStats.todayWinners += winnerCount;
-    
+
     // Atualizar stats por loteria
     if (!this.winnerStats.lotteryStats[lottery]) {
       this.winnerStats.lotteryStats[lottery] = { winners: 0, totalPrize: 'R$ 0,00' };
     }
-    
+
     this.winnerStats.lotteryStats[lottery].winners += winnerCount;
     const currentLotteryPrize = this.parsePrizeValue(this.winnerStats.lotteryStats[lottery].totalPrize);
     this.winnerStats.lotteryStats[lottery].totalPrize = this.formatPrizeValue(currentLotteryPrize + (prizeValue * winnerCount));
-    
+
     // Atualizar maior prêmio
     if (prizeValue > this.parsePrizeValue(this.winnerStats.biggestPrize)) {
       this.winnerStats.biggestPrize = prize;
     }
-    
+
     // Recalcular totais
     const totalPrizeValue = this.parsePrizeValue(this.winnerStats.totalPrizes) + (prizeValue * winnerCount);
     this.winnerStats.totalPrizes = this.formatPrizeValue(totalPrizeValue);
-    
+
     if (this.winnerStats.totalWinners > 0) {
       this.winnerStats.averagePrize = this.formatPrizeValue(totalPrizeValue / this.winnerStats.totalWinners);
     }
-    
+
     // Broadcast das estatísticas atualizadas
     this.broadcastWinnerStats();
   }
@@ -218,17 +217,17 @@ export class NotificationService {
   async checkPrizeUpdates() {
     try {
       const lotteries = await storage.getAllLotteries();
-      
+
       for (const lottery of lotteries) {
         // Aqui você pode integrar com o serviço que busca dados da Caixa
         // Por enquanto, vamos simular verificação de mudança de prêmio
         const currentPrize = await this.getCurrentPrize(lottery.name);
         const lastKnownPrize = this.lastKnownPrizes.get(lottery.name);
-        
+
         if (currentPrize && lastKnownPrize && currentPrize !== lastKnownPrize) {
           this.notifyPrizeUpdate(lottery.name, currentPrize, lastKnownPrize);
         }
-        
+
         if (currentPrize) {
           this.lastKnownPrizes.set(lottery.name, currentPrize);
         }
@@ -248,7 +247,7 @@ export class NotificationService {
   // Notificar início de sorteio baseado em dados reais
   notifyDrawStarting(lottery: string, drawTime: Date, contestNumber: number) {
     const timeUntil = Math.round((drawTime.getTime() - Date.now()) / (1000 * 60)); // minutos
-    
+
     const notification: NotificationData = {
       id: `draw-${lottery}-${contestNumber}`,
       type: 'draw_starting',
@@ -343,11 +342,18 @@ export class NotificationService {
   }
 
   // Iniciar monitoramento periódico com dados reais
-  startPeriodicChecks() {
-    // Verificar ganhadores reais a cada 60 segundos para reduzir carga
-    setInterval(() => {
-      this.checkForNewWinners();
-    }, 60 * 1000);
+  startPeriodicChecks(): void {
+    // Verificar a cada 5 minutos se há novos resultados
+    setInterval(async () => {
+      try {
+        // Verificar se há conexões ativas antes de processar
+        if (this.connectedUsers.size > 0) {
+          await this.checkForNewResults();
+        }
+      } catch (error) {
+        console.error('Erro na verificação periódica:', error);
+      }
+    }, 5 * 60 * 1000);
 
     // Reset das estatísticas diárias à meia-noite
     setInterval(() => {
@@ -378,7 +384,7 @@ export class NotificationService {
       biggestPrize: 'R$ 0,00',
       lotteryStats: {}
     };
-    
+
     this.broadcastWinnerStats();
   }
 }

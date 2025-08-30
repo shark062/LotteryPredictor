@@ -1230,6 +1230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Import n8n service
   const { n8nService } = await import('./services/n8nService');
+  
+  // Import health check service
+  const { HealthCheckService } = await import('./healthCheck');
 
   // n8n Integration Routes
   app.post('/api/n8n/start', async (req, res) => {
@@ -1368,6 +1371,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating advanced prediction:", error);
       res.status(500).json({ message: "Failed to generate advanced prediction" });
+    }
+  });
+
+  // Health check routes
+  app.get('/api/health', async (req, res) => {
+    try {
+      const healthStatus = await HealthCheckService.performFullHealthCheck();
+      
+      res.status(healthStatus.overall === 'healthy' ? 200 : 
+                 healthStatus.overall === 'degraded' ? 206 : 503)
+         .json({
+           ...healthStatus,
+           message: healthStatus.overall === 'healthy' ? 
+                   'Todos os sistemas operacionais' :
+                   healthStatus.overall === 'degraded' ?
+                   'Alguns sistemas com problemas' :
+                   'Sistemas críticos com falhas'
+         });
+    } catch (error) {
+      console.error('Erro no health check:', error);
+      res.status(500).json({
+        overall: 'unhealthy',
+        message: 'Erro interno no health check',
+        error: error.message
+      });
+    }
+  });
+
+  // Portability check route
+  app.get('/api/portability', async (req, res) => {
+    try {
+      const portabilityStatus = await HealthCheckService.checkPortability();
+      
+      res.json({
+        ...portabilityStatus,
+        recommendations: portabilityStatus.exportReady ? [
+          'Projeto pronto para exportação',
+          'Manter arquivo .env com variáveis necessárias',
+          'Executar npm install no ambiente de destino',
+          'Configurar banco PostgreSQL no novo ambiente'
+        ] : [
+          'Resolver issues listadas antes da exportação',
+          'Verificar dependências do package.json',
+          'Configurar variáveis de ambiente',
+          'Testar conexão com banco de dados'
+        ]
+      });
+    } catch (error) {
+      console.error('Erro na verificação de portabilidade:', error);
+      res.status(500).json({
+        exportReady: false,
+        error: error.message
+      });
     }
   });
 

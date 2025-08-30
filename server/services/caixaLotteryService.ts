@@ -287,7 +287,12 @@ export class CaixaLotteryService {
 
     // Verificar se os números fazem sentido para a loteria específica
     const expectedNumberCount = this.getExpectedNumberCount(lotteryName);
-    const hasCorrectCount = result.drawnNumbers.length === expectedNumberCount;
+    let hasCorrectCount = result.drawnNumbers.length === expectedNumberCount;
+    
+    // Para +Milionária, aceitar tanto 6 números (apenas principais) quanto 8 (principais + trevos)
+    if (lotteryName === '+Milionária') {
+      hasCorrectCount = result.drawnNumbers.length === 6 || result.drawnNumbers.length === 8;
+    }
 
     const isValid = isValidContest && isValidDate && hasValidNumbers && numbersAreValid && hasCorrectCount;
 

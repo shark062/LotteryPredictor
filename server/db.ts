@@ -19,6 +19,10 @@ const poolConfig = {
   allowExitOnIdle: false,
   statement_timeout: 30000,
   query_timeout: 25000,
+  // Configurações adicionais para estabilidade
+  application_name: 'sharkloto_app',
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 0,
 };
 
 export const pool = new Pool(poolConfig);
