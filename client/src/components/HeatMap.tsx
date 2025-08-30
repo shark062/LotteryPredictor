@@ -182,8 +182,8 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
             </Select>
           </div>
 
-          {/* Nome da loteria e range */}
-          {selectedLotteryData && (
+          {/* Nome da loteria e range - só aparece após seleção */}
+          {selectedLottery > 0 && selectedLotteryData && (
             <div className="text-center">
               <h4 className="text-lg font-semibold text-cyan-300">{selectedLotteryData.name}</h4>
               <p className="text-sm text-slate-400">(1-{selectedLotteryData.maxNumber})</p>
