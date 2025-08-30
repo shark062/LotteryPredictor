@@ -344,10 +344,10 @@ export class NotificationService {
 
   // Iniciar monitoramento periódico com dados reais
   startPeriodicChecks() {
-    // Verificar ganhadores reais a cada 30 segundos
+    // Verificar ganhadores reais a cada 60 segundos para reduzir carga
     setInterval(() => {
       this.checkForNewWinners();
-    }, 30 * 1000);
+    }, 60 * 1000);
 
     // Reset das estatísticas diárias à meia-noite
     setInterval(() => {

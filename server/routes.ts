@@ -46,7 +46,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/lotteries", async (req, res) => {
     try {
       const lotteries = await storage.getAllLotteries();
-      res.json(lotteries);
+      const filteredLotteries = lotteries.filter(lottery => lottery.name !== 'Loteria Federal');
+      res.json(filteredLotteries);
     } catch (error) {
       console.error("Error fetching lotteries:", error);
       res.status(500).json({ message: "Failed to fetch lotteries" });
@@ -1176,7 +1177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`❌ Conexão WebSocket fechada: ${code} - ${reason}`);
     });
 
-    // Ping/pong para manter conexão viva
+    // Ping/pong para manter conexão viva - reduzido para 25s
     const pingInterval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         try {
@@ -1188,7 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         clearInterval(pingInterval);
       }
-    }, 30000);
+    }, 25000);
 
     ws.on('close', () => {
       clearInterval(pingInterval);

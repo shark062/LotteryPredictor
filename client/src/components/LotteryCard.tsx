@@ -48,8 +48,8 @@ export default function LotteryCard({ lottery, onSelect, index = 0 }: LotteryCar
 
     fetchUpcomingData();
 
-    // Atualizar a cada 30 segundos
-    const interval = setInterval(fetchUpcomingData, 30000);
+    // Atualizar a cada 2 minutos para reduzir carga
+    const interval = setInterval(fetchUpcomingData, 120000);
     return () => clearInterval(interval);
   }, []);
 

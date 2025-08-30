@@ -29,7 +29,6 @@ export class LotteryDataService {
           { name: 'Dia de Sorte', betValue: '2.00', specialNumbers: true },
           { name: 'Super Sete', betValue: '2.50', specialNumbers: false },
           { name: '+Milionária', betValue: '10.00', specialNumbers: true },
-          { name: 'Loteria Federal', betValue: '5.00', specialNumbers: false },
           { name: 'Lotofácil-Independência', betValue: '3.00', specialNumbers: false }
         ];
 
@@ -273,18 +272,6 @@ export class LotteryDataService {
         betValue: '10.00',
         specialNumbers: true
       },
-      {
-        name: 'Loteria Federal',
-        slug: 'loteria-federal',
-        maxNumber: 99999,
-        minNumbers: 1,
-        maxNumbers: 1,
-        drawDays: JSON.stringify(['quarta', 'sabado']),
-        description: 'Bilhetes numerados de 00000 a 99999. Sistema tradicional de premiação.',
-        gameType: 'special',
-        betValue: '5.00',
-        specialNumbers: false
-      }
     ];
 
     console.log('Criando todas as 10 loterias brasileiras...');

@@ -137,7 +137,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
   useEffect(() => {
     let ws: WebSocket | null = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 3; // Reduzido para 3 tentativas
+    const maxReconnectAttempts = 5; // Aumentado para 5 tentativas
     let reconnectTimeout: NodeJS.Timeout | null = null;
     let isComponentMounted = true;
 
@@ -218,7 +218,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
           if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts && isComponentMounted) {
             reconnectAttempts++;
             // Aumenta o tempo de espera progressivamente
-            const delay = Math.min(5000 + (reconnectAttempts * 5000), 30000); // 5s, 10s, 15s, max 30s
+            const delay = Math.min(2000 + (reconnectAttempts * 3000), 15000); // 2s, 5s, 8s, 11s, 14s max
 
             reconnectTimeout = setTimeout(() => {
               if (isComponentMounted) {
@@ -238,7 +238,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
           // Só incrementar tentativas se não excedermos o limite
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            const delay = Math.min(5000 + (reconnectAttempts * 5000), 30000);
+            const delay = Math.min(2000 + (reconnectAttempts * 3000), 15000);
             reconnectTimeout = setTimeout(() => {
               if (isComponentMounted) {
                 console.log(`🔄 Tentativa de reconexão após erro ${reconnectAttempts}/${maxReconnectAttempts}...`);

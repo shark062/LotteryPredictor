@@ -540,13 +540,13 @@
   50% { transform: translateY(-10px) scale(1.1); opacity: 1; }
 }
 
-/* Original Heatmap styles - kept for reference but will be replaced */
-/* .heat-0 { background: linear-gradient(135deg, #0f172a, #1e293b); } */ /* Muito frio - azul escuro */
-/* .heat-1 { background: linear-gradient(135deg, #1e40af, #3b82f6); } */ /* Frio - azul */
-/* .heat-2 { background: linear-gradient(135deg, #7c3aed, #a855f7); } */ /* Morno - roxo */
-/* .heat-3 { background: linear-gradient(135deg, #ea580c, #f97316); } */ /* Quente - laranja */
-/* .heat-4 { background: linear-gradient(135deg, #dc2626, #ef4444); } */ /* Muito quente - vermelho */
-/* .heat-5 { background: linear-gradient(135deg, #eab308, #fbbf24); } */ /* Máximo - dourado */
+/* Heatmap styles - cyberpunk themed */
+.heat-0 { background: linear-gradient(135deg, #0f172a, #1e293b); color: #64748b; } /* Muito frio - azul escuro */
+.heat-1 { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #ffffff; } /* Frio - azul */
+.heat-2 { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #ffffff; } /* Morno - roxo */
+.heat-3 { background: linear-gradient(135deg, #ea580c, #f97316); color: #ffffff; } /* Quente - laranja */
+.heat-4 { background: linear-gradient(135deg, #dc2626, #ef4444); color: #ffffff; } /* Muito quente - vermelho */
+.heat-5 { background: linear-gradient(135deg, #eab308, #fbbf24); color: #000000; } /* Máximo - dourado */
 
 
 .confetti-container {
