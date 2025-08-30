@@ -132,67 +132,72 @@ export default function HeatMap({ selectedLottery, onLotteryChange }: HeatMapPro
   return (
     <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-purple-500/30 shadow-xl">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="text-center space-y-4">
+          {/* Título principal */}
+          <div className="flex items-center justify-center space-x-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <BarChart3 className="w-6 h-6 text-purple-400" />
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">Mapa de Calor - Frequência dos Números</h3>
-              <p className="text-sm text-slate-400">Análise detalhada baseada em dados históricos da Caixa</p>
-            </div>
+            <h3 className="text-xl font-bold text-white">Mapa de Calor - Frequência dos Números</h3>
           </div>
-          <div className="flex flex-col items-end space-y-3">
-            <div className="flex items-center space-x-3">
-              {selectedLottery > 0 && (
-                <button 
-                  onClick={triggerHistoricalAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm font-medium shadow-md"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Analisando...
-                    </>
-                  ) : (
-                    <>
-                      <Activity className="w-3.5 h-3.5" />
-                      Analisar Histórico
-                    </>
-                  )}
-                </button>
-              )}
-              <Select 
-                value={selectedLottery === 0 ? "" : selectedLottery.toString()} 
-                onValueChange={(value) => onLotteryChange(parseInt(value))}
+
+          {/* Descrição */}
+          <p className="text-sm text-slate-400">Análise detalhada baseada em dados históricos da Caixa</p>
+
+          {/* Botão e Seletor */}
+          <div className="flex items-center justify-center space-x-3">
+            {selectedLottery > 0 && (
+              <button 
+                onClick={triggerHistoricalAnalysis}
+                disabled={isAnalyzing}
+                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white rounded-md transition-all duration-200 flex items-center gap-1.5 text-sm font-medium shadow-md"
               >
-                <SelectTrigger className="w-56 bg-slate-800 border-slate-600 text-white">
-                  <SelectValue placeholder="Selecione a modalidade" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
-                    <SelectItem key={lottery.id} value={lottery.id.toString()} className="text-white hover:bg-slate-700">
-                      {lottery.name} (1-{lottery.maxNumber})
-                    </SelectItem>
-                  )) : null}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedLotteryData && (
-              <div className="text-right">
-                <h4 className="text-lg font-semibold text-cyan-300">{selectedLotteryData.name}</h4>
-                <p className="text-sm text-slate-400">Range: 1-{selectedLotteryData.maxNumber}</p>
-              </div>
+                {isAnalyzing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="w-3.5 h-3.5" />
+                    Analisar Histórico
+                  </>
+                )}
+              </button>
             )}
+            <Select 
+              value={selectedLottery === 0 ? "" : selectedLottery.toString()} 
+              onValueChange={(value) => onLotteryChange(parseInt(value))}
+            >
+              <SelectTrigger className="w-56 bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Selecione a modalidade" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                {Array.isArray(lotteries) ? lotteries.map((lottery: any) => (
+                  <SelectItem key={lottery.id} value={lottery.id.toString()} className="text-white hover:bg-slate-700">
+                    {lottery.name} (1-{lottery.maxNumber})
+                  </SelectItem>
+                )) : null}
+              </SelectContent>
+            </Select>
           </div>
-        </CardTitle>
-        {lastAnalysisUpdate && (
-          <div className="text-xs text-slate-400 flex items-center justify-between">
-            <span>Última análise: {lastAnalysisUpdate}</span>
-            <span className="text-purple-400">Dados da Caixa Econômica Federal</span>
-          </div>
-        )}
+
+          {/* Nome da loteria e range */}
+          {selectedLotteryData && (
+            <div className="text-center">
+              <h4 className="text-lg font-semibold text-cyan-300">{selectedLotteryData.name}</h4>
+              <p className="text-sm text-slate-400">(1-{selectedLotteryData.maxNumber})</p>
+            </div>
+          )}
+
+          {/* Informações de análise */}
+          {lastAnalysisUpdate && (
+            <div className="text-center space-y-1">
+              <p className="text-xs text-slate-400">Última análise: {lastAnalysisUpdate}</p>
+              <p className="text-xs text-purple-400">Dados da Caixa Econômica Federal</p>
+            </div>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-6">
