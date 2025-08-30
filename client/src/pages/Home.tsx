@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import logoUrl from '../assets/cyberpunk-shark.png';
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import ContestWinners from "@/components/ContestWinners";
 import NotificationSystem from "@/components/NotificationSystem";
 import PixDonationButton from "@/components/PixDonationButton";
 import N8nControlPanel from "@/components/N8nControlPanel"; // Importa o novo componente
+import { ErrorBoundary } from "react-error-boundary";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -348,7 +349,35 @@ export default function Home() {
                 em amarelo/vermelho são quentes (frequentes). Use essa informação para suas estratégias.
               </p>
             </div>
-            <HeatMap selectedLottery={selectedLottery || 1} onLotteryChange={setSelectedLottery} />
+            <ErrorBoundary
+              FallbackComponent={({ error, resetErrorBoundary }) => (
+                <div className="flex flex-col items-center justify-center p-8 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h3 className="text-lg font-semibold text-red-400 mb-2">Erro no Mapa de Calor</h3>
+                  <p className="text-sm text-muted-foreground mb-4 text-center">
+                    Houve um problema ao carregar o mapa de calor. Tente novamente.
+                  </p>
+                  <Button onClick={resetErrorBoundary} className="bg-red-600 hover:bg-red-700">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Tentar Novamente
+                  </Button>
+                </div>
+              )}
+              onError={(error) => {
+                console.error('Erro no HeatMap:', error);
+              }}
+            >
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
+                    <p className="text-muted-foreground">Carregando mapa de calor...</p>
+                  </div>
+                </div>
+              }>
+                <HeatMap selectedLottery={selectedLottery || 1} onLotteryChange={setSelectedLottery} />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* Results */}
